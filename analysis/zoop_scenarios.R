@@ -3,7 +3,7 @@
 
 library(ggplot2)
 
-scenario <- c("baseline","plus1", "plus3","plus5")
+scenario <- c("baseline","plus1", "plus5","plus10")
 
 for (i in 1:length(scenario)){
 
@@ -203,16 +203,16 @@ ggplot() +
             aes(DateTime, value, color = "+0C")) +
   geom_line(data=all_zoops_plus1,
             aes(DateTime, value, color = "+1C")) +
-  geom_line(data=all_zoops_plus3,
-            aes(DateTime, value, color = "+3C")) +
   geom_line(data=all_zoops_plus5,
             aes(DateTime, value, color = "+5C")) +
+  geom_line(data=all_zoops_plus10,
+            aes(DateTime, value, color = "+10C")) +
   geom_point(data=all_zoops_obs,
              aes(DateTime, value, color="observed")) + 
   facet_wrap(~taxon, scales="free_y", nrow=3, strip.position = "right") + 
   theme_bw() + xlab("") + 
   scale_color_manual("", values = c("#5B8E7D","#F4E285","#F4A259","#BC4B51","red"),
-                     breaks = c("+0C","+1C","+3C","+5C","observed")) +
+                     breaks = c("+0C","+1C","+5C","+10C","observed")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -229,7 +229,7 @@ ggplot() +
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/zoop_scenario_airtemp_1_3_5.jpg", width=6, height=6)
+#ggsave("figures/zoop_scenario_airtemp_1_5_10.jpg", width=6, height=6)
 
 #proportional zoop figs
 ggplot() +
@@ -237,15 +237,15 @@ ggplot() +
             aes(doy, annual_prop, color = "+0C")) +
   geom_line(data=all_zoops_plus1,
             aes(doy, annual_prop, color = "+1C")) +
-  geom_line(data=all_zoops_plus3,
-            aes(doy, annual_prop, color = "+3C")) +
   geom_line(data=all_zoops_plus5,
             aes(doy, annual_prop, color = "+5C")) +
+  geom_line(data=all_zoops_plus10,
+            aes(doy, annual_prop, color = "+10C")) +
   facet_wrap(~year, scales="free_y", strip.position = "top") + 
   ylab("Zooplankton annual proportion") +
   theme_bw() + xlab("") + guides(color = guide_legend(nrow = 2)) +
   scale_color_manual("", values = c("#5B8E7D","#F4E285","#F4A259","#BC4B51"),
-                     breaks = c("+0C","+1C","+3C","+5C")) +
+                     breaks = c("+0C","+1C","+5C","+10C")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -260,7 +260,7 @@ ggplot() +
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/proportional_zoop_scenario_airtemp_1_3_5.jpg", width=6, height=6)
+#ggsave("figures/proportional_zoop_scenario_airtemp_1_5_10.jpg", width=6, height=6)
 
 # plot phytos
 ggplot() +
@@ -268,14 +268,14 @@ ggplot() +
             aes(DateTime, value, color = "+0C")) +
   geom_line(data=all_phytos_plus1,
             aes(DateTime, value, color = "+1C")) +
-  geom_line(data=all_phytos_plus3,
-            aes(DateTime, value, color = "+3C")) +
   geom_line(data=all_phytos_plus5,
             aes(DateTime, value, color = "+5C")) +
+  geom_line(data=all_phytos_plus10,
+            aes(DateTime, value, color = "+10C")) +
   facet_wrap(~taxon, scales="free_y", nrow=3, strip.position = "right") + 
   theme_bw() + xlab("") +
   scale_color_manual("", values = c("#5B8E7D","#F4E285","#F4A259","#BC4B51"),
-                     breaks = c("+0C","+1C","+3C","+5C")) +
+                     breaks = c("+0C","+1C","+5C","+10C")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -292,7 +292,7 @@ ggplot() +
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/phytos_scenario_airtemp_1_3_5.jpg", width=6, height=6)
+#ggsave("figures/phytos_scenario_airtemp_1_5_10.jpg", width=6, height=6)
 
 #proportional phytos fig
 ggplot() +
@@ -300,10 +300,10 @@ ggplot() +
             aes(doy, annual_prop, color = "+0C")) +
   geom_line(data=all_phytos_plus1,
             aes(doy, annual_prop, color = "+1C")) +
-  geom_line(data=all_phytos_plus3,
-            aes(doy, annual_prop, color = "+3C")) +
   geom_line(data=all_phytos_plus5,
             aes(doy, annual_prop, color = "+5C")) +
+  geom_line(data=all_phytos_plus10,
+            aes(doy, annual_prop, color = "+10C")) +
   facet_wrap(~year, scales="free_y", strip.position = "top") + 
   theme_bw() + xlab("") + guides(color = guide_legend(nrow = 2)) +
   ylab("Phytoplankton annual proportion") +
@@ -323,7 +323,7 @@ ggplot() +
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/proportional_phyto_scenario_airtemp_1_3_5.jpg", width=6, height=6)
+#ggsave("figures/proportional_phyto_scenario_airtemp_1_5_10.jpg", width=6, height=6)
 
 # plot chla
 ggplot() +
@@ -331,15 +331,15 @@ ggplot() +
             aes(DateTime, PHY_tchla, color = "+0C")) +
   geom_line(data=subset(chla_plus1, Depth %in% 0),
             aes(DateTime, PHY_tchla, color = "+1C")) +
-  geom_line(data=subset(chla_plus3, Depth %in% 0),
-            aes(DateTime, PHY_tchla, color = "+3C")) +
   geom_line(data=subset(chla_plus5, Depth %in% 0),
             aes(DateTime, PHY_tchla, color = "+5C")) +
+  geom_line(data=subset(chla_plus10, Depth %in% 0),
+            aes(DateTime, PHY_tchla, color = "+10C")) +
   geom_point(data=subset(chla_obs, Depth %in% 0.1),
              aes(DateTime, PHY_tchla, color = "observed")) +
   theme_bw() + xlab("") +
   scale_color_manual("", values = c("#5B8E7D","#F4E285","#F4A259","#BC4B51","red"),
-                     breaks = c("+0C","+1C","+3C","+5C","observed")) +
+                     breaks = c("+0C","+1C","+5C","+10C","observed")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -357,3 +357,151 @@ ggplot() +
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
 #ggsave("figures/chla_0.1m_scenario_airtemp.jpg", width=6, height=6)
+
+#------------------------------------------------------------------------#
+# proportional plankton figs for each scenario
+
+#create a combined zoop df with all scenarios
+zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
+                 "all_zoops_plus5", "all_zoops_plus10")) %>% 
+                   setNames(paste0(scenario)) %>%
+                   bind_rows(.id = "scenario") %>%
+                   relocate(scenario, .after = last_col())
+  #write.csv(zoop_scenarios, "./analysis/output/zoop_scenarios.csv", row.names = F)
+  
+  
+  ggplot(data = zoop_scenarios,
+         aes(x=DateTime, y = value, color=taxon)) +
+  geom_area(aes(color = taxon, fill = taxon),
+            position = "fill", 
+            stat = "identity", 
+            alpha=0.7) +
+  facet_wrap(~scenario, scales = "free")+
+  scale_color_manual(values = c("#084c61","#db504a","#e3b505"))+
+  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
+  scale_x_date(expand = c(0,0), date_breaks = "6 months", 
+               date_labels = "%b-%Y") +
+  scale_y_continuous(expand = c(0,0))+
+  xlab("") + ylab("Relative density") +
+  guides(color= "none",
+         fill = guide_legend(ncol=3)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold",hjust = 0),
+        axis.text.x = element_text(angle=90),
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing = unit(0.5, "lines"))
+#ggsave("Figures/BVR_relative_zoop_scenarios.jpg", width=7, height=4) 
+
+  #create a combined df with all scenarios
+zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
+                 "all_zoops_plus5", "all_zoops_plus10")) %>% 
+                   setNames(paste0(scenario)) %>%
+                   bind_rows(.id = "scenario") %>%
+                   relocate(scenario, .after = last_col())
+  #write.csv(zoop_scenarios, "./analysis/data/zoop_scenarios.csv", row.names = F)
+  
+  
+  ggplot(data = zoop_scenarios,
+         aes(x=DateTime, y = value, color=taxon)) +
+  geom_area(aes(color = taxon, fill = taxon),
+            position = "fill", 
+            stat = "identity", 
+            alpha=0.7) +
+  facet_wrap(~scenario, scales = "free")+
+  scale_color_manual(values = c("#084c61","#db504a","#e3b505"))+
+  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
+  scale_x_date(expand = c(0,0), date_breaks = "6 months", 
+               date_labels = "%b-%Y") +
+  scale_y_continuous(expand = c(0,0))+
+  xlab("") + ylab("Relative density") +
+  guides(color= "none",
+         fill = guide_legend(ncol=3)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold",hjust = 0),
+        axis.text.x = element_text(angle=90),
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing = unit(0.5, "lines"))
+#ggsave("figures/BVR_relative_zoop_scenarios.jpg", width=7, height=4) 
+
+  
+#create a combined phyto df with all scenarios
+  phyto_scenarios <-  mget(c("all_phytos_baseline","all_phytos_plus1",
+                            "all_phytos_plus5", "all_phytos_plus10")) %>% 
+    setNames(paste0(scenario)) %>%
+    bind_rows(.id = "scenario") %>%
+    relocate(scenario, .after = last_col())
+  #write.csv(phyto_scenarios, "./analysis/data/phyto_scenarios.csv", row.names = F)
+  
+  ggplot(data = phyto_scenarios,
+         aes(x=DateTime, y = value, color=taxon)) +
+    geom_area(aes(color = taxon, fill = taxon),
+              position = "fill", 
+              stat = "identity", 
+              alpha=0.7) +
+    facet_wrap(~scenario, scales = "free")+
+    scale_color_manual(values = c("cyan","green","brown4"))+
+    scale_fill_manual(values = c("cyan","green","brown4"))+
+    scale_x_date(expand = c(0,0), date_breaks = "6 months", 
+                 date_labels = "%b-%Y") +
+    scale_y_continuous(expand = c(0,0))+
+    xlab("") + ylab("Relative density") +
+    guides(color= "none",
+           fill = guide_legend(ncol=3)) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          axis.text.x = element_text(angle=90),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/BVR_relative_phyto_scenarios.jpg", width=7, height=4) 
+  
+# histogram of max peak for each - 3 panel fig with 4 humps for scenarios
+  
+  

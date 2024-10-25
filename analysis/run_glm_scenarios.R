@@ -13,7 +13,7 @@ current_temp <- glmtools::get_var(nc_file, var_name = "temp")
 glmtools::plot_temp(nc_file, reference = "surface")
 
 # assign names to scenarios
-scenario_folder_names <- c("plus1","plus3","plus5")
+scenario_folder_names <- c("plus1","plus5","plus10")
 
 # create a folder for each scenarios and populate with sim files
 glm_files = list.files("./sims/baseline", full.names = TRUE)[1:3]
@@ -28,7 +28,7 @@ for (j in 1:length(scenario_folder_names)){
 
 # add corresponding degrees C to met Temp_C column for each scenario
 # set temperature increments 
-temp_increments <- c(1,3,5)
+temp_increments <- c(1,5,10)
 
 for (j in 1:length(scenario_folder_names)){
   
@@ -102,19 +102,19 @@ for (j in 1:length(scenario_folder_names)){
 #quick plots of inflow temp to make sure above code is doing what I want it to
 inflow_baseline <- read.csv("sims/baseline/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv")
 inflow_plus1 <- read.csv("sims/plus1/inputs/inflow_plus1.csv")
-inflow_plus3 <- read.csv("sims/plus3/inputs/inflow_plus3.csv")
 inflow_plus5 <- read.csv("sims/plus5/inputs/inflow_plus5.csv")
+inflow_plus10 <- read.csv("sims/plus10/inputs/inflow_plus10.csv")
 
 plot(as.Date(inflow_baseline$time), inflow_baseline$TEMP, ylim = c(-15,40), type="l")
 points(as.Date(inflow_plus1$time), inflow_plus1$TEMP, col = "#F4E285", type="l")
-points(as.Date(inflow_plus3$time), inflow_plus3$TEMP, col = "#F4A259", type="l")
-points(as.Date(inflow_plus5$time), inflow_plus5$TEMP, col = "#BC4B51", type="l")
+points(as.Date(inflow_plus5$time), inflow_plus5$TEMP, col = "#F4A259", type="l")
+points(as.Date(inflow_plus10$time), inflow_plus10$TEMP, col = "#BC4B51", type="l")
 legend("top", legend=c("baseline", "plus1C","plus3C","plus5C"),
        col=c("black", "#F4E285","#F4A259","#BC4B51"), 
        lty=1, cex=0.8, bty='n', horiz=T)
 max(inflow_plus1$TEMP) # 27.6
-max(inflow_plus3$TEMP) # 29.9
 max(inflow_plus5$TEMP) # 32.1
+max(inflow_plus10$TEMP) # 37.8
 
 #now read in met
 met_baseline <- read.csv("sims/baseline/inputs/met.csv") |>
@@ -131,14 +131,14 @@ met_plus1 <- read.csv("sims/plus1/inputs/met_plus1.csv") |>
   dplyr::summarise(mean_airtemp = mean(AirTemp)) |>
   dplyr::filter(time<= "2022-05-04")
 
-met_plus3 <- read.csv("sims/plus3/inputs/met_plus3.csv") |>
+met_plus5 <- read.csv("sims/plus5/inputs/met_plus5.csv") |>
   dplyr::select(time, AirTemp) |>
   dplyr::mutate(time = as.Date(time)) |>
   dplyr::group_by(time) |> 
   dplyr::summarise(mean_airtemp = mean(AirTemp)) |>
   dplyr::filter(time<= "2022-05-04")
 
-met_plus5 <- read.csv("sims/plus5/inputs/met_plus5.csv") |>
+met_plus10 <- read.csv("sims/plus10/inputs/met_plus10.csv") |>
   dplyr::select(time, AirTemp) |>
   dplyr::mutate(time = as.Date(time)) |>
   dplyr::group_by(time) |> 
@@ -147,12 +147,12 @@ met_plus5 <- read.csv("sims/plus5/inputs/met_plus5.csv") |>
 
 plot(as.Date(met_baseline$time), met_baseline$mean_airtemp, ylim = c(-15,40), type="l")
 points(as.Date(met_plus1$time), met_plus1$mean_airtemp, col = "#F4E285", type="l")
-points(as.Date(met_plus3$time), met_plus3$mean_airtemp, col = "#F4A259", type="l")
-points(as.Date(met_plus5$time), met_plus5$mean_airtemp, col = "#BC4B51", type="l")
+points(as.Date(met_plus5$time), met_plus5$mean_airtemp, col = "#F4A259", type="l")
+points(as.Date(met_plus10$time), met_plus10$mean_airtemp, col = "#BC4B51", type="l")
 legend("top", legend=c("baseline", "plus1C","plus3C","plus5C"),
        col=c("black", "#F4E285","#F4A259","#BC4B51"), 
        lty=1, cex=0.8, bty='n', horiz=T)
 
 max(met_plus1$mean_airtemp) # 29.5
-max(met_plus3$mean_airtemp) # 31.5
 max(met_plus5$mean_airtemp) # 33.5
+max(met_plus10$mean_airtemp) # 38.5

@@ -3,7 +3,9 @@
 
 #### phyto succession ####
 
-scenario <- c("baseline","plus1","plus3","plus5")
+pacman::p_load(tidyverse)
+
+scenario <- c("baseline","plus1","plus5","plus10")
 
 for(j in 1:length(scenario)) {
   
@@ -16,7 +18,7 @@ vars <- expand.grid(phytos,limits) |>
 mod <- NULL
 for(i in 1:nrow(vars)){
   var <- paste("PHY",vars[i,1],vars[i,2],sep="_")
-  tmp<- get_var(nc_file, var, reference="surface", z_out=depths) |> 
+  tmp<- glmtools::get_var(nc_file, var, reference="surface", z_out=depths) |> 
     pivot_longer(cols=starts_with(paste0(var,"_")), 
                  names_to="Depth", names_prefix=paste0(var,"_"), 
                  values_to = "value") |> 
@@ -29,60 +31,6 @@ for(i in 1:nrow(vars)){
 }
 
 assign(paste0("mod_", scenario[j]), mod)
-
-#phyto_biomass <- NULL
-#for(i in 1:length(phytos)){
-#  var <- paste("PHY",phytos[i],sep="_")
-#  tmp<- get_var(nc_file, var, reference="surface", z_out=depths) |> 
-#    pivot_longer(cols=starts_with(paste0(var,"_")), 
-#                 names_to="Depth", names_prefix=paste0(var,"_"), 
-#                 values_to = "value") |> 
-#    mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-#    mutate(Depth=as.numeric(Depth)) |> 
-#    na.omit() |>  
-#    mutate(phyto = phytos[i])
-#  phyto_biomass <- rbind(phyto_biomass, tmp)
-#}
-#
-#assign(paste0("phyto_biomass_", scenario[j]), phyto_biomass)
-#
-#
-#phytos <- c('cyano_gpp_c','green_gpp_c','diatom_gpp_c')
-#phyto_prod <- NULL
-#for(i in 1:length(phytos)){
-#  var <- paste("PHY",phytos[i],sep="_")
-#  tmp<- get_var(nc_file, var, reference="surface", z_out=depths) |> 
-#    pivot_longer(cols=starts_with(paste0(var,"_")), 
-#                 names_to="Depth", names_prefix=paste0(var,"_"), 
-#                 values_to = "value") |> 
-#    mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-#    mutate(Depth=as.numeric(Depth)) |> 
-#    na.omit() |> 
-#    mutate(phyto = phytos[i])
-#  phyto_prod <- rbind(phyto_prod, tmp)
-#}
-#
-#assign(paste0("phyto_prod_", scenario[j]), phyto_prod)
-
-#var="PHY_tchla"
-#obs<-read.csv('field_data/CleanedObsChla.csv', header=TRUE) |> 
-#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-#  rename(PHY_tchla = PHY_tchla) |> 
-#  dplyr::select(DateTime, Depth, var) |> 
-#  na.omit() |>  
-#  dplyr::filter(Depth == 1.0)
-#
-#assign(paste0("obs_", scenario[j]), obs)
-#
-#modeled <- get_var(nc_file, var, reference="surface", z_out=depths) |> 
-#  pivot_longer(cols=starts_with(paste0(var,"_")), names_to="Depth", 
-#               names_prefix=paste0(var,"_"), values_to = var) |> 
-#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-#  mutate(Depth=as.numeric(Depth)) |> 
-#  na.omit() |> 
-#  dplyr::filter(Depth == 1.0)
-#
-#assign(paste0("modeled_", scenario[j]), modeled)
 
 mod2 <- mod |>  pivot_wider(names_from = limit, values_from = value) |>  
   mutate(R_growth = ifelse(phyto == "cyano", 1.0, 1.4),
@@ -115,14 +63,6 @@ mod2_plus1 |>
   facet_wrap(~phyto, nrow = 3) +
   theme_bw()
 
-mod2_plus3 |> 
-  dplyr::filter(limit %in% c("fI","fPho","fSil","fNit","fT")) |> 
-  dplyr::filter(Depth == 1.0) |> 
-  ggplot() + xlab("Plus 3C") +
-  geom_line(aes(x = DateTime, y = value, color = limit)) +
-  facet_wrap(~phyto, nrow = 3) +
-  theme_bw()
-
 mod2_plus5 |> 
   dplyr::filter(limit %in% c("fI","fPho","fSil","fNit","fT")) |> 
   dplyr::filter(Depth == 1.0) |> 
@@ -131,10 +71,10 @@ mod2_plus5 |>
   facet_wrap(~phyto, nrow = 3) +
   theme_bw()
 
-#baseline
-#ggplot() + 
-#  geom_line() +
-#  theme_bw() +
-#  geom_point(data = obs_baseline, aes(x = DateTime, y = PHY_tchla), color = "gray") +
-#  geom_line(data = modeled_baseline, aes(x = DateTime, y = PHY_tchla))
-
+mod2_plus10 |> 
+  dplyr::filter(limit %in% c("fI","fPho","fSil","fNit","fT")) |> 
+  dplyr::filter(Depth == 1.0) |> 
+  ggplot() + xlab("Plus 10C") +
+  geom_line(aes(x = DateTime, y = value, color = limit)) +
+  facet_wrap(~phyto, nrow = 3) +
+  theme_bw()
