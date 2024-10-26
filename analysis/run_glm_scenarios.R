@@ -156,3 +156,108 @@ legend("top", legend=c("baseline", "plus1C","plus3C","plus5C"),
 max(met_plus1$mean_airtemp) # 29.5
 max(met_plus5$mean_airtemp) # 33.5
 max(met_plus10$mean_airtemp) # 38.5
+
+#--------------------------------------------------------------------#
+# calculate Schmidt stability
+depths<- c(0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+#download bvr bathy
+inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06e1229ee75ea39eb586577184" 
+infile1 <- tempfile()
+try(download.file(inUrl1,infile1, timeout = max(300, getOption("timeout"))))
+
+bathymetry <- readr::read_csv(infile1, show_col_types = F)  |>
+  dplyr::select(Reservoir, Depth_m, SA_m2) |>
+  dplyr::filter(Reservoir == "BVR") |>
+  dplyr::select(-Reservoir)
+
+#initialize ss df
+# Initialize ss matrix with dimensions based on the length of dates and scenarios
+scenario <- c("baseline","plus1","plus5","plus10") 
+num_days <- length(unique(current_temp$DateTime))
+num_scenarios <- length(scenario)
+unique_dates <- as.Date(unique(current_temp$DateTime))
+ss <- matrix(NA, nrow=num_days, ncol=num_scenarios)
+
+# Define a function to compute Schmidt stability for a single scenario
+compute_schmidt_for_scenario <- function(i) {
+  # Load and prepare temperature data once per scenario
+  temp_data <- glmtools::get_var(paste0("sims/", scenario[i], "/output/output.nc"),
+                                 "temp", reference = 'surface', z_out = depths) |>
+    tidyr::pivot_longer(cols = starts_with("temp"), names_to = "Depth",
+                        names_prefix = "temp_", values_to = "temp") |>
+    dplyr::mutate(Depth = as.numeric(Depth), DateTime = as.Date(DateTime)) |>
+    na.omit()
+  
+  # Initialize a vector to store Schmidt stability for each day in this scenario
+  scenario_ss <- numeric(num_days)
+  
+  # Loop over each unique date
+  for (j in 1:num_days) {
+  current_date <- unique_dates[j]
+  
+  # Filter temperature data for the current date
+  temp <- dplyr::filter(temp_data, DateTime == current_date)
+  
+  # Calculate Schmidt stability if data is available for this date
+  if (nrow(temp) > 0) {
+    scenario_ss[j] <- rLakeAnalyzer::schmidt.stability(
+      wtr = temp$temp,
+      depths = temp$Depth,
+      bthA = bathymetry$SA_m2,
+      bthD = bathymetry$Depth_m
+    )
+  } else {
+      scenario_ss[j] <- NA  # Handle missing data
+        }
+      }
+      return(scenario_ss)
+    }
+    
+    # Use parallel processing for each scenario
+    num_cores <- parallel::detectCores() - 1  # Leave one core free
+    results <- parallel::mclapply(1:num_scenarios, compute_schmidt_for_scenario, mc.cores = num_cores)
+    
+    # Combine results into the matrix
+    for (i in 1:num_scenarios) {
+      ss[, i] <- results[[i]]
+    }
+    
+    # Convert results to a data frame
+    ss_df <- as.data.frame(ss)
+    colnames(ss_df) <- scenario
+    ss_df$DateTime <- unique_dates
+    
+#convert from wide to long
+ss_long <- ss_df |>
+  tidyr::pivot_longer(cols = -c(DateTime), 
+                      names_to = c("scenario"),
+                      values_to = c("ss"))  |>
+  dplyr::arrange()
+
+#load ggplot
+library(ggplot2)
+
+#plot ss for each scenario
+ggplot(ss_long, aes(x=DateTime, y=ss, color=scenario)) + geom_line() +
+  theme_bw() + xlab("") + ylab("Schmidt stability") + ylim(c(-7,325)) +
+  scale_color_manual("", values = c("#5B8E7D","#F4E285","#F4A259","#BC4B51"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.background = element_blank(),
+        legend.position = "top",
+        text = element_text(size=10), 
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_blank(),
+        strip.background.x = element_blank(),
+        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+        legend.margin = margin(-10,-10,-10,-10),
+        legend.key = element_rect(fill = "transparent"),
+        legend.direction = "horizontal",
+        panel.spacing.x = unit(0.1, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing.y = unit(0, "lines"))
+#ggsave("figures/ss_scenarios.jpg", width=6, height=4)

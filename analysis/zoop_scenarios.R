@@ -1,7 +1,7 @@
 # Plankton air temp scenarios
 # 22 August 2024
 
-library(ggplot2)
+pacman::p_load(ggplot2,ggridges)
 
 scenario <- c("baseline","plus1", "plus5","plus10")
 
@@ -502,6 +502,43 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
           panel.spacing = unit(0.5, "lines"))
   #ggsave("figures/BVR_relative_phyto_scenarios.jpg", width=7, height=4) 
   
-# histogram of max peak for each - 3 panel fig with 4 humps for scenarios
+#------------------------------------------------------------------------#
+# density plot of max peak for each - 3 panel fig with 4 humps for scenarios
   
+  #read in zoop scnearios df
+  zoop_scenarios <- read.csv("analysis/data/zoop_scenarios.csv") |>
+    dplyr::group_by(year, taxon, scenario) |>
+    dplyr::mutate(max_doy = doy[max(value)])
+  
+  ggplot(data=subset(zoop_scenarios, year %in% "2015"), 
+         aes(x = max_doy, y = as.factor(scenario), 
+                             group = as.factor(scenario))) +
+    geom_density_ridges(aes(fill = as.factor(scenario))) +
+    scale_fill_manual("", values = c("#5B8E7D","#F4E285","#F4A259","#BC4B51"),
+                      breaks = c("baseline","plus1","plus5","plus10")) +
+    scale_y_discrete(limits = scenario) + xlab("max doy") +
+    facet_wrap(~taxon, ncol=3) + ylab("") +
+    theme_bw() + guides(fill = "none") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          axis.text.x = element_text(angle=90),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+#ggsave("figures/taxa_density_plots_max_doy_allyears.jpg", width=7, height=4)
   
