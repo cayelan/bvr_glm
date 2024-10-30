@@ -557,8 +557,7 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
   zoop_scenarios_summary <- zoop_scenarios |>
     dplyr::group_by(taxon, scenario) |>
     dplyr::summarise(mean = mean(value),
-                     sd = sd(value),
-                     size = n()) 
+                     sd = sd(value)) 
   
 # function to calculate the pooled sd
   pooled_sd <- function(group_sizes, group_sds) {
@@ -573,6 +572,17 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
         (sum(group_sizes) - length(group_sizes))
     )
   }
+  
+  # Function to calculate the standard error of Cohen's d
+  se_cohen_d <- function(cohen_d, n1, n2) {
+    # Calculate standard error of Cohen's d
+    se_d <- sqrt((n1 + n2) / (n1 * n2) + (cohen_d^2 / (2 * (n1 + n2))))
+    
+    # Return the standard error
+    return(se_d)
+  }
+  
+  group_sizes <- c(2492,2492) # 2492 = group size
   
 zoop_effect_size <- zoop_scenarios_summary |>
   dplyr::group_by(taxon) |> 
@@ -593,7 +603,10 @@ zoop_effect_size <- zoop_scenarios_summary |>
                                    sd[scenario=="plus10"]))) |>
   tidyr::pivot_longer(cols = -c(taxon),
                       names_to = "scenario",
-                      values_to = "value") 
+                      values_to = "value") |> dplyr::ungroup() |>
+  dplyr::group_by(taxon,scenario) |>
+  dplyr::mutate(se = se_cohen_d(value,2492,2492)) 
+
 
 # plot effect sizes for each scenario  
 ggplot(zoop_effect_size, aes(x=value, 
@@ -605,6 +618,8 @@ ggplot(zoop_effect_size, aes(x=value,
                      breaks = c("plus1","plus5","plus10"),
                      labels = c("+1C","+5C","+10C")) +
   geom_vline(xintercept = 0, linetype = "dashed") +
+  geom_errorbar(aes(xmin = value - se, xmax = value + se),
+                width = 0.2) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -624,8 +639,7 @@ ggplot(zoop_effect_size, aes(x=value,
 phyto_scenarios_summary <- phyto_scenarios |>
   dplyr::group_by(taxon, scenario) |>
   dplyr::summarise(mean = mean(value),
-                   sd = sd(value),
-                   size = n()) 
+                   sd = sd(value)) 
 
 phyto_effect_size <- phyto_scenarios_summary |>
   dplyr::group_by(taxon) |> 
@@ -646,7 +660,9 @@ phyto_effect_size <- phyto_scenarios_summary |>
                                    sd[scenario=="plus10"]))) |>
   tidyr::pivot_longer(cols = -c(taxon),
                       names_to = "scenario",
-                      values_to = "value") 
+                      values_to = "value") |> dplyr::ungroup() |>
+  dplyr::group_by(taxon,scenario) |>
+  dplyr::mutate(se = se_cohen_d(value,2492,2492)) 
 
 # plot effect sizes for each scenario  
 ggplot(phyto_effect_size, aes(x=value, 
@@ -658,6 +674,8 @@ ggplot(phyto_effect_size, aes(x=value,
                      breaks = c("plus1","plus5","plus10"),
                      labels = c("+1C","+5C","+10C")) +
   geom_vline(xintercept = 0, linetype = "dashed") +
+  geom_errorbar(aes(xmin = value - se, xmax = value + se),
+                width = 0.2) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
