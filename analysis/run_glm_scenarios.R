@@ -10,7 +10,10 @@ devtools::install_github("rqthomas/glmtools", force = TRUE)
 
 # access and plot temperature
 current_temp <- glmtools::get_var(nc_file, var_name = "temp")
-glmtools::plot_temp(nc_file, reference = "surface")
+p <- glmtools::plot_temp(nc_file, reference = "surface",
+                         plot.title = "baseline")
+ggplot2::ggsave(p, filename = paste0("./figures/waterTemp_baseline.png"), device = "png",
+                height = 6, width = 8, units = "in")
 
 # assign names to scenarios
 scenario_folder_names <- c("plus1","plus5","plus10")
@@ -105,13 +108,18 @@ inflow_plus1 <- read.csv("sims/plus1/inputs/inflow_plus1.csv")
 inflow_plus5 <- read.csv("sims/plus5/inputs/inflow_plus5.csv")
 inflow_plus10 <- read.csv("sims/plus10/inputs/inflow_plus10.csv")
 
-plot(as.Date(inflow_baseline$time), inflow_baseline$TEMP, ylim = c(-15,40), type="l")
-points(as.Date(inflow_plus1$time), inflow_plus1$TEMP, col = "#F4E285", type="l")
-points(as.Date(inflow_plus5$time), inflow_plus5$TEMP, col = "#F4A259", type="l")
-points(as.Date(inflow_plus10$time), inflow_plus10$TEMP, col = "#BC4B51", type="l")
-legend("top", legend=c("baseline", "plus1C","plus3C","plus5C"),
-       col=c("black", "#F4E285","#F4A259","#BC4B51"), 
+plot(as.Date(inflow_baseline$time), inflow_baseline$TEMP, ylim = c(-15,39), 
+     col = "#00603d", type="l")
+points(as.Date(inflow_plus1$time), inflow_plus1$TEMP, 
+       col = "#c6a000", type="l")
+points(as.Date(inflow_plus5$time), inflow_plus5$TEMP, 
+       col = "#c85b00", type="l")
+points(as.Date(inflow_plus10$time), inflow_plus10$TEMP, 
+       col = "#680000", type="l")
+legend("bottom", legend=c("baseline", "plus1C","plus5C","plus10C"),
+       col=c("#00603d","#c6a000","#c85b00","#680000"), 
        lty=1, cex=0.8, bty='n', horiz=T)
+
 max(inflow_plus1$TEMP) # 27.6
 max(inflow_plus5$TEMP) # 32.1
 max(inflow_plus10$TEMP) # 37.8
@@ -145,12 +153,16 @@ met_plus10 <- read.csv("sims/plus10/inputs/met_plus10.csv") |>
   dplyr::summarise(mean_airtemp = mean(AirTemp)) |>
   dplyr::filter(time<= "2022-05-04")
 
-plot(as.Date(met_baseline$time), met_baseline$mean_airtemp, ylim = c(-15,40), type="l")
-points(as.Date(met_plus1$time), met_plus1$mean_airtemp, col = "#F4E285", type="l")
-points(as.Date(met_plus5$time), met_plus5$mean_airtemp, col = "#F4A259", type="l")
-points(as.Date(met_plus10$time), met_plus10$mean_airtemp, col = "#BC4B51", type="l")
-legend("top", legend=c("baseline", "plus1C","plus3C","plus5C"),
-       col=c("black", "#F4E285","#F4A259","#BC4B51"), 
+plot(as.Date(met_baseline$time), met_baseline$mean_airtemp, 
+     ylim = c(-15,39), col = "#00603d", type="l")
+points(as.Date(met_plus1$time), met_plus1$mean_airtemp, 
+       col = "#c6a000", type="l")
+points(as.Date(met_plus5$time), met_plus5$mean_airtemp, 
+       col = "#c85b00", type="l")
+points(as.Date(met_plus10$time), met_plus10$mean_airtemp,
+       col = "#680000", type="l")
+legend("bottom", legend=c("baseline", "plus1C","plus5C","plus10C"),
+       col=c("#00603d","#c6a000","#c85b00","#680000"), 
        lty=1, cex=0.8, bty='n', horiz=T)
 
 max(met_plus1$mean_airtemp) # 29.5
@@ -241,7 +253,7 @@ library(ggplot2)
 #plot ss for each scenario
 ggplot(ss_long, aes(x=DateTime, y=ss, color=scenario)) + geom_line() +
   theme_bw() + xlab("") + ylab("Schmidt stability") + ylim(c(-7,325)) +
-  scale_color_manual("", values = c("#5B8E7D","#F4E285","#F4A259","#BC4B51"),
+  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),

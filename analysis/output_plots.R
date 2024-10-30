@@ -179,20 +179,21 @@ baseline <- read.csv("sims/baseline/output/lake.csv") |>
   dplyr::mutate(DateTime = as.Date(time))
 plus1C <- read.csv("sims/plus1/output/lake.csv") |> 
   dplyr::mutate(DateTime = as.Date(time))
-plus3C <- read.csv("sims/plus3/output/lake.csv") |> 
-  dplyr::mutate(DateTime = as.Date(time))
 plus5C <- read.csv("sims/plus5/output/lake.csv") |> 
+  dplyr::mutate(DateTime = as.Date(time))
+plus10C <- read.csv("sims/plus10/output/lake.csv") |> 
   dplyr::mutate(DateTime = as.Date(time))
 
 #plot various vars
 jpeg('figures/surf_temp_scenarios.jpg',width=5, height=4, units="in", res=500)
-plot(baseline$DateTime, baseline$Surface.Temp, type = "l")
-points(plus1C$DateTime, plus1C$Surface.Temp, col="#F4E285", type="l")
-points(plus3C$DateTime, plus3C$Surface.Temp, col="#F4A259", type="l")
-points(plus5C$DateTime, plus5C$Surface.Temp, col="#BC4B51", type="l")
-legend("bottom", legend=c("baseline", "plus1C","plus3C","plus5C"),
-       col=c("black", "#F4E285","#F4A259","#BC4B51"), 
-       lty=1, cex=0.8, bty='n', horiz=T)
+plot(baseline$DateTime, baseline$Surface.Temp, 
+     type = "l", ylim=c(-10,40), col = "#00603d")
+points(plus1C$DateTime, plus1C$Surface.Temp, col="#c6a000", type="l")
+points(plus5C$DateTime, plus5C$Surface.Temp, col="#c85b00", type="l")
+points(plus10C$DateTime, plus10C$Surface.Temp, col="#680000", type="l")
+legend("bottom", legend=c("baseline", "plus1C","plus5C","plus10C"),
+       col=c("#00603d", "#c6a000","#c85b00","#680000"), 
+       lty=1, cex=0.7, bty='n', horiz=T)
 dev.off()
 
 jpeg('figures/sa_scenarios.jpg',width=5, height=4, units="in", res=500)
