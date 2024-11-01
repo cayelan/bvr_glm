@@ -239,7 +239,7 @@ inflow_plus10 <- read.csv("sims/spinup/plus10/inputs/inflow_plus10.csv")
 
 plot(as.Date(inflow_baseline$time), inflow_baseline$TEMP, ylim = c(-15,39), 
      col = "#00603d", type="l")
-plot(as.Date(inflow_plus1$time), inflow_plus1$TEMP, 
+points(as.Date(inflow_plus1$time), inflow_plus1$TEMP, 
        col = "#c6a000", type="l")
 points(as.Date(inflow_plus5$time), inflow_plus5$TEMP, 
        col = "#c85b00", type="l")
@@ -323,7 +323,7 @@ ss <- matrix(NA, nrow=num_days, ncol=num_scenarios)
 # Define a function to compute Schmidt stability for a single scenario
 compute_schmidt_for_scenario <- function(i) {
   # Load and prepare temperature data once per scenario
-  temp_data <- glmtools::get_var(paste0("sims/", scenario[i], "/output/output.nc"),
+  temp_data <- glmtools::get_var(paste0("sims/spinup/", scenario[i], "/output/output.nc"),
                                  "temp", reference = 'surface', z_out = depths) |>
     tidyr::pivot_longer(cols = starts_with("temp"), names_to = "Depth",
                         names_prefix = "temp_", values_to = "temp") |>
