@@ -166,7 +166,7 @@ for (i in 1:length(scenario)) {
   
   # Save inflow file
   if(scenario[i]=="baseline"){
-    write.csv(inflow_final, paste0("sims/spinup/",scenario[i],"/inputs/inflow.csv"),
+    write.csv(inflow_final, paste0("sims/spinup/",scenario[i],"/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv"),
               row.names = FALSE)
   } else{
     write.csv(inflow_final, paste0("sims/spinup/",scenario[i],"/inputs/inflow_",scenario[i],".csv"),
