@@ -19,7 +19,8 @@ ggplot2::ggsave(p, filename = paste0("./figures/waterTemp_baseline.png"), device
 scenario_folder_names <- c("plus1","plus5","plus10")
 
 # create a folder for each scenarios and populate with sim files
-glm_files = list.files("./sims/baseline", full.names = TRUE)[1:3]
+glm_files = list.files("./sims/baseline", full.names = TRUE)[1:3] #1:3
+#note that nml and input files are edited in spin-up.R
 
 for (j in 1:length(scenario_folder_names)){
   subdirName <- paste0("./sims/",scenario_folder_names[j])
@@ -31,7 +32,7 @@ for (j in 1:length(scenario_folder_names)){
 
 # add corresponding degrees C to met Temp_C column for each scenario
 # set temperature increments 
-temp_increments <- c(1,5,10)
+temp_increments <- c(0,1,5,10)
 
 for (j in 1:length(scenario_folder_names)){
   
