@@ -44,7 +44,7 @@
 /
 &time
    timefmt = 2
-   start = '2015-07-07 00:00:00'
+   start = '2000-07-07 00:00:00'
    stop = '2022-05-03 00:00:00'
    dt = 3600
    num_days = 1
@@ -57,10 +57,10 @@
    csv_lake_fname = 'lake'
 /
 &init_profiles
-   num_depths = 23 !19
-   lake_depth = 11.3 !9
+   num_depths = 23
+   lake_depth = 11.3
    the_depths = 0.1, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11
-   the_temps = 25.0477, 24.99895, 24.9502, 24.8982, 24.8462, 24.693, 24.5398, 22.2677, 19.9956, 17.44265, 14.8897, 13.07475, 11.2598, 10.6365, 10.0132, 9.5648, 9.1164, 8.7402, 8.364 !, 8.1545, 7.945, 7.78295, 7.6209
+   the_temps = 25.0477, 24.99895, 24.9502, 24.8982, 24.8462, 24.693, 24.5398, 22.2677, 19.9956, 17.44265, 14.8897, 13.07475, 11.2598, 10.6365, 10.0132, 9.5648, 9.1164, 8.7402, 8.364
    the_sals = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
    num_wq_vars = 5
    wq_names = 'NIT_amm','NIT_nit','PHS_frp','OGM_doc','OXY_oxy'
@@ -102,7 +102,7 @@
    strm_hf_angle = 55
    strmbd_slope = 0.05
    strmbd_drag = 0.03
-   inflow_factor = 0.9896 !0.9897
+   inflow_factor = 0.9896
    inflow_fl = 'inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv'
    inflow_varnum = 29
    inflow_vars = 'FLOW','TEMP','SALT','OXY_oxy','NIT_amm','NIT_nit','PHS_frp','OGM_doc','OGM_docr','OGM_poc','OGM_don','OGM_donr','OGM_pon','OGM_dop','OGM_dopr','OGM_pop','CAR_dic','CAR_pH','SIL_rsi','CAR_ch4','PHY_cyano','PHY_cyano_IN','PHY_cyano_IP','PHY_green','PHY_green_IN','PHY_green_IP','PHY_diatom','PHY_diatom_IN','PHY_diatom_IP'
@@ -125,10 +125,10 @@
    benthic_mode = 2
    sed_heat_model = 1
    n_zones = 4
-   zone_heights = 3, 6, 9, 12 !4.5, 9.5, 12
+   zone_heights = 3, 6, 9, 12
    sed_heat_Ksoil = 1.2, 1.2, 1.2, 1.2
    sed_temp_depth = 0.05, 0.5, 0.5, 0.5
    sed_temp_mean = 9, 12, 15, 19
    sed_temp_amplitude = 1.2, 2, 10, 10
-   sed_temp_peak_doy =  300, 305, 220, 210
+   sed_temp_peak_doy = 300, 305, 220, 210
 /

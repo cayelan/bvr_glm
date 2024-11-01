@@ -1,0 +1,134 @@
+&glm_setup
+   sim_name = 'BVR'
+   max_layers = 500
+   min_layer_vol = 0.025
+   min_layer_thick = 0.25
+   max_layer_thick = 0.5
+   non_avg = .true.
+/
+&wq_setup
+   wq_lib = 'aed'
+   wq_nml_file = 'aed/aed2_4zones.nml'
+   ode_method = 1
+   split_factor = 1
+   bioshade_feedback = .true.
+   repair_state = .true.
+/
+&light
+   light_mode = 0
+   n_bands = 4
+   light_extc = 1, 0.5, 2, 4
+   energy_frac = 0.51, 0.45, 0.035, 0.005
+   Benthic_Imin = 10
+   Kw = 0.4
+/
+&mixing
+   coef_mix_conv = 0.2
+   coef_wind_stir = 0.23
+   coef_mix_shear = 0.3
+   coef_mix_turb = 0.51
+   coef_mix_KH = 0.3
+   coef_mix_hyp = 0.5
+   deep_mixing = 2
+   coef_mix_shreq = 0
+/
+&morphometry
+   lake_name = 'Beaverdam'
+   latitude = 37.31276
+   longitude = -79.81607
+   bsn_len = 855.03
+   bsn_wid = 109.46
+   bsn_vals = 46
+   H = 576, 576.3, 576.6, 576.9, 577.2, 577.5, 577.8, 578.1, 578.4, 578.7, 579, 579.3, 579.6, 579.9, 580.2, 580.5, 580.8, 581.1, 581.4, 581.7, 582, 582.3, 582.6, 582.9, 583.2, 583.5, 583.8, 584.1, 584.4, 584.7, 585, 585.3, 585.6, 585.9, 586.2, 586.5, 586.8, 587.1, 587.4, 587.7, 588, 588.3, 588.6, 588.9, 589.2, 589.5
+   A = 0, 2180.4, 4398.8, 6693.2, 8987.6, 11282, 15478.1, 19674.2, 23870.3, 30818.6, 39143, 47467.4, 54983.2, 60881.8, 66780.4, 72679, 80830.6, 88982.2, 97133.8, 104901.4, 112477, 120052.6, 127895.3, 136272.2, 144649.1, 153026, 166239.2, 179452.4, 192665.6, 205606, 218410, 231214, 243631.4, 255275.6, 266919.8, 278564, 290777.9, 302991.8, 315205.7, 325235, 334172, 343109, 353557.3, 367028.2, 380499.1, 393970
+/
+&time
+   timefmt = 2
+   start = '2000-07-07 00:00:00'
+   stop = '2022-05-03 00:00:00'
+   dt = 3600
+   num_days = 1
+   timezone = -5
+/
+&output
+   out_dir = 'output'
+   out_fn = 'output'
+   nsave = 24
+   csv_lake_fname = 'lake'
+/
+&init_profiles
+   num_depths = 23
+   lake_depth = 11.3
+   the_depths = 0.1, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11
+   the_temps = 25.0477, 24.99895, 24.9502, 24.8982, 24.8462, 24.693, 24.5398, 22.2677, 19.9956, 17.44265, 14.8897, 13.07475, 11.2598, 10.6365, 10.0132, 9.5648, 9.1164, 8.7402, 8.364
+   the_sals = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+   num_wq_vars = 5
+   wq_names = 'NIT_amm','NIT_nit','PHS_frp','OGM_doc','OXY_oxy'
+   wq_init_vals = 0.1662971, 0.3233555, 0.4804139, 0.6374723, 0.7945307, 0.9515891, 1.1086475, 1.3118995, 1.5151515, 1.7184035, 1.9216556, 2.1249076, 2.3281596, 2.5314117, 2.7346637, 2.9379157, 3.1411678, 3.3444198, 3.5476718, 7.9822616, 12.4168514, 16.8514412, 21.286031, 0.03225806, 0.03763441, 0.04301075, 0.0483871, 0.05376344, 0.05913978, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06451613, 0.06182796, 0.05913978, 0.05645161, 0.05376344, 0.04211794, 0.04562777, 0.0491376, 0.05264743, 0.05615726, 0.05966709, 0.06317691, 0.06405437, 0.06493183, 0.06580929, 0.06668674, 0.0675642, 0.06844166, 0.06931911, 0.07019657, 0.07107403, 0.07195149, 0.07282894, 0.0737064, 0.07897114, 0.08423589, 0.08950063, 0.09476537, 20.81599, 20.81599, 20.81599, 20.81599, 20.81599, 20.81599, 20.81599, 20.53844, 20.26089, 19.98335, 19.7058, 19.42825, 19.15071, 18.87316, 18.59561, 18.31807, 18.04052, 17.76298, 17.48543, 17.76298, 18.04052, 18.31807, 18.59561, 233.57875, 234.873906, 236.169062, 236.842969, 237.516875, 215.354219, 193.191563, 127.741094, 62.290625, 52.10125, 41.911875, 43.940469, 45.969062, 27.135469, 8.301875, 5.287344, 2.272813, 2.133906, 1.995, 1.956406, 1.917812, 2.079063, 2.240312
+   snow_thickness = 0
+   white_ice_thickness = 0
+   blue_ice_thickness = 0
+   avg_surf_temp = 25
+   restart_variables = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+/
+&meteorology
+   met_sw = .true.
+   lw_type = 'LW_IN'
+   rain_sw = .false.
+   atm_stab = 0
+   catchrain = .false.
+   rad_mode = 1
+   albedo_mode = 1
+   cloud_mode = 4
+   meteo_fl = 'inputs/met.csv'
+   subdaily = .true.
+   wind_factor = 1
+   sw_factor = 0.85
+   lw_factor = 0.98
+   at_factor = 1
+   rh_factor = 1
+   rain_factor = 1
+   cd = 0.0013
+   ce = 0.0013
+   ch = 0.0013
+   rain_threshold = 0.04
+   runoff_coef = 0.2
+   time_fmt = 'YYYY-MM-DD hh:mm:ss'
+/
+&inflow
+   num_inflows = 1
+   names_of_strms = 'combined_inflow'
+   subm_flag = .false.
+   strm_hf_angle = 55
+   strmbd_slope = 0.05
+   strmbd_drag = 0.03
+   inflow_factor = 0.9896
+   inflow_fl = 'inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv'
+   inflow_varnum = 29
+   inflow_vars = 'FLOW','TEMP','SALT','OXY_oxy','NIT_amm','NIT_nit','PHS_frp','OGM_doc','OGM_docr','OGM_poc','OGM_don','OGM_donr','OGM_pon','OGM_dop','OGM_dopr','OGM_pop','CAR_dic','CAR_pH','SIL_rsi','CAR_ch4','PHY_cyano','PHY_cyano_IN','PHY_cyano_IP','PHY_green','PHY_green_IN','PHY_green_IP','PHY_diatom','PHY_diatom_IN','PHY_diatom_IP'
+/
+&outflow
+   num_outlet = 1
+   flt_off_sw = .false.
+   outl_elvs = 585.7
+   bsn_len_outl = 855.03
+   bsn_wid_outl = 55.96
+   outflow_fl = 'inputs/BVR_spillway_outflow_2015_2022_metInflow.csv'
+   outflow_factor = 0.993
+/
+&snowice
+   snow_albedo_factor = 1
+   snow_rho_max = 500
+   snow_rho_min = 100
+/
+&sediment
+   benthic_mode = 2
+   sed_heat_model = 1
+   n_zones = 4
+   zone_heights = 3, 6, 9, 12
+   sed_heat_Ksoil = 1.2, 1.2, 1.2, 1.2
+   sed_temp_depth = 0.05, 0.5, 0.5, 0.5
+   sed_temp_mean = 9, 12, 15, 19
+   sed_temp_amplitude = 1.2, 2, 10, 10
+   sed_temp_peak_doy = 300, 305, 220, 210
+/

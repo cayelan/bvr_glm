@@ -3,6 +3,70 @@
 #load packages
 pacman::p_load(glmtools)
 
+# create a folder for each scenarios and populate with sim files
+glm_files = list.files("./sims/baseline", full.names = TRUE)[1:3] 
+
+for (i in 1:length(scenario)){
+  subdirName <- paste0("./sims/spinup/",scenario[i])
+  folder<-dir.create(subdirName)
+  file.copy(from = glm_files, to = subdirName, recursive = TRUE)
+  outputdirName <- paste0(subdirName,"/output")
+  output_folder<-dir.create(outputdirName)
+}
+
+# assign names to scenarios
+scenario_folder_names <- c("plus1","plus5","plus10")
+
+# add corresponding degrees C to met Temp_C column for each scenario
+temp_increments <- c(1,5,10)
+
+for (i in 1:length(scenario_folder_names)){
+  
+  # get met data filepath and read in met data
+  met_filepath <- paste0("./sims/",scenario_folder_names[i],"/inputs/met.csv")
+  met <- read.csv(met_filepath)
+  
+  # add temp increments 
+  met$AirTemp <- met$AirTemp + temp_increments[i]
+  
+  # write to file
+  new_met_filepath <- paste0("./sims/spinup/",scenario_folder_names[i],"/inputs/met_",scenario_folder_names[i],".csv")
+  write.csv(met, new_met_filepath, row.names = FALSE, quote = FALSE)
+  
+  # get inflow data filepath and read in data
+  inflow_filepath <- paste0("./sims/",scenario_folder_names[i],
+                            "/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv")
+  inflow <- read.csv(inflow_filepath)
+  
+  # calculate bvr inflow temp based on met air temp
+  # step 1: get daily avg met for entire sim period
+  met_sub <- met |> dplyr::select(time, AirTemp) |>
+    dplyr::mutate(time = as.Date(time)) |>
+    dplyr::group_by(time) |> 
+    dplyr::summarise(mean_airtemp = mean(AirTemp)) |>
+    dplyr::filter(time<= "2022-05-04")
+  
+  # step 3: calculate fcr water temp using: weir temp = (0.75 * air temp) + 2.4
+  fcr_inflow_temp <- (0.75 * met_sub$mean_airtemp) + 2.4
+  
+  # step 4: calculate bvr inflow temp using: BVR temp = (1.5 * FCR temp) - 9.21
+  inflow$TEMP <- (1.5 * fcr_inflow_temp) - 9.21
+  
+  # write to file
+  new_inflow_filepath <- paste0("./sims/spinup/",scenario_folder_names[i],
+                                "/inputs/inflow_",scenario_folder_names[i],".csv")
+  write.csv(inflow, new_inflow_filepath, row.names = FALSE, quote = FALSE)
+  
+  # set nml to use scenario met data
+  scenario_nml_file <- file.path(paste0("./sims/spinup/",scenario_folder_names[i],"/glm3.nml"))
+  scenario_nml <- glmtools::read_nml(nml_file = scenario_nml_file)
+  scenario_nml <- glmtools::set_nml(scenario_nml, arg_list =
+                                      list("meteo_fl" = paste0("inputs/met_",scenario_folder_names[i],".csv"),
+                                           "inflow_fl" = paste0("inputs/inflow_",scenario_folder_names[i],".csv")))
+  glmtools::write_nml(scenario_nml, file = scenario_nml_file)
+}
+
+
 #list of scenarios
 scenario <- c("baseline","plus1","plus5","plus10")
 
@@ -10,6 +74,7 @@ scenario <- c("baseline","plus1","plus5","plus10")
 start_date <- as.POSIXct("2000-07-07 00:00:00", tz = "UTC")
 end_date <- as.POSIXct("2015-07-06 00:00:00", tz = "UTC")
 total_hours <- as.numeric(difftime(end_date, start_date, units = "hours")) + 1
+total_days <- as.numeric(difftime(end_date, start_date, units = "days")) + 1
 
 # Iterate through each scenario
 for (i in 1:length(scenario)) {
@@ -24,10 +89,10 @@ for (i in 1:length(scenario)) {
   if(scenario[i]=="baseline"){
     met <- read.csv(paste0("sims/",scenario[i],"/inputs/met.csv")) |>
       dplyr::mutate(time = as.POSIXct(time, format = "%Y-%m-%d %H:%M") )
-  } else(
+  } else{
     met <- read.csv(paste0("sims/",scenario[i],"/inputs/met_",scenario[i],".csv")) |>
       dplyr::mutate(time = as.POSIXct(time, format = "%Y-%m-%d %H:%M") )
-  )
+  }
   
   #list of columns that will be adjusted
   cols <- names(met[,c(2:7)])
@@ -40,32 +105,27 @@ for (i in 1:length(scenario)) {
   
   set.seed(42)  # For reproducibility
   
-  # Repeat and adjust data
-  met_expanded <- do.call(rbind, lapply(1:num_repeats, function(i) {
-    met_copy <- met
-    # Apply offsets based on each column's standard deviation
-    for (col in cols) {
-      offset <- rnorm(n = nrow(met), mean = 0, sd = sds[col])
-      met_copy[[col]] <- met_copy[[col]] + offset
-    }
-    return(met_copy)
-  }))
+  met_expanded <- do.call(rbind, replicate(num_repeats, met, simplify = FALSE))
   
-  # Trim to the exact number of desired hours
+  # Apply noise
+  for (col in cols) {
+    offset <- rnorm(n = nrow(met_expanded), mean = 0, sd = sds[col])
+    met_expanded[[col]] <- met_expanded[[col]] + offset
+  }
+  
+  # Trim to the correct length and set time
   met_expanded <- met_expanded[1:total_hours, ]
-  
-  # Set the Date column to range from start_date to end_date
   met_expanded$time <- seq(start_date, by = "hour", length.out = total_hours)
   
-  #then append the actual 2015-2022 obs
-  met_final <-  merge(met_expanded, met, by = "time", all = TRUE)
+  # Append original observations
+  met_final <- rbind(met_expanded, met[met$time > end_date, ])
   
-  # Save the file
+  # Save met file
   if(scenario[i]=="baseline"){
-    write.csv(met_final, paste0("sims/",scenario[i],"/inputs/met.csv"),
+    write.csv(met_final, paste0("sims/spinup/",scenario[i],"/inputs/met.csv"),
               row.names = FALSE)
   } else{
-    write.csv(met_final, paste0("sims/",scenario[i],"/inputs/met_",scenario[i],".csv"),
+    write.csv(met_final, paste0("sims/spinup/",scenario[i],"/inputs/met_",scenario[i],".csv"),
               row.names = FALSE)
   }
   
@@ -85,36 +145,31 @@ for (i in 1:length(scenario)) {
   sds <- sapply(inflow[cols], sd, na.rm = TRUE)
   
   #number of times to repeat based on hourly data
-  num_repeats <- ceiling(21 / (nrow(inflow) / (365 * 24)))  
+  num_repeats <- ceiling(21 / (nrow(inflow) / (365)))  
   
   set.seed(42)  # For reproducibility
   
-  # Repeat and adjust data
-  inflow_expanded <- do.call(rbind, lapply(1:num_repeats, function(i) {
-    inflow_copy <- inflow
-    # Apply offsets based on each column's standard deviation
-    for (col in cols) {
-      offset <- rnorm(n = nrow(inflow), mean = 0, sd = sds[col])
-      inflow_copy[[col]] <- inflow_copy[[col]] + offset
-    }
-    return(inflow_copy)
-  }))
+  inflow_expanded <- do.call(rbind, replicate(num_repeats, inflow, simplify = FALSE))
   
-  # Trim to the exact number of desired hours
-  inflow_expanded <- inflow_expanded[1:total_hours, ]
+  # Apply noise
+  for (col in cols) {
+    offset <- rnorm(n = nrow(inflow_expanded), mean = 0, sd = sds[col])
+    inflow_expanded[[col]] <- inflow_expanded[[col]] + offset
+  }
   
-  # Set the Date column to range from start_date to end_date
-  inflow_expanded$time <- seq(start_date, by = "hour", length.out = total_hours)
+  # Trim to the correct length and set time
+  inflow_expanded <- inflow_expanded[1:total_days, ]
+  inflow_expanded$time <- seq(start_date, by = "day", length.out = total_days)
   
-  #then append the actual 2015-2022 obs
-  inflow_final <-  merge(inflow_expanded, inflow, by = "time", all = TRUE)
+  # Append original observations
+  inflow_final <- rbind(inflow_expanded, inflow[inflow$time > end_date, ])
   
-  # Save the file
+  # Save inflow file
   if(scenario[i]=="baseline"){
-    write.csv(inflow_final, paste0("sims/",scenario[i],"/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv"),
+    write.csv(inflow_final, paste0("sims/spinup/",scenario[i],"/inputs/inflow.csv"),
               row.names = FALSE)
   } else{
-    write.csv(inflow_final, paste0("sims/",scenario[i],"/inputs/inflow__",scenario[i],".csv"),
+    write.csv(inflow_final, paste0("sims/spinup/",scenario[i],"/inputs/inflow_",scenario[i],".csv"),
               row.names = FALSE)
   }
   
@@ -129,52 +184,47 @@ for (i in 1:length(scenario)) {
   sds <- sapply(outflow[cols], sd, na.rm = TRUE)
   
   #number of times to repeat based on hourly data
-  num_repeats <- ceiling(21 / (nrow(outflow) / (365 * 24)))  
+  num_repeats <- ceiling(21 / (nrow(outflow) / (365)))  
   
   set.seed(42)  # For reproducibility
   
-  # Repeat and adjust data
-  outflow_expanded <- do.call(rbind, lapply(1:num_repeats, function(i) {
-    outflow_copy <- outflow
-    # Apply offsets based on each column's standard deviation
-    for (col in cols) {
-      offset <- rnorm(n = nrow(outflow), mean = 0, sd = sds[col])
-      outflow_copy[[col]] <- outflow_copy[[col]] + offset
-    }
-    return(outflow_copy)
-  }))
+  outflow_expanded <- do.call(rbind, replicate(num_repeats, outflow, simplify = FALSE))
   
-  # Trim to the exact number of desired hours
-  outflow_expanded <- outflow_expanded[1:total_hours, ]
+  # Apply noise
+  for (col in cols) {
+    offset <- rnorm(n = nrow(outflow_expanded), mean = 0, sd = sds[col])
+    outflow_expanded[[col]] <- outflow_expanded[[col]] + offset
+  }
   
-  # Set the Date column to range from start_date to end_date
-  outflow_expanded$time <- seq(start_date, by = "hour", length.out = total_hours)
+  # Trim to the correct length and set time
+  outflow_expanded <- outflow_expanded[1:total_days, ]
+  outflow_expanded$time <- seq(start_date, by = "day", length.out = total_days)
   
-  #then append the actual 2015-2022 obs
-  outflow_final <-  merge(outflow_expanded, outflow, by = "time", all = TRUE)
+  # Append original observations
+  outflow_final <- rbind(outflow_expanded, outflow[inflow$time > end_date, ])
   
   # Save the file
-  write.csv(outflow_final, paste0("sims/",scenario[i],"/inputs/BVR_spillway_outflow_2015_2022_metInflow.csv"),
+  write.csv(outflow_final, paste0("sims/spinup/",scenario[i],"/inputs/BVR_spillway_outflow_2015_2022_metInflow.csv"),
             row.names = FALSE)
 }
 
 #-----------------------------------------------------------------------------#
 # now run each of these scenarios and save output
 # run and plot each scenario
-for (j in 1:length(scenario)){
+for (i in 1:length(scenario)){
   
   # run the model
-  sim_folder = paste0("./sims/",scenario[j])
+  sim_folder = paste0("./sims/spinup/",scenario[i])
   GLM3r::run_glm(sim_folder)
   
   # set nml file
-  nc_file <- file.path(paste0("sims/",scenario[j],"/output/output.nc")) 
+  nc_file <- file.path(paste0("sims/spinup/",scenario[i],"/output/output.nc")) 
   
   # access and plot temperature
   current_temp <- glmtools::get_var(nc_file, var_name = "temp")
   p <- glmtools::plot_var(nc_file, var_name = "temp", reference = "surface", 
-                          plot.title = scenario[j])
-  plot_filename <- paste0("./figures/waterTemp_",scenario[j],".png")
+                          plot.title = scenario[i])
+  plot_filename <- paste0("./figures/waterTemp_",scenario[i],".png")
   ggplot2::ggsave(p, filename = plot_filename, device = "png",
                   height = 6, width = 8, units = "in")
   
@@ -182,14 +232,14 @@ for (j in 1:length(scenario)){
 
 #-------------------------------------------------------------------------#
 #quick plots of inflow temp to make sure above code is doing what I want it to
-inflow_baseline <- read.csv("sims/baseline/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv")
-inflow_plus1 <- read.csv("sims/plus1/inputs/inflow_plus1.csv")
-inflow_plus5 <- read.csv("sims/plus5/inputs/inflow_plus5.csv")
-inflow_plus10 <- read.csv("sims/plus10/inputs/inflow_plus10.csv")
+inflow_baseline <- read.csv("sims/spinup/baseline/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv")
+inflow_plus1 <- read.csv("sims/spinup/plus1/inputs/inflow_plus1.csv")
+inflow_plus5 <- read.csv("sims/spinup/plus5/inputs/inflow_plus5.csv")
+inflow_plus10 <- read.csv("sims/spinup/plus10/inputs/inflow_plus10.csv")
 
 plot(as.Date(inflow_baseline$time), inflow_baseline$TEMP, ylim = c(-15,39), 
      col = "#00603d", type="l")
-points(as.Date(inflow_plus1$time), inflow_plus1$TEMP, 
+plot(as.Date(inflow_plus1$time), inflow_plus1$TEMP, 
        col = "#c6a000", type="l")
 points(as.Date(inflow_plus5$time), inflow_plus5$TEMP, 
        col = "#c85b00", type="l")
@@ -204,14 +254,14 @@ max(inflow_plus5$TEMP) # 32.1
 max(inflow_plus10$TEMP) # 37.8
 
 #now read in met
-met_baseline <- read.csv("sims/baseline/inputs/met.csv") |>
+met_baseline <- read.csv("sims/spinup/baseline/inputs/met.csv") |>
   dplyr::select(time, AirTemp) |>
   dplyr::mutate(time = as.Date(time)) |>
   dplyr::group_by(time) |> 
   dplyr::summarise(mean_airtemp = mean(AirTemp)) |>
   dplyr::filter(time<= "2022-05-04")
 
-met_plus1 <- read.csv("sims/plus1/inputs/met_plus1.csv") |>
+met_plus1 <- read.csv("sims/spinup/plus1/inputs/met_plus1.csv") |>
   dplyr::select(time, AirTemp) |>
   dplyr::mutate(time = as.Date(time)) |>
   dplyr::group_by(time) |> 
