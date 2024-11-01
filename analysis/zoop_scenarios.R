@@ -468,7 +468,7 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
   
 # median doy across all years
   zoop_scenarios |>
-    dplyr::group_by(taxon, scenario) |>
+    dplyr::group_by(taxon, year, scenario) |> #drop year for median across all years
     dplyr::mutate(median_doy = median(max_doy)) |>
     dplyr::ungroup() |>
     dplyr::group_by(taxon) |>
@@ -504,7 +504,7 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
           panel.background = element_rect(
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/zoop_density_plots_median_max_doy_allyears.jpg", width=7, height=4)
+#ggsave("figures/zoop_density_plots_max_doy_allyears.jpg", width=7, height=4)
  
   #read in phyto scenarios df
   phyto_scenarios <- read.csv("analysis/data/phyto_scenarios.csv") |>
@@ -513,7 +513,7 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
   
   # median doy across all years
   phyto_scenarios |>
-    dplyr::group_by(taxon, scenario) |>
+    dplyr::group_by(taxon, year, scenario) |>
     dplyr::mutate(median_doy = median(max_doy)) |>
     dplyr::ungroup() |>
     dplyr::group_by(taxon) |>
@@ -549,15 +549,16 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
           panel.background = element_rect(
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/phyto_density_plots_median_max_doy_allyears.jpg", width=7, height=4)
+#ggsave("figures/phyto_density_plots_max_doy_allyears.jpg", width=7, height=4)
   
    
 #------------------------------------------------------------------------#
 # effect size fig for zoops
   zoop_scenarios_summary <- zoop_scenarios |>
-    dplyr::group_by(taxon, scenario) |>
+    dplyr::group_by(taxon, year, scenario) |>
     dplyr::summarise(mean = mean(value),
-                     sd = sd(value)) 
+                     sd = sd(value),
+                     size = n()) 
   
 # function to calculate the pooled sd
   pooled_sd <- function(group_sizes, group_sds) {
@@ -573,120 +574,123 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
     )
   }
   
-  # Function to calculate the standard error of Cohen's d
-  se_cohen_d <- function(cohen_d, n1, n2) {
-    # Calculate standard error of Cohen's d
-    se_d <- sqrt((n1 + n2) / (n1 * n2) + (cohen_d^2 / (2 * (n1 + n2))))
-    
-    # Return the standard error
-    return(se_d)
-  }
-  
-  group_sizes <- c(2492,2492) # 2492 = group size
-  
 zoop_effect_size <- zoop_scenarios_summary |>
-  dplyr::group_by(taxon) |> 
+  dplyr::group_by(taxon, year) |> 
   dplyr::summarise(plus1 = (mean[scenario=="plus1"] - 
                      mean[scenario=="baseline"]) / 
-                     pooled_sd(group_sizes, group_sd =
-                                 c(sd[scenario=="baseline"],
-                                   sd[scenario=="plus1"])),
+                     pooled_sd(group_sizes = c(size[scenario=="baseline"],
+                                               size[scenario=="plus1"]),
+                                 group_sd = c(sd[scenario=="baseline"],
+                                              sd[scenario=="plus1"])),
                    plus5 = (mean[scenario=="plus5"] - 
                                  mean[scenario=="baseline"]) / 
-                     pooled_sd(group_sizes, group_sd =
-                                 c(sd[scenario=="baseline"],
-                                   sd[scenario=="plus5"])),
+                     pooled_sd(group_sizes = c(size[scenario=="baseline"],
+                                               size[scenario=="plus1"]), 
+                               group_sd = c(sd[scenario=="baseline"],
+                                            sd[scenario=="plus5"])),
                    plus10 = (mean[scenario=="plus10"] - 
                                  mean[scenario=="baseline"]) / 
-                     pooled_sd(group_sizes, group_sd =
-                                 c(sd[scenario=="baseline"],
-                                   sd[scenario=="plus10"]))) |>
-  tidyr::pivot_longer(cols = -c(taxon),
+                     pooled_sd(group_sizes = c(size[scenario=="baseline"],
+                                               size[scenario=="plus1"]),
+                               group_sd = c(sd[scenario=="baseline"],
+                                            sd[scenario=="plus10"]))) |>
+  tidyr::pivot_longer(cols = -c(taxon,year),
                       names_to = "scenario",
-                      values_to = "value") |> dplyr::ungroup() |>
+                      values_to = "value") |> dplyr::ungroup() |> 
   dplyr::group_by(taxon,scenario) |>
-  dplyr::mutate(se = se_cohen_d(value,2492,2492)) 
+  dplyr::mutate(sd = sd(value)) 
 
-
-# plot effect sizes for each scenario  
-ggplot(zoop_effect_size, aes(x=value, 
-                             y=factor(scenario, c("plus1","plus5","plus10")), 
-                             color=scenario)) +
-  geom_point(size=3) + theme_bw() + xlab("Effect Size") + ylab("") +
+# plot median effect sizes for each scenario  
+zoop_effect_size |> 
+  dplyr::group_by(taxon, scenario, sd) |> 
+  dplyr::summarise(median = median(value)) |> 
+  ggplot() + geom_point(aes(x=median, y=factor(scenario,levels=c("plus1","plus5","plus10")), 
+                             color=scenario), size=3) +
+  theme_bw() + xlab("Effect Size") + ylab("") +
   facet_wrap(~taxon, scales="free_x") + 
   scale_color_manual("", values = c("#c6a000","#c85b00","#680000"),
                      breaks = c("plus1","plus5","plus10"),
                      labels = c("+1C","+5C","+10C")) +
   geom_vline(xintercept = 0, linetype = "dashed") +
-  geom_errorbar(aes(xmin = value - se, xmax = value + se),
-                width = 0.2) +
+  geom_errorbarh(aes(y = factor(scenario, levels = c("plus1", "plus5", "plus10")), 
+                     xmin = median - sd, xmax = median + sd), 
+                 height = 0.2) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
         legend.background = element_blank(),
-        legend.position = "none",
+        legend.position = "right",
         text = element_text(size=10), 
         panel.border = element_rect(colour = "black", fill = NA),
         strip.background.x = element_blank(),
         plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+        legend.margin = margin(c(-10,-1,-10,-10)),
         panel.spacing.x = unit(0.1, "in"),
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/zoop_scenario_effect_size.jpg", width=7, height=4)
+#ggsave("figures/zoop_scenario_effect_size_sd.jpg", width=7, height=4)
 
 # effect size fig for phytos
 phyto_scenarios_summary <- phyto_scenarios |>
-  dplyr::group_by(taxon, scenario) |>
+  dplyr::group_by(taxon, year, scenario) |>
   dplyr::summarise(mean = mean(value),
-                   sd = sd(value)) 
+                   sd = sd(value),
+                   size = n()) 
 
 phyto_effect_size <- phyto_scenarios_summary |>
-  dplyr::group_by(taxon) |> 
+  dplyr::group_by(taxon, year) |> 
   dplyr::summarise(plus1 = (mean[scenario=="plus1"] - 
                               mean[scenario=="baseline"]) / 
-                     pooled_sd(group_sizes, group_sd =
-                                 c(sd[scenario=="baseline"],
-                                   sd[scenario=="plus1"])),
+                     pooled_sd(group_sizes = c(size[scenario=="baseline"],
+                                               size[scenario=="plus1"]),
+                               group_sd = c(sd[scenario=="baseline"],
+                                            sd[scenario=="plus1"])),
                    plus5 = (mean[scenario=="plus5"] - 
                               mean[scenario=="baseline"]) / 
-                     pooled_sd(group_sizes, group_sd =
-                                 c(sd[scenario=="baseline"],
-                                   sd[scenario=="plus5"])),
+                     pooled_sd(group_sizes = c(size[scenario=="baseline"],
+                                               size[scenario=="plus1"]), 
+                               group_sd = c(sd[scenario=="baseline"],
+                                            sd[scenario=="plus5"])),
                    plus10 = (mean[scenario=="plus10"] - 
                                mean[scenario=="baseline"]) / 
-                     pooled_sd(group_sizes, group_sd =
-                                 c(sd[scenario=="baseline"],
-                                   sd[scenario=="plus10"]))) |>
-  tidyr::pivot_longer(cols = -c(taxon),
+                     pooled_sd(group_sizes = c(size[scenario=="baseline"],
+                                               size[scenario=="plus1"]),
+                               group_sd = c(sd[scenario=="baseline"],
+                                            sd[scenario=="plus10"]))) |>
+  tidyr::pivot_longer(cols = -c(taxon,year),
                       names_to = "scenario",
-                      values_to = "value") |> dplyr::ungroup() |>
+                      values_to = "value") |> dplyr::ungroup() |> 
   dplyr::group_by(taxon,scenario) |>
-  dplyr::mutate(se = se_cohen_d(value,2492,2492)) 
+  dplyr::mutate(sd = sd(value)) 
 
-# plot effect sizes for each scenario  
-ggplot(phyto_effect_size, aes(x=value, 
-                             y=factor(scenario, c("plus1","plus5","plus10")), 
-                             color=scenario)) +
-  geom_point(size=3) + theme_bw() + xlab("Effect Size") + ylab("") +
+# plot median effect sizes for each scenario  
+phyto_effect_size |> 
+  dplyr::group_by(taxon, scenario, sd) |> 
+  dplyr::summarise(median = median(value)) |> 
+  ggplot() + geom_point(aes(x=median, y=factor(scenario,levels=c("plus1","plus5","plus10")), 
+                            color=scenario), size=3) +
+  theme_bw() + xlab("Effect Size") + ylab("") +
   facet_wrap(~taxon, scales="free_x") + 
   scale_color_manual("", values = c("#c6a000","#c85b00","#680000"),
                      breaks = c("plus1","plus5","plus10"),
                      labels = c("+1C","+5C","+10C")) +
   geom_vline(xintercept = 0, linetype = "dashed") +
-  geom_errorbar(aes(xmin = value - se, xmax = value + se),
-                width = 0.2) +
+  geom_errorbarh(aes(y = factor(scenario, levels = c("plus1", "plus5", "plus10")), 
+                     xmin = median - sd, xmax = median + sd), 
+                 height = 0.2) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
         legend.background = element_blank(),
-        legend.position = "none",
+        legend.position = "right",
         text = element_text(size=10), 
         panel.border = element_rect(colour = "black", fill = NA),
         strip.background.x = element_blank(),
         plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+        legend.margin = margin(c(-10,-1,-10,-10)),
         panel.spacing.x = unit(0.1, "in"),
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/phyto_scenario_effect_size.jpg", width=7, height=4)
+#ggsave("figures/phyto_scenario_effect_size_sd.jpg", width=7, height=4)
