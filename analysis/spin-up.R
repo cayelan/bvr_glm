@@ -70,10 +70,10 @@ for (i in 1:length(scenario_folder_names)){
 }
 
 # Set start and end dates
-start_date <- as.POSIXct("2000-07-07 00:00:00", tz = "UTC")
+start_date <- as.POSIXct("2000-07-07 20:00:00", tz = "UTC")
 end_date <- as.POSIXct("2015-07-06 00:00:00", tz = "UTC")
 total_hours <- as.numeric(difftime(end_date, start_date, units = "hours")) + 1
-total_days <- as.numeric(difftime(end_date, start_date, units = "days")) + 1
+total_days <- ceiling(as.numeric(difftime(end_date, start_date, units = "days")) + 1)
 
 # Iterate through each scenario
 for (i in 1:length(scenario)) {
@@ -96,28 +96,20 @@ for (i in 1:length(scenario)) {
   #list of columns that will be adjusted
   cols <- names(met[,c(2:7)])
   
-  # Calculate standard deviations for each column and store them in a named vector
-  sds <- sapply(met[cols], sd, na.rm = TRUE)
-  
   #number of times to repeat based on hourly data
   num_repeats <- ceiling(21 / (nrow(met) / (365 * 24)))  
   
   set.seed(42)  # For reproducibility
   
-  met_expanded <- do.call(rbind, replicate(num_repeats, met, simplify = FALSE))
-  
-  # Apply noise
-  for (col in cols) {
-    offset <- rnorm(n = nrow(met_expanded), mean = 0, sd = sds[col])
-    met_expanded[[col]] <- met_expanded[[col]] + offset
-  }
+  met_expanded <- do.call(rbind, replicate(num_repeats, met, simplify = FALSE)) 
   
   # Trim to the correct length and set time
   met_expanded <- met_expanded[1:total_hours, ]
-  met_expanded$time <- seq(start_date, by = "hour", length.out = total_hours)
+  met_expanded$time <- seq(start_date, by = "hour", length.out = total_hours) 
   
   # Append original observations
-  met_final <- rbind(met_expanded, met[met$time > end_date, ])
+  met_final <- rbind(met_expanded, met[met$time > end_date, ]) |>
+    na.omit()
   
   # Save met file
   if(scenario[i]=="baseline"){
@@ -139,10 +131,7 @@ for (i in 1:length(scenario)) {
   
   #list of columns that will be adjusted
   cols <- names(inflow[,c(2:21)])
-  
-  # Calculate standard deviations for each column and store them in a named vector
-  sds <- sapply(inflow[cols], sd, na.rm = TRUE)
-  
+
   #number of times to repeat based on hourly data
   num_repeats <- ceiling(21 / (nrow(inflow) / (365)))  
   
@@ -150,18 +139,13 @@ for (i in 1:length(scenario)) {
   
   inflow_expanded <- do.call(rbind, replicate(num_repeats, inflow, simplify = FALSE))
   
-  # Apply noise
-  for (col in cols) {
-    offset <- rnorm(n = nrow(inflow_expanded), mean = 0, sd = sds[col])
-    inflow_expanded[[col]] <- inflow_expanded[[col]] + offset
-  }
-  
   # Trim to the correct length and set time
   inflow_expanded <- inflow_expanded[1:total_days, ]
   inflow_expanded$time <- seq(start_date, by = "day", length.out = total_days)
   
   # Append original observations
-  inflow_final <- rbind(inflow_expanded, inflow[inflow$time > end_date, ])
+  inflow_final <- rbind(inflow_expanded, inflow[inflow$time > end_date, ]) |>
+    na.omit()
   
   # Save inflow file
   if(scenario[i]=="baseline"){
@@ -189,18 +173,13 @@ for (i in 1:length(scenario)) {
   
   outflow_expanded <- do.call(rbind, replicate(num_repeats, outflow, simplify = FALSE))
   
-  # Apply noise
-  for (col in cols) {
-    offset <- rnorm(n = nrow(outflow_expanded), mean = 0, sd = sds[col])
-    outflow_expanded[[col]] <- outflow_expanded[[col]] + offset
-  }
-  
   # Trim to the correct length and set time
   outflow_expanded <- outflow_expanded[1:total_days, ]
   outflow_expanded$time <- seq(start_date, by = "day", length.out = total_days)
   
   # Append original observations
-  outflow_final <- rbind(outflow_expanded, outflow[inflow$time > end_date, ])
+  outflow_final <- rbind(outflow_expanded, outflow[inflow$time > end_date, ]) |>
+    na.omit()
   
   # Save the file
   write.csv(outflow_final, paste0("sims/spinup/",scenario[i],"/inputs/BVR_spillway_outflow_2015_2022_metInflow.csv"),
@@ -238,7 +217,7 @@ inflow_plus10 <- read.csv("sims/spinup/plus10/inputs/inflow_plus10.csv")
 
 plot(as.Date(inflow_baseline$time), inflow_baseline$TEMP, ylim = c(-15,39), 
      col = "#00603d", type="l")
-plot(as.Date(inflow_plus1$time), inflow_plus1$TEMP, 
+points(as.Date(inflow_plus1$time), inflow_plus1$TEMP, 
        col = "#c6a000", type="l")
 points(as.Date(inflow_plus5$time), inflow_plus5$TEMP, 
        col = "#c85b00", type="l")
@@ -248,9 +227,10 @@ legend("bottom", legend=c("baseline", "plus1C","plus5C","plus10C"),
        col=c("#00603d","#c6a000","#c85b00","#680000"), 
        lty=1, cex=0.8, bty='n', horiz=T)
 
+max(inflow_baseline$TEMP) # 29.8 (but mean is lower so okay I think)
 max(inflow_plus1$TEMP) # 27.6
 max(inflow_plus5$TEMP) # 32.1
-max(inflow_plus10$TEMP) # 37.8
+max(inflow_plus10$TEMP) # 37.7
 
 #now read in met
 met_baseline <- read.csv("sims/spinup/baseline/inputs/met.csv") |>
@@ -267,14 +247,14 @@ met_plus1 <- read.csv("sims/spinup/plus1/inputs/met_plus1.csv") |>
   dplyr::summarise(mean_airtemp = mean(AirTemp)) |>
   dplyr::filter(time<= "2022-05-04")
 
-met_plus5 <- read.csv("sims/plus5/inputs/met_plus5.csv") |>
+met_plus5 <- read.csv("sims/spinup/plus5/inputs/met_plus5.csv") |>
   dplyr::select(time, AirTemp) |>
   dplyr::mutate(time = as.Date(time)) |>
   dplyr::group_by(time) |> 
   dplyr::summarise(mean_airtemp = mean(AirTemp)) |>
   dplyr::filter(time<= "2022-05-04")
 
-met_plus10 <- read.csv("sims/plus10/inputs/met_plus10.csv") |>
+met_plus10 <- read.csv("sims/spinup/plus10/inputs/met_plus10.csv") |>
   dplyr::select(time, AirTemp) |>
   dplyr::mutate(time = as.Date(time)) |>
   dplyr::group_by(time) |> 
@@ -293,9 +273,10 @@ legend("bottom", legend=c("baseline", "plus1C","plus5C","plus10C"),
        col=c("#00603d","#c6a000","#c85b00","#680000"), 
        lty=1, cex=0.8, bty='n', horiz=T)
 
-max(met_plus1$mean_airtemp) # 29.5
-max(met_plus5$mean_airtemp) # 33.5
-max(met_plus10$mean_airtemp) # 38.5
+max(met_baseline$mean_airtemp) # 28.7
+max(met_plus1$mean_airtemp) # 29.7
+max(met_plus5$mean_airtemp) # 33.7
+max(met_plus10$mean_airtemp) # 38.7
 
 #--------------------------------------------------------------------#
 # calculate Schmidt stability
