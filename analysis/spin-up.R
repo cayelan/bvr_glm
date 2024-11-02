@@ -6,6 +6,9 @@ pacman::p_load(glmtools)
 # create a folder for each scenarios and populate with sim files
 glm_files = list.files("./sims/baseline", full.names = TRUE)[1:3] 
 
+#list of scenarios
+scenario <- c("baseline","plus1","plus5","plus10")
+
 for (i in 1:length(scenario)){
   subdirName <- paste0("./sims/spinup/",scenario[i])
   folder<-dir.create(subdirName)
@@ -65,10 +68,6 @@ for (i in 1:length(scenario_folder_names)){
                                            "inflow_fl" = paste0("inputs/inflow_",scenario_folder_names[i],".csv")))
   glmtools::write_nml(scenario_nml, file = scenario_nml_file)
 }
-
-
-#list of scenarios
-scenario <- c("baseline","plus1","plus5","plus10")
 
 # Set start and end dates
 start_date <- as.POSIXct("2000-07-07 00:00:00", tz = "UTC")
@@ -239,7 +238,7 @@ inflow_plus10 <- read.csv("sims/spinup/plus10/inputs/inflow_plus10.csv")
 
 plot(as.Date(inflow_baseline$time), inflow_baseline$TEMP, ylim = c(-15,39), 
      col = "#00603d", type="l")
-points(as.Date(inflow_plus1$time), inflow_plus1$TEMP, 
+plot(as.Date(inflow_plus1$time), inflow_plus1$TEMP, 
        col = "#c6a000", type="l")
 points(as.Date(inflow_plus5$time), inflow_plus5$TEMP, 
        col = "#c85b00", type="l")
