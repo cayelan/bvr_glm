@@ -162,10 +162,7 @@ for (i in 1:length(scenario)) {
   
   #list of columns that will be adjusted
   cols <- names(outflow[2])
-  
-  # Calculate standard deviations for each column and store them in a named vector
-  sds <- sapply(outflow[cols], sd, na.rm = TRUE)
-  
+
   #number of times to repeat based on hourly data
   num_repeats <- ceiling(21 / (nrow(outflow) / (365)))  
   
