@@ -1,7 +1,7 @@
 # script to prep glm nml file and met/inflow files for 15-year spin-up
 
 #load packages
-pacman::p_load(glmtools)
+pacman::p_load(glmtools, zoo)
 
 # create a folder for each scenarios and populate with sim files
 glm_files = list.files("./sims/baseline", full.names = TRUE)[1:3] 
@@ -71,116 +71,212 @@ for (i in 1:length(scenario_folder_names)){
 
 # Set start and end dates
 start_date <- as.POSIXct("2000-07-07 20:00:00", tz = "UTC")
-end_date <- as.POSIXct("2015-07-06 00:00:00", tz = "UTC")
+end_date <- as.POSIXct("2022-05-04 00:00:00", tz = "UTC")
 total_hours <- as.numeric(difftime(end_date, start_date, units = "hours")) + 1
 total_days <- ceiling(as.numeric(difftime(end_date, start_date, units = "days")) + 1)
 
+# Define the observation period for cycling
+obs_start_year <- 2015
+obs_end_year <- 2022
+obs_years <- seq(obs_start_year, obs_end_year)
+
+# Function to map simulation date to observation date
+map_to_obs_date <- function(sim_date, obs, hourly = TRUE) {
+  # Get simulation year, month, day, and time
+  sim_year <- as.numeric(format(sim_date, "%Y"))
+  month_day <- format(sim_date, "%m-%d")
+  if(hourly){
+  time <- format(sim_date, "%H:%M:%S")
+  } else{
+    time <- NA
+  }
+  
+  # Determine observation year within 2015-2022 range
+  if (sim_year < 2015) {
+    # Cycle the years
+    year_offset <- (sim_year - 2000) %% 8
+    obs_year <- 2015 + year_offset
+  } else {
+    obs_year <- sim_year
+  }
+  
+  # Handle leap year dates (2016 to 2017, 2020 to 2021)
+  if (obs_year == 2016 || obs_year == 2020) {
+    # Adjust February 29 to February 28
+    if (month_day == "02-29") {
+      month_day <- "02-28"
+    }
+  }
+  
+  # Construct preliminary observation date
+  if(hourly){
+  obs_date <- as.POSIXct(paste0(obs_year, "-", month_day, " ", time),
+                         format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+  } else {
+    obs_date <- as.POSIXct(paste0(obs_year, "-", month_day),
+                           format = "%Y-%m-%d", tz = "UTC")
+  }
+  
+  # Handle the case for dates beyond the last observation
+  if (!is.na(obs_date) && obs_date > as.POSIXct("2022-05-05 23:59:59", tz = "UTC")) {
+    days_offset <- as.numeric(difftime(obs_date, as.POSIXct("2022-05-05", tz = "UTC"), units = "days"))
+    obs_date <- as.POSIXct("2016-05-06", tz = "UTC") + 
+      days_offset * 86400 - 10800 + #(-3 years to compensate for starting at 20:00)
+      as.numeric(difftime(obs_date, as.POSIXct("2022-05-05 00:00:00", tz = "UTC"), units = "secs")) %% 86400
+  }
+  
+  # Adjust for datetimes between 2015-01-01 00:00:00 and 2015-07-06 23:00:00
+  if (!is.na(obs_date) && obs_year == 2015 && obs_date >= as.POSIXct("2015-01-01 00:00:00", tz = "UTC") && 
+      obs_date <= as.POSIXct("2015-07-06 23:00:00", tz = "UTC")) {
+    obs_year <- 2016  # Bump up to 2016
+    obs_date <- as.POSIXct(paste0(obs_year, "-", month_day, " ", sprintf("%s:00", time)), 
+                           format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+  }
+  
+  if (!is.na(obs_date) && obs_date %in% obs$time) {
+    return(obs_date)
+  } else {
+    cat("No match for obs_date:", sim_date, "\n")
+    return(NA)  # Explicitly return NA if no match is found
+    }
+  
+  
+  return(obs_date)
+}
+
 # Iterate through each scenario
 for (i in 1:length(scenario)) {
-  # step 1: Set file paths and update start date in the .nml file
+  
+  # Step 1: Set file paths and update start date in the .nml file
   scenario_nml_file <- file.path(paste0("./sims/", scenario[i], "/glm3.nml"))
   scenario_nml <- glmtools::read_nml(nml_file = scenario_nml_file)
   scenario_nml <- glmtools::set_nml(scenario_nml, arg_name = "start", 
                                     arg_val = format(start_date, "%Y-%m-%d %H:%M:%S"))
   glmtools::write_nml(scenario_nml, file = scenario_nml_file)
   
-  # step 2: adjust the met files - adding random noise + cycling through met obs
-  if(scenario[i]=="baseline"){
-    met <- read.csv(paste0("sims/",scenario[i],"/inputs/met.csv")) |>
-      dplyr::mutate(time = as.POSIXct(time, format = "%Y-%m-%d %H:%M") )
-  } else{
-    met <- read.csv(paste0("sims/",scenario[i],"/inputs/met_",scenario[i],".csv")) |>
-      dplyr::mutate(time = as.POSIXct(time, format = "%Y-%m-%d %H:%M") )
+  # Step 2: Adjust the met files
+  met_file <- if (scenario[i] == "baseline") {
+    paste0("sims/", scenario[i], "/inputs/met.csv")
+  } else {
+    paste0("sims/", scenario[i], "/inputs/met_", scenario[i], ".csv")
   }
+  met <- read.csv(met_file) |> 
+    dplyr::mutate(time = as.POSIXct(paste0(time, ":00"), 
+                                    format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
   
-  #list of columns that will be adjusted
-  cols <- names(met[,c(2:7)])
+  # Generate the sequence of simulation dates
+  expanded_times <- seq(start_date, by = "hour", length.out = total_hours)
   
-  #number of times to repeat based on hourly data
-  num_repeats <- ceiling(21 / (nrow(met) / (365 * 24)))  
+  # Map simulation times to observation times
+  mapped_times <- vapply(expanded_times, function(sim_date) {
+    map_to_obs_date(sim_date, met)
+  }, FUN.VALUE = as.POSIXct(NA, tz = "UTC"))
   
-  set.seed(42)  # For reproducibility
+  mapped_times <- as.POSIXct(mapped_times, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
   
-  met_expanded <- do.call(rbind, replicate(num_repeats, met, simplify = FALSE)) 
+  # Replace NA values with the previous valid datetime
+  mapped_times <- na.locf(mapped_times, na.rm = FALSE)
   
-  # Trim to the correct length and set time
-  met_expanded <- met_expanded[1:total_hours, ]
-  met_expanded$time <- seq(start_date, by = "hour", length.out = total_hours) 
+  # Create the expanded met data frame
+  expanded_met <- data.frame(
+    time = expanded_times,
+    obs_time = mapped_times
+  )
   
-  # Append original observations
-  met_final <- rbind(met_expanded, met[met$time > end_date, ]) |>
-    na.omit() |>
-    dplyr::filter(time <= as.POSIXct("2022-05-05 00:00:00"))
+  # Join with met based on obs_time to get corresponding observations
+  expanded_met <- merge(expanded_met, met, by.x = "obs_time", 
+                        by.y = "time", all.x = TRUE) |>
+    dplyr::select(-obs_time)
   
   # Save met file
   if(scenario[i]=="baseline"){
-    write.csv(met_final, paste0("sims/spinup/",scenario[i],"/inputs/met.csv"),
+    write.csv(expanded_met, paste0("sims/spinup/",scenario[i],"/inputs/met.csv"),
               row.names = FALSE)
   } else{
-    write.csv(met_final, paste0("sims/spinup/",scenario[i],"/inputs/met_",scenario[i],".csv"),
+    write.csv(expanded_met, paste0("sims/spinup/",scenario[i],"/inputs/met_",scenario[i],".csv"),
               row.names = FALSE)
   }
   
-  # step 3: adjust the inflow file (same random noise and cycling approach)
-  if(scenario[i]=="baseline"){
-    inflow <- read.csv(paste0("sims/",scenario[i],"/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv")) |>
-      dplyr::mutate(time = as.POSIXct(time, format = "%Y-%m-%d") )
-  } else{
-    inflow <- read.csv(paste0("sims/",scenario[i],"/inputs/inflow_",scenario[i],".csv")) |>
-      dplyr::mutate(time = as.POSIXct(time, format = "%Y-%m-%d") )
+  # Step 3: Adjust the inflow file similarly
+  inflow_file <- if (scenario[i] == "baseline") {
+    "sims/baseline/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv"
+  } else {
+    paste0("sims/", scenario[i], "/inputs/inflow_", scenario[i], ".csv")
   }
+  inflow <- read.csv(inflow_file) |> 
+    dplyr::mutate(time = as.POSIXct(
+      paste(time,"00:00:00"),
+      format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
   
-  #list of columns that will be adjusted
-  cols <- names(inflow[,c(2:21)])
-
-  #number of times to repeat based on hourly data
-  num_repeats <- ceiling(21 / (nrow(inflow) / (365)))  
+  # Generate the sequence of simulation dates
+  expanded_times <- seq(as.Date(start_date), by = "day", 
+                        length.out = total_days)
   
-  set.seed(42)  # For reproducibility
+  # Map simulation times to observation times
+  mapped_days_inflow <- vapply(expanded_times, function(sim_date) {
+    map_to_obs_date(sim_date, inflow, hourly = FALSE)
+  }, FUN.VALUE = as.POSIXct(NA, tz = "UTC"))
   
-  inflow_expanded <- do.call(rbind, replicate(num_repeats, inflow, simplify = FALSE))
+  mapped_days_inflow <- as.POSIXct(mapped_days_inflow, format = "%Y-%m-%d", tz = "UTC")
   
-  # Trim to the correct length and set time
-  inflow_expanded <- inflow_expanded[1:total_days, ]
-  inflow_expanded$time <- seq(start_date, by = "day", length.out = total_days)
+  # Replace NA values with the previous valid datetime
+  mapped_days_inflow <- na.locf(mapped_days_inflow, na.rm = FALSE)
   
-  # Append original observations
-  inflow_final <- rbind(inflow_expanded, inflow[inflow$time > end_date, ]) |>
-    na.omit()
+  # Create the expanded inflow data frame
+  expanded_inflow <- data.frame(
+    time = expanded_times,
+    obs_time = mapped_days_inflow
+  )
+  
+  # Join with met based on obs_time to get corresponding observations
+  expanded_inflow <- merge(expanded_inflow, inflow, by.x = "obs_time", 
+                        by.y = "time", all.x = TRUE) |>
+    dplyr::select(-obs_time)
   
   # Save inflow file
   if(scenario[i]=="baseline"){
-    write.csv(inflow_final, paste0("sims/spinup/",scenario[i],"/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv"),
+    write.csv(expanded_inflow, paste0("sims/spinup/",scenario[i],"/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv"),
               row.names = FALSE)
   } else{
-    write.csv(inflow_final, paste0("sims/spinup/",scenario[i],"/inputs/inflow_",scenario[i],".csv"),
+    write.csv(expanded_inflow, paste0("sims/spinup/",scenario[i],"/inputs/inflow_",scenario[i],".csv"),
               row.names = FALSE)
   }
   
-  # step 4: adjust outflow file (same as above)
-  outflow <- read.csv(paste0("sims/",scenario[i],"/inputs/BVR_spillway_outflow_2015_2022_metInflow.csv")) |>
-    dplyr::mutate(time = as.POSIXct(time, format = "%Y-%m-%d") )
+  # Step 4: Adjust the outflow file
+  outflow_file <- "sims/baseline/inputs/BVR_spillway_outflow_2015_2022_metInflow.csv"
+  outflow <- read.csv(outflow_file) |> 
+    dplyr::mutate(time = as.POSIXct(
+      paste(time,"00:00:00"),
+      format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
   
-  #list of columns that will be adjusted
-  cols <- names(outflow[2])
-
-  #number of times to repeat based on hourly data
-  num_repeats <- ceiling(21 / (nrow(outflow) / (365)))  
+  # Generate the sequence of simulation dates
+  expanded_times <- seq(as.Date(start_date), by = "day", 
+                        length.out = total_days)
   
-  set.seed(42)  # For reproducibility
+  # Map simulation times to observation times
+  mapped_days_outflow <- vapply(expanded_times, function(sim_date) {
+    map_to_obs_date(sim_date, outflow, hourly = FALSE)
+  }, FUN.VALUE = as.POSIXct(NA, tz = "UTC"))
   
-  outflow_expanded <- do.call(rbind, replicate(num_repeats, outflow, simplify = FALSE))
+  mapped_days_outflow <- as.POSIXct(mapped_days_outflow,
+                                    format = "%Y-%m-%d", tz = "UTC")
   
-  # Trim to the correct length and set time
-  outflow_expanded <- outflow_expanded[1:total_days, ]
-  outflow_expanded$time <- seq(start_date, by = "day", length.out = total_days)
+  # Replace NA values with the previous valid datetime
+  mapped_days_outflow <- na.locf(mapped_days_outflow, na.rm = FALSE)
   
-  # Append original observations
-  outflow_final <- rbind(outflow_expanded, outflow[inflow$time > end_date, ]) |>
-    na.omit()
+  # Create the expanded met data frame
+  expanded_outflow <- data.frame(
+    time = expanded_times,
+    obs_time = mapped_days_outflow
+  )
+  
+  # Join with met based on obs_time to get corresponding observations
+  expanded_outflow <- merge(expanded_outflow, outflow, by.x = "obs_time", 
+                           by.y = "time", all.x = TRUE) |>
+    dplyr::select(-obs_time)
   
   # Save the file
-  write.csv(outflow_final, paste0("sims/spinup/",scenario[i],"/inputs/BVR_spillway_outflow_2015_2022_metInflow.csv"),
+  write.csv(expanded_outflow, paste0("sims/spinup/",scenario[i],"/inputs/BVR_spillway_outflow_2015_2022_metInflow.csv"),
             row.names = FALSE)
 }
 
