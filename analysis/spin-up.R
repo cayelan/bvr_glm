@@ -109,7 +109,8 @@ for (i in 1:length(scenario)) {
   
   # Append original observations
   met_final <- rbind(met_expanded, met[met$time > end_date, ]) |>
-    na.omit()
+    na.omit() |>
+    dplyr::filter(time <= as.POSIXct("2022-05-05 00:00:00"))
   
   # Save met file
   if(scenario[i]=="baseline"){
