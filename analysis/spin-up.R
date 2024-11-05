@@ -1,5 +1,9 @@
 # script to prep glm nml file and met/inflow files for 15-year spin-up
 
+# install glmtools
+library(devtools)
+devtools::install_github("rqthomas/glmtools", force = TRUE)
+
 #load packages
 pacman::p_load(glmtools, zoo)
 
@@ -267,32 +271,9 @@ for (i in 1:length(scenario)) {
             row.names = FALSE)
 }
 
-#-----------------------------------------------------------------------------#
-# now run each of these scenarios and save output
-# run and plot each scenario
-for (i in 1:length(scenario)){
-  
-  # run the model
-  sim_folder = paste0("./sims/spinup/",scenario[i])
-  GLM3r::run_glm(sim_folder)
-  
-  # set nml file
-  nc_file <- file.path(paste0("sims/spinup/",scenario[i],"/output/output.nc")) 
-  
-  # access and plot temperature
-  current_temp <- glmtools::get_var(nc_file, var_name = "temp")
-  p <- glmtools::plot_var(nc_file, var_name = "temp", reference = "surface", 
-                          plot.title = scenario[i])
-  plot_filename <- paste0("./figures/waterTemp_",scenario[i],".png")
-  ggplot2::ggsave(p, filename = plot_filename, device = "png",
-                  height = 6, width = 8, units = "in")
-  
-}
-
 #-------------------------------------------------------------------------#
 #quick plots of inflow temp to make sure above code is doing what I want it to
-inflow_baseline <- read.csv("sims/spinup/baseline/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv") |>
-  arrange(time)
+inflow_baseline <- read.csv("sims/spinup/baseline/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv")
 inflow_plus1 <- read.csv("sims/spinup/plus1/inputs/inflow_plus1.csv")
 inflow_plus5 <- read.csv("sims/spinup/plus5/inputs/inflow_plus5.csv")
 inflow_plus10 <- read.csv("sims/spinup/plus10/inputs/inflow_plus10.csv")
@@ -373,6 +354,10 @@ bathymetry <- readr::read_csv(infile1, show_col_types = F)  |>
   dplyr::select(Reservoir, Depth_m, SA_m2) |>
   dplyr::filter(Reservoir == "BVR") |>
   dplyr::select(-Reservoir)
+
+#read in temp data
+current_temp <- glmtools::get_var("sims/spinup/baseline/output/output.nc", 
+                                  var_name = "temp")
 
 #initialize ss df
 # Initialize ss matrix with dimensions based on the length of dates and scenarios

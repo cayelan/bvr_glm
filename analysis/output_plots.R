@@ -175,13 +175,13 @@ pacman::p_load(tidyverse,lubridate,ncdf4,glmtools)
 
 #-----------------------------------------------------------------------------#
 #plotting vars in lake.csv file
-baseline <- read.csv("sims/baseline/output/lake.csv") |> 
+baseline <- read.csv("sims/spinup/baseline/output/lake.csv") |> 
   dplyr::mutate(DateTime = as.Date(time))
-plus1C <- read.csv("sims/plus1/output/lake.csv") |> 
+plus1C <- read.csv("sims/spinup/plus1/output/lake.csv") |> 
   dplyr::mutate(DateTime = as.Date(time))
-plus5C <- read.csv("sims/plus5/output/lake.csv") |> 
+plus5C <- read.csv("sims/spinup/plus5/output/lake.csv") |> 
   dplyr::mutate(DateTime = as.Date(time))
-plus10C <- read.csv("sims/plus10/output/lake.csv") |> 
+plus10C <- read.csv("sims/spinup/plus10/output/lake.csv") |> 
   dplyr::mutate(DateTime = as.Date(time))
 
 #plot various vars

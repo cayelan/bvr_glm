@@ -7,7 +7,7 @@ scenario <- c("baseline","plus1", "plus5","plus10")
 
 for (i in 1:length(scenario)){
 
-nc_file = paste0("sims/",scenario[i],"/output/output.nc")  
+nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
   
 #save zoop output
 var="ZOO_cladoceran"
@@ -105,7 +105,7 @@ assign(paste0("all_zoops_", scenario[i]), all_zoops_final)
 # same for phytos
 for (i in 1:length(scenario)){
   
-  nc_file = paste0("sims/",scenario[i],"/output/output.nc")  
+  nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
   
   var="PHY_cyano"
   # Function to get phyto data for varying depths
@@ -178,7 +178,7 @@ for (i in 1:length(scenario)){
 
 for (i in 1:length(scenario)){
   
-  nc_file = paste0("sims/",scenario[i],"/output/output.nc")  
+  nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
   
 var="PHY_tchla"
 chla_obs <- read.csv('field_data/CleanedObsChla.csv', header=TRUE) |> 
@@ -367,7 +367,7 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
                    setNames(paste0(scenario)) %>%
                    bind_rows(.id = "scenario") %>%
                    relocate(scenario, .after = last_col())
-  #write.csv(zoop_scenarios, "./analysis/output/zoop_scenarios.csv", row.names = F)
+  #write.csv(zoop_scenarios, "./analysis/data/zoop_scenarios.csv", row.names = F)
   
   
   ggplot(data = subset(zoop_scenarios, scenario %in% c("baseline","plus10")),
@@ -379,8 +379,8 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
   facet_wrap(~scenario, scales = "free_x")+
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"))+
   scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
-  scale_x_date(expand = c(0,0), date_breaks = "6 months", 
-               date_labels = "%b-%Y") +
+  scale_x_date(expand = c(0,0), date_breaks = "1 year", 
+               date_labels = "%Y") +
   scale_y_continuous(expand = c(0,0))+
   xlab("") + ylab("Relative density") +
   guides(color= "none",
@@ -429,8 +429,8 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
     facet_wrap(~scenario, scales = "free_x")+
     scale_color_manual(values = c("cyan","green","brown4"))+
     scale_fill_manual(values = c("cyan","green","brown4"))+
-    scale_x_date(expand = c(0,0), date_breaks = "6 months", 
-                 date_labels = "%b-%Y") +
+    scale_x_date(expand = c(0,0), date_breaks = "1 year", 
+                 date_labels = "%Y") +
     scale_y_continuous(expand = c(0,0))+
     xlab("") + ylab("Relative density") +
     guides(color= "none",

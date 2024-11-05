@@ -2,7 +2,10 @@
 # 20 Aug 2024
 
 #install hydroGOF
-install.packages("hydroGOF")
+if (!require(devtools)) install.packages("devtools")
+library(devtools)
+install_github("hzambran/hydroTSM")
+install_github("hzambran/hydroGOF")
 
 #load packages
 pacman::p_load(tidyverse,lubridate, hydroGOF, glmtools)
@@ -10,11 +13,11 @@ pacman::p_load(tidyverse,lubridate, hydroGOF, glmtools)
 # create modeled vs. observed df for each variable
 #focal depths
 depths<- c(0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
-scenario <- c("baseline","plus1","plus3","plus5")
+scenario <- c("baseline","plus1","plus5","plus10")
 
 for(i in 1:length(scenario)){
   
-  nc_file = paste0("sims/",scenario[i],"/output/output.nc")  
+  nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
 
 # temp
 obstemp<-read_csv('field_data/CleanedObsTemp.csv') |> 
@@ -141,6 +144,10 @@ all_vars <- reduce(list(watertemp, oxy_compare, dic_compare,
                         po4_compare, docr_compare, doc_compare,
                         chla_compare), full_join)
 
+mod_vars <- reduce(list(modtemp, mod_oxy, mod_dic, mod_ch4,
+                        mod_nh4, mod_no3, mod_po4, mod_docr,
+                        mod_doc, mod_chla), full_join)
+
 #add col for calib vs. valid period (2020-12-31)
 all_vars$period <- ifelse(all_vars$DateTime <= "2020-12-31",
                           "calib", "valid")
@@ -154,6 +161,14 @@ all_vars_final <- all_vars |>
   na.omit()
 
 assign(paste0("all_vars_final_", scenario[i]), all_vars_final)
+
+mod_vars_final <- mod_vars |> 
+  filter(Depth %in% c(0.1,9)) |> 
+  pivot_longer(cols = -c(DateTime,Depth), 
+               names_pattern = "(...)_(...*)$",
+               names_to = c("type", "var")) |> 
+  na.omit()
+assign(paste0("mod_vars_final_", scenario[i]), mod_vars_final)
 }
 
 #-------------------------------------------------------------#
@@ -304,8 +319,76 @@ ggplot() +
         panel.spacing.y = unit(0, "lines"))
 #ggsave("figures/allvars_valid_mod_vs_obs_9m.jpg", width=6, height=6)
 
-#same figs with each scenario
+#modeled vars from 2000-2022 for each scenario
+scenarios_df <- mget(c("mod_vars_final_baseline","mod_vars_final_plus1",
+                       "mod_vars_final_plus5", "mod_vars_final_plus10")) |>
+  setNames(paste0(scenario)) |>
+  bind_rows(.id = "scenario") |>
+  relocate(scenario, .after = last_col()) |>
+  select(-type)
+#write.csv(scenarios_df, "./analysis/data/modeled_vars_scenarios.csv", row.names = F)
 
+  ggplot(subset(scenarios_df, Depth %in% 0.1),
+         aes(x = DateTime, y = value, 
+             color = as.factor(scenario))) +
+  geom_line(alpha = 0.4) + xlab("") +
+  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                    breaks = c("baseline","plus1","plus5","plus10")) +
+  facet_wrap(~var, ncol=3, scales = "free_y") + 
+  theme_bw() + guides(fill = "none") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold",hjust = 0),
+        axis.text.x = element_text(angle=90),
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing = unit(0.5, "lines"))
+#ggsave("figures/modeled_vars_scenarios_0.1.jpg", width=7, height=4)
+  
+  ggplot(subset(scenarios_df, Depth %in% 9),
+         aes(x = DateTime, y = value, 
+             color = as.factor(scenario))) +
+    geom_line(alpha = 0.4) + xlab("") +
+    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                       breaks = c("baseline","plus1","plus5","plus10")) +
+    facet_wrap(~var, ncol=3, scales = "free_y") + 
+    theme_bw() + guides(fill = "none") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          axis.text.x = element_text(angle=90),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/modeled_vars_scenarios_9.jpg", width=7, height=4)
 
 #-----------------------------------------------------------------------#
 # GOF table for calib vs. valid periods
