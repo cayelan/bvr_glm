@@ -1,4 +1,4 @@
-"time","FLOW","TEMP","SALT","OXY_oxy","NIT_amm","NIT_nit","PHS_frp","OGM_doc","OGM_docr","OGM_poc","OGM_don","OGM_donr","OGM_pon","OGM_dop","OGM_dopr","OGM_pop","CAR_dic","CAR_pH","SIL_rsi","CAR_ch4","PHY_cyano","PHY_cyano_IN","PHY_cyano_IP","PHY_green","PHY_green_IN","PHY_green_IP","PHY_diatom","PHY_diatom_IN","PHY_diatom_IP"
+time,FLOW,TEMP,SALT,OXY_oxy,NIT_amm,NIT_nit,PHS_frp,OGM_doc,OGM_docr,OGM_poc,OGM_don,OGM_donr,OGM_pon,OGM_dop,OGM_dopr,OGM_pop,CAR_dic,CAR_pH,SIL_rsi,CAR_ch4,PHY_cyano,PHY_cyano_IN,PHY_cyano_IP,PHY_green,PHY_green_IN,PHY_green_IP,PHY_diatom,PHY_diatom_IN,PHY_diatom_IP
 2000-07-07,0,24.7899,0,251.1737,1.0822,0.0473,0.0668,16.5191,166.1628,9.7171,0.8816,7.9346,1.7632,-0.002,-0.018,-0.0467,70.1763,6.65,82.1513,0.7118,0,0,0,0,0,0,0,0,0
 2015-07-07,0,24.7899,0,251.1737,1.0822,0.0473,0.0668,16.5191,166.1628,9.7171,0.8816,7.9346,1.7632,-0.002,-0.018,-0.0467,70.1763,6.65,82.1513,0.7118,0,0,0,0,0,0,0,0,0
 2008-07-07,0,24.7899,0,251.1737,1.0822,0.0473,0.0668,16.5191,166.1628,9.7171,0.8816,7.9346,1.7632,-0.002,-0.018,-0.0467,70.1763,6.65,82.1513,0.7118,0,0,0,0,0,0,0,0,0
