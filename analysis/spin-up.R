@@ -70,7 +70,7 @@ for (i in 1:length(scenario_folder_names)){
 }
 
 # Set start and end dates
-start_date <- as.POSIXct("2000-07-07 20:00:00", tz = "UTC")
+start_date <- as.POSIXct("2000-07-08 00:00:00", tz = "UTC")
 end_date <- as.POSIXct("2022-05-04 00:00:00", tz = "UTC")
 total_hours <- as.numeric(difftime(end_date, start_date, units = "hours")) + 1
 total_days <- ceiling(as.numeric(difftime(end_date, start_date, units = "days")) + 1)
@@ -85,65 +85,46 @@ map_to_obs_date <- function(sim_date, obs, hourly = TRUE) {
   # Get simulation year, month, day, and time
   sim_year <- as.numeric(format(sim_date, "%Y"))
   month_day <- format(sim_date, "%m-%d")
-  if(hourly){
-  time <- format(sim_date, "%H:%M:%S")
-  } else{
-    time <- NA
-  }
+  time <- if (hourly) format(sim_date, "%H:%M:%S") else "00:00:00"
   
   # Determine observation year within 2015-2022 range
   if (sim_year < 2015) {
-    # Cycle the years
     year_offset <- (sim_year - 2000) %% 8
     obs_year <- 2015 + year_offset
   } else {
     obs_year <- sim_year
   }
   
-  # Handle leap year dates (2016 to 2017, 2020 to 2021)
-  if (obs_year == 2016 || obs_year == 2020) {
-    # Adjust February 29 to February 28
-    if (month_day == "02-29") {
-      month_day <- "02-28"
-    }
+  # Adjust leap year dates
+  if ((obs_year == 2016 || obs_year == 2020) && month_day == "02-29") {
+    month_day <- "02-28"
   }
   
-  # Construct preliminary observation date
-  if(hourly){
+  # Construct observation date
   obs_date <- as.POSIXct(paste0(obs_year, "-", month_day, " ", time),
                          format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
-  } else {
-    obs_date <- as.POSIXct(paste0(obs_year, "-", month_day),
-                           format = "%Y-%m-%d", tz = "UTC")
+  
+  # If obs_date exceeds the final obs date (2022-05-04), adjust it
+  if (!is.na(obs_date) && obs_date > as.POSIXct("2022-05-04 23:59:59", tz = "UTC")) {
+    days_offset <- as.numeric(difftime(obs_date, as.POSIXct("2022-05-04", tz = "UTC"), units = "days"))
+    obs_date <- as.POSIXct("2016-05-05", tz = "UTC") + days_offset * 86400
   }
   
-  # Handle the case for dates beyond the last observation
-  if (!is.na(obs_date) && obs_date > as.POSIXct("2022-05-05 23:59:59", tz = "UTC")) {
-    days_offset <- as.numeric(difftime(obs_date, as.POSIXct("2022-05-05", tz = "UTC"), units = "days"))
-    obs_date <- as.POSIXct("2016-05-06", tz = "UTC") + 
-      days_offset * 86400 - 10800 + #(-3 years to compensate for starting at 20:00)
-      as.numeric(difftime(obs_date, as.POSIXct("2022-05-05 00:00:00", tz = "UTC"), units = "secs")) %% 86400
-  }
-  
-  # Adjust for datetimes between 2015-01-01 00:00:00 and 2015-07-06 23:00:00
-  if (!is.na(obs_date) && obs_year == 2015 && obs_date >= as.POSIXct("2015-01-01 00:00:00", tz = "UTC") && 
+  # Apply correction for 2015 dates up to mid-2015
+  if (!is.na(obs_date) && obs_year == 2015 && obs_date >= as.POSIXct("2015-01-01", tz = "UTC") &&
       obs_date <= as.POSIXct("2015-07-06 23:00:00", tz = "UTC")) {
-    obs_year <- 2016  # Bump up to 2016
-    obs_date <- as.POSIXct(paste0(obs_year, "-", month_day, " ", sprintf("%s:00", time)), 
-                           format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+    obs_date <- as.POSIXct(paste0(2016, "-", month_day, " ", time), format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
   }
   
+  # Check if obs_date is in obs data and return; if not, return NA
   if (!is.na(obs_date) && obs_date %in% obs$time) {
     return(obs_date)
   } else {
-    if(hourly){
-    cat("No match for obs_date:", sim_date, "\n")
+    if (hourly) {
+      cat("No match for obs_date:", sim_date, "\n")
     }
-    return(NA)  # Explicitly return NA if no match is found
-    }
-  
-  
-  return(obs_date)
+    return(NA)
+  }
 }
 
 # Iterate through each scenario
@@ -164,7 +145,8 @@ for (i in 1:length(scenario)) {
   }
   met <- read.csv(met_file) |> 
     dplyr::mutate(time = as.POSIXct(paste0(time, ":00"), 
-                                    format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
+                                    format = "%Y-%m-%d %H:%M:%S", tz = "UTC")) |>
+    dplyr::filter(time >= as.POSIXct("2015-07-08"))
   
   # Generate the sequence of simulation dates
   expanded_times <- seq(start_date, by = "hour", length.out = total_hours)
@@ -188,7 +170,8 @@ for (i in 1:length(scenario)) {
   # Join with met based on obs_time to get corresponding observations
   expanded_met <- merge(expanded_met, met, by.x = "obs_time", 
                         by.y = "time", all.x = TRUE) |>
-    dplyr::select(-obs_time)
+    dplyr::select(-obs_time)|>
+    arrange(time)
   
   # Save met file
   if(scenario[i]=="baseline"){
@@ -233,7 +216,8 @@ for (i in 1:length(scenario)) {
   # Join with met based on obs_time to get corresponding observations
   expanded_inflow <- merge(expanded_inflow, inflow, by.x = "obs_time", 
                         by.y = "time", all.x = TRUE) |>
-    dplyr::select(-obs_time)
+    dplyr::select(-obs_time) |>
+    arrange(time)
   
   # Save inflow file
   if(scenario[i]=="baseline"){
@@ -275,7 +259,8 @@ for (i in 1:length(scenario)) {
   # Join with met based on obs_time to get corresponding observations
   expanded_outflow <- merge(expanded_outflow, outflow, by.x = "obs_time", 
                            by.y = "time", all.x = TRUE) |>
-    dplyr::select(-obs_time)
+    dplyr::select(-obs_time) |>
+    arrange(time)
   
   # Save the file
   write.csv(expanded_outflow, paste0("sims/spinup/",scenario[i],"/inputs/BVR_spillway_outflow_2015_2022_metInflow.csv"),
@@ -306,7 +291,8 @@ for (i in 1:length(scenario)){
 
 #-------------------------------------------------------------------------#
 #quick plots of inflow temp to make sure above code is doing what I want it to
-inflow_baseline <- read.csv("sims/spinup/baseline/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv")
+inflow_baseline <- read.csv("sims/spinup/baseline/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv") |>
+  arrange(time)
 inflow_plus1 <- read.csv("sims/spinup/plus1/inputs/inflow_plus1.csv")
 inflow_plus5 <- read.csv("sims/spinup/plus5/inputs/inflow_plus5.csv")
 inflow_plus10 <- read.csv("sims/spinup/plus10/inputs/inflow_plus10.csv")
@@ -369,10 +355,10 @@ legend("bottom", legend=c("baseline", "plus1C","plus5C","plus10C"),
        col=c("#00603d","#c6a000","#c85b00","#680000"), 
        lty=1, cex=0.8, bty='n', horiz=T)
 
-max(met_baseline$mean_airtemp) # 28.7
-max(met_plus1$mean_airtemp) # 29.7
-max(met_plus5$mean_airtemp) # 33.7
-max(met_plus10$mean_airtemp) # 38.7
+max(met_baseline$mean_airtemp) # 28.5
+max(met_plus1$mean_airtemp) # 29.5
+max(met_plus5$mean_airtemp) # 33.5
+max(met_plus10$mean_airtemp) # 38.5
 
 #--------------------------------------------------------------------#
 # calculate Schmidt stability
