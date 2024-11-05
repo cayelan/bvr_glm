@@ -136,7 +136,9 @@ map_to_obs_date <- function(sim_date, obs, hourly = TRUE) {
   if (!is.na(obs_date) && obs_date %in% obs$time) {
     return(obs_date)
   } else {
+    if(hourly){
     cat("No match for obs_date:", sim_date, "\n")
+    }
     return(NA)  # Explicitly return NA if no match is found
     }
   
