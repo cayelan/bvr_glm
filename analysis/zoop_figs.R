@@ -38,6 +38,8 @@ ggplot(zoops, aes(DateTime, value, color = taxon)) +
 #------------------------------------------------------------------#
 #zoop modeled vs. observed 
 
+nc_file <- "sims/spinup/baseline/output/output.nc"
+
 var="ZOO_cladoceran"
 
 obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
@@ -354,33 +356,13 @@ ggplot() +
 
 # Full water column, full period (2015-2022)
 zoop_gof <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","clad"))
-zoop_gof$Parameter <- c("ME_val","MAE_val","MSE_val","RMSE_val","ubRMSE",
-                        "NRMSE%_val","PBIAS%_val","RSR_val","rSD_val",
-                        "NSE_val","mNSE_val","rNSE_val","wNSE",
-                        "wsNSE","d_val","dr_val","md_val","rd_val",
-                        "cp_val","r_val","R2_val","bR2_val","VE_val",
-                        "KGE_val","KGElf","KGEnp","KGEkm",
-                        "r.Spearman", "nonparamR2") 
-
-# Full water column, calibration period (2015-2020)
-zoop_gof_cal <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","clad"))
-zoop_gof_cal$Parameter <- c("ME_val","MAE_val","MSE_val","RMSE_val","ubRMSE",
-                            "NRMSE%_val","PBIAS%_val","RSR_val","rSD_val",
-                            "NSE_val","mNSE_val","rNSE_val","wNSE",
-                            "wsNSE","d_val","dr_val","md_val","rd_val",
-                            "cp_val","r_val","R2_val","bR2_val","VE_val",
-                            "KGE_val","KGElf","KGEnp","KGEkm",
-                            "r.Spearman", "nonparamR2") 
-
-# Full water column, validation period (2021-2022)
-zoop_gof_val <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","clad"))
-zoop_gof_val$Parameter <- c("ME_val","MAE_val","MSE_val","RMSE_val","ubRMSE",
-                            "NRMSE%_val","PBIAS%_val","RSR_val","rSD_val",
-                            "NSE_val","mNSE_val","rNSE_val","wNSE",
-                            "wsNSE","d_val","dr_val","md_val","rd_val",
-                            "cp_val","r_val","R2_val","bR2_val","VE_val",
-                            "KGE_val","KGElf","KGEnp","KGEkm",
-                            "r.Spearman", "nonparamR2") 
+zoop_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
+                       "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
+                       "NSE_all","mNSE_all","rNSE_all","wNSE_all",
+                       "wsNSE_all","d_all","dr_all","md_all","rd_all",
+                       "cp_all","r_all","R2_all","bR2_all","VE_all",
+                       "KGE_all","KGElf_all","KGEnp_all","KGEkm_all", 
+                       "r.Spearman","nonparamR2") 
 
 # calculate all gof metrics for full period + each zoop
 zoop_gof$clad <- c(gof(clad$Mod_cladoceran,clad$Obs_cladoceran,do.spearman = TRUE), NA)
@@ -403,66 +385,6 @@ zoop_gof$clad[29] <- summary(lm(comb_clad_rank$rank_obs ~ comb_clad_rank$rank_mo
 zoop_gof$cope[29] <- summary(lm(comb_cope_rank$rank_obs ~ comb_cope_rank$rank_mod))$r.squared
 zoop_gof$rot[29] <- summary(lm(comb_rot_rank$rank_obs ~ comb_rot_rank$rank_mod))$r.squared
 
-# same as above but for CALIBRATION period
-zoop_gof_cal$clad <- c(gof(clad$Mod_cladoceran[clad$DateTime< "2021-01-01"],
-                           clad$Obs_cladoceran[clad$DateTime< "2021-01-01"],
-                           do.spearman = TRUE), NA)
-zoop_gof_cal$cope <- c(gof(cope$Mod_copepod[cope$DateTime< "2021-01-01"],
-                           cope$Obs_copepod[cope$DateTime< "2021-01-01"],
-                           do.spearman = TRUE), NA)
-zoop_gof_cal$rot <- c(gof(rot$Mod_rotifer[rot$DateTime< "2021-01-01"],
-                          rot$Obs_rotifer[rot$DateTime< "2021-01-01"],
-                          do.spearman = TRUE), NA)
-
-#create ranked dfs for nonparametric R2 calcs
-comb_clad_rank <- clad |>  
-  filter(DateTime < "2021-01-01") |> 
-  mutate(rank_obs = rank(Obs_cladoceran),
-         rank_mod = rank(Mod_cladoceran)) 
-comb_cope_rank <- cope |>  
-  filter(DateTime < "2021-01-01") |> 
-  mutate(rank_obs = rank(Obs_copepod),
-         rank_mod = rank(Mod_copepod)) 
-comb_rot_rank <- rot |>  
-  filter(DateTime < "2021-01-01") |> 
-  mutate(rank_obs = rank(Obs_rotifer),
-         rank_mod = rank(Mod_rotifer)) 
-
-# calculate non-parametric (ranked) R2, following Brett et al. 2016
-zoop_gof_cal$clad[29] <- summary(lm(comb_clad_rank$rank_obs ~ comb_clad_rank$rank_mod))$r.squared
-zoop_gof_cal$cope[29] <- summary(lm(comb_cope_rank$rank_obs ~ comb_cope_rank$rank_mod))$r.squared
-zoop_gof_cal$rot[29] <- summary(lm(comb_rot_rank$rank_obs ~ comb_rot_rank$rank_mod))$r.squared
-
-# now VALIDATION period
-zoop_gof_val$clad <- c(gof(clad$Mod_cladoceran[clad$DateTime >= "2021-01-01"],
-                           clad$Obs_cladoceran[clad$DateTime >= "2021-01-01"],
-                           do.spearman = TRUE), NA)
-zoop_gof_val$cope <- c(gof(cope$Mod_copepod[cope$DateTime >= "2021-01-01"],
-                           cope$Obs_copepod[cope$DateTime >= "2021-01-01"],
-                           do.spearman = TRUE), NA)
-zoop_gof_val$rot <- c(gof(rot$Mod_rotifer[rot$DateTime >= "2021-01-01"],
-                          rot$Obs_rotifer[rot$DateTime >= "2021-01-01"],
-                          do.spearman = TRUE), NA)
-
-#create ranked dfs for nonparametric R2 calcs
-comb_clad_rank <- clad |>  
-  filter(DateTime >= "2021-01-01") |> 
-  mutate(rank_obs = rank(Obs_cladoceran),
-         rank_mod = rank(Mod_cladoceran)) 
-comb_cope_rank <- cope |>  
-  filter(DateTime >= "2021-01-01") |> 
-  mutate(rank_obs = rank(Obs_copepod),
-         rank_mod = rank(Mod_copepod)) 
-comb_rot_rank <- rot |>  
-  filter(DateTime >= "2021-01-01") |> 
-  mutate(rank_obs = rank(Obs_rotifer),
-         rank_mod = rank(Mod_rotifer)) 
-
-# calculate non-parametric (ranked) R2, following Brett et al. 2016
-zoop_gof_val$clad[29] <- summary(lm(comb_clad_rank$rank_obs ~ comb_clad_rank$rank_mod))$r.squared
-zoop_gof_val$cope[29] <- summary(lm(comb_cope_rank$rank_obs ~ comb_cope_rank$rank_mod))$r.squared
-zoop_gof_val$rot[29] <- summary(lm(comb_rot_rank$rank_obs ~ comb_rot_rank$rank_mod))$r.squared
-
 ####Cleaning up table ####
 ## Add NMAE calculation for all parameters
 zoop_gof[nrow(zoop_gof)+1,] <- NA
@@ -475,60 +397,15 @@ zoop_gof$cope[30] <- round(zoop_gof$cope[2]/mean(cope$Obs_copepod,
 zoop_gof$rot[30] <- round(zoop_gof$rot[2]/mean(rot$Obs_rotifer, 
                                                na.rm=T),digits = 2)
 
-zoop_gof_cal[nrow(zoop_gof_cal)+1,] <- NA
-zoop_gof_cal[30,1] <- "NMAE_cal"
-zoop_gof_cal$Parameter[28] <- "r.Spearman_cal"
-zoop_gof_cal$clad[30] <- round(zoop_gof_cal$clad[2]/mean(
-  clad$Obs_cladoceran[clad$DateTime < "2021-01-01"], 
-  na.rm=T),digits = 2)
-zoop_gof_cal$cope[30] <- round(zoop_gof_cal$cope[2]/mean(
-  cope$Obs_copepod[cope$DateTime < "2021-01-01"], 
-  na.rm=T),digits = 2)
-zoop_gof_cal$rot[30] <- round(zoop_gof_cal$rot[2]/mean(
-  rot$Obs_rotifer[rot$DateTime < "2021-01-01"], 
-  na.rm=T),digits = 2)
-
-zoop_gof_val[nrow(zoop_gof_val)+1,] <- NA
-zoop_gof_val[30,1] <- "NMAE_val"
-zoop_gof_val$Parameter[28] <- "r.Spearman_val"
-zoop_gof_val$clad[30] <- round(zoop_gof_val$clad[2]/mean(
-  clad$Obs_cladoceran[clad$DateTime < "2021-01-01"], 
-  na.rm=T),digits = 2)
-zoop_gof_val$cope[30] <- round(zoop_gof_val$cope[2]/mean(
-  cope$Obs_copepod[cope$DateTime < "2021-01-01"], 
-  na.rm=T),digits = 2)
-zoop_gof_val$rot[30] <- round(zoop_gof_val$rot[2]/mean(
-  rot$Obs_rotifer[rot$DateTime < "2021-01-01"], 
-  na.rm=T),digits = 2)
-
 # Select GOF variables
 full_n_all <- c("n_all",length(na.omit(clad$Obs_cladoceran)), 
                 length(na.omit(cope$Obs_copepod)),
                 length(na.omit(rot$Obs_rotifer)))
 
-full_n_cal <- c("n_cal",length(na.omit(clad$Obs_cladoceran[
-  which(clad$DateTime < "2021-01-01")])),
-  length(na.omit(cope$Obs_copepod[
-    which(cope$DateTime < "2021-01-01")])),
-  length(na.omit(rot$Obs_rotifer[
-    which(rot$DateTime < "2021-01-01")])))
-
-full_n_val <- c("n_val",length(na.omit(clad$Obs_cladoceran[
-  which(clad$DateTime >= "2021-01-01")])),
-  length(na.omit(cope$Obs_copepod[
-    which(cope$DateTime >= "2021-01-01")])),
-  length(na.omit(rot$Obs_rotifer[
-    which(rot$DateTime >= "2021-01-01")])))
 
 zoop_gof_all_table <- zoop_gof %>% 
   filter(Parameter == "r.Spearman_all" | Parameter == "R2_all" | Parameter == "RMSE_all" | Parameter == "PBIAS%_all" | Parameter == "NMAE_all")
 
-zoop_gof_cal_table <- zoop_gof_cal %>% 
-  filter(Parameter == "r.Spearman_cal" | Parameter == "R2_cal" | Parameter == "RMSE_cal" | Parameter == "PBIAS%_cal" | Parameter == "NMAE_cal")
-
-zoop_gof_val_table <- zoop_gof_val %>% 
-  filter(Parameter == "r.Spearman_val" | Parameter == "R2_val" | Parameter == "RMSE_val" | Parameter == "PBIAS%_val" | Parameter == "NMAE_val")
-
-zoop_gof_table <- rbind(full_n_all,zoop_gof_all_table,full_n_cal,zoop_gof_cal_table,full_n_val,zoop_gof_val_table)
+zoop_gof_table <- rbind(full_n_all,zoop_gof_all_table)
 
 write_csv(zoop_gof_table,'figures/table_gof_bvr_zoops_2015-2022.csv')

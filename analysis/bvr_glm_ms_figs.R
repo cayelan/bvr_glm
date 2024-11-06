@@ -395,32 +395,32 @@ scenarios_df <- mget(c("mod_vars_final_baseline","mod_vars_final_plus1",
 
 # Full water column, full period (2015-2022)
 all_gof <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","Temp"))
-all_gof$Parameter <- c("ME_val","MAE_val","MSE_val","RMSE_val","ubRMSE",
-                       "NRMSE%_val","PBIAS%_val","RSR_val","rSD_val",
-                       "NSE_val","mNSE_val","rNSE_val","wNSE",
-                       "wsNSE","d_val","dr_val","md_val","rd_val",
-                       "cp_val","r_val","R2_val","bR2_val","VE_val",
-                       "KGE_val","KGElf","KGEnp","KGEkm", 
+all_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
+                       "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
+                       "NSE_all","mNSE_all","rNSE_all","wNSE_all",
+                       "wsNSE_all","d_all","dr_all","md_all","rd_all",
+                       "cp_all","r_all","R2_all","bR2_all","VE_all",
+                       "KGE_all","KGElf_all","KGEnp_all","KGEkm_all", 
                        "r.Spearman","nonparamR2") 
 
 # Full water column, calibration period (2015-2020)
 all_gof_cal <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","Temp"))
-all_gof_cal$Parameter <- c("ME_val","MAE_val","MSE_val","RMSE_val","ubRMSE",
-                           "NRMSE%_val","PBIAS%_val","RSR_val","rSD_val",
-                           "NSE_val","mNSE_val","rNSE_val","wNSE",
-                           "wsNSE","d_val","dr_val","md_val","rd_val",
-                           "cp_val","r_val","R2_val","bR2_val","VE_val",
-                           "KGE_val","KGElf","KGEnp","KGEkm", 
+all_gof_cal$Parameter <- c("ME_cal","MAE_cal","MSE_cal","RMSE_cal","ubRMSE_cal",
+                           "NRMSE%_cal","PBIAS%_cal","RSR_cal","rSD_cal",
+                           "NSE_cal","mNSE_cal","rNSE_cal","wNSE_cal",
+                           "wsNSE_cal","d_cal","dr_cal","md_cal","rd_cal",
+                           "cp_cal","r_cal","R2_cal","bR2_cal","VE_cal",
+                           "KGE_cal","KGElf_cal","KGEnp_cal","KGEkm_cal", 
                            "r.Spearman","nonparamR2") 
 
 # Full water column, validation period (2021-2022)
 all_gof_val <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","Temp"))
 all_gof_val$Parameter <- c("ME_val","MAE_val","MSE_val","RMSE_val","ubRMSE",
                            "NRMSE%_val","PBIAS%_val","RSR_val","rSD_val",
-                           "NSE_val","mNSE_val","rNSE_val","wNSE",
+                           "NSE_val","mNSE_val","rNSE_val","wNSE_val",
                            "wsNSE","d_val","dr_val","md_val","rd_val",
                            "cp_val","r_val","R2_val","bR2_val","VE_val",
-                           "KGE_val","KGElf","KGEnp","KGEkm",
+                           "KGE_val","KGElf_val","KGEnp_val","KGEkm_val",
                            "r.Spearman", "nonparamR2") 
 
 # calculate all gof metrics for full period + all different vars

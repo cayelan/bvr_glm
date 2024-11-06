@@ -362,13 +362,16 @@ ggplot() +
 # proportional plankton figs for each scenario
 
 #create a combined zoop df with all scenarios
-zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
-                 "all_zoops_plus5", "all_zoops_plus10")) %>% 
-                   setNames(paste0(scenario)) %>%
-                   bind_rows(.id = "scenario") %>%
-                   relocate(scenario, .after = last_col())
+#zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
+#                 "all_zoops_plus5", "all_zoops_plus10")) |>
+#                   setNames(paste0(scenario)) |>
+#                   bind_rows(.id = "scenario") |>
+#                   relocate(scenario, .after = last_col())
   #write.csv(zoop_scenarios, "./analysis/data/zoop_scenarios.csv", row.names = F)
-  
+
+zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
+  mutate(DateTime = as.Date(DateTime)) |>
+  filter(DateTime >= "2015-07-07")
   
   ggplot(data = subset(zoop_scenarios, scenario %in% c("baseline","plus10")),
          aes(x=DateTime, y = value, color=taxon)) +
@@ -382,7 +385,7 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
   scale_x_date(expand = c(0,0), date_breaks = "1 year", 
                date_labels = "%Y") +
   scale_y_continuous(expand = c(0,0))+
-  xlab("") + ylab("Relative density") +
+  xlab("") + ylab("Relative biomass") +
   guides(color= "none",
          fill = guide_legend(ncol=3)) +
   theme(panel.grid.major = element_blank(), 
@@ -409,12 +412,16 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
 #ggsave("figures/BVR_relative_zoop_scenarios.jpg", width=7, height=4) 
   
 #create a combined phyto df with all scenarios
-  phyto_scenarios <-  mget(c("all_phytos_baseline","all_phytos_plus1",
-                            "all_phytos_plus5", "all_phytos_plus10")) %>% 
-    setNames(paste0(scenario)) %>%
-    bind_rows(.id = "scenario") %>%
-    relocate(scenario, .after = last_col())
+#  phyto_scenarios <-  mget(c("all_phytos_baseline","all_phytos_plus1",
+#                            "all_phytos_plus5", "all_phytos_plus10")) |>
+#    setNames(paste0(scenario)) |>
+#    bind_rows(.id = "scenario") |>
+#    relocate(scenario, .after = last_col())
   #write.csv(phyto_scenarios, "./analysis/data/phyto_scenarios.csv", row.names = F)
+  
+  phyto_scenarios <-read.csv("analysis/data/phyto_scenarios.csv") |>
+    mutate(DateTime = as.Date(DateTime)) |>
+    filter(DateTime >= "2015-07-07")
   
 #order phytos
   phyto_scenarios$taxon <- factor(phyto_scenarios$taxon, 
@@ -464,15 +471,19 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
   #read in zoop scenarios df
   zoop_scenarios <- read.csv("analysis/data/zoop_scenarios.csv") |>
     dplyr::group_by(taxon, year, scenario) |>
-    dplyr::mutate(max_doy = doy[which.max(value)])
+    dplyr::mutate(max_doy = doy[which.max(value)]) |>
+    dplyr::filter(DateTime >= "2016-01-01" &
+                    DateTime < "2022-01-01") #filtering out the 2 partial years
   
 # median doy across all years
   zoop_scenarios |>
-    dplyr::group_by(taxon, year, scenario) |> #drop year for median across all years
-    dplyr::mutate(median_doy = median(max_doy)) |>
-    dplyr::ungroup() |>
     dplyr::group_by(taxon) |>
-    dplyr::mutate(bl_median = median(max_doy[scenario=="baseline"])) |>
+    dplyr::mutate(bl_median = median(max_doy[scenario == "baseline"])) |>
+    dplyr::ungroup() |>
+    dplyr::group_by(taxon, year,scenario) |> 
+    dplyr::summarise(
+      median_doy = median(max_doy),
+      bl_median = first(bl_median)) |>
   ggplot(aes(x = median_doy, y = as.factor(scenario), 
              group = as.factor(scenario))) +
     geom_density_ridges(aes(fill = as.factor(scenario))) +
@@ -505,19 +516,102 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/zoop_density_plots_max_doy_allyears.jpg", width=7, height=4)
- 
+
+# just viusalize the median density for all years
+  zoop_scenarios |>
+    dplyr::group_by(taxon) |>
+    dplyr::mutate(bl_median = median(max_doy[scenario == "baseline"])) |>
+    dplyr::ungroup() |>
+    dplyr::group_by(taxon,scenario) |> 
+    dplyr::summarise(
+      median_doy = median(max_doy),
+      bl_median = first(bl_median)) |>
+    dplyr::mutate(scenario = factor(scenario, 
+                                    levels = c("baseline", "plus1",
+                                               "plus5", "plus10"))) |>
+  ggplot(aes(x = median_doy, y = as.factor(scenario), group = as.factor(scenario))) +
+    geom_point(aes(color = as.factor(scenario)), size=3) +
+    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                      breaks = c("baseline","plus1","plus5","plus10")) +
+    geom_vline(aes(xintercept = bl_median), linetype = 'dashed', col = 'black') +
+    facet_wrap(~taxon, ncol=3, scales = "free_x") + ylab("") +
+    theme_bw() + guides(fill = "none") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          axis.text.x = element_text(angle=90),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/zoop_density_plots_max_doy_allyear_median.jpg", width=7, height=4)
+  
+# also plot the doy as a point for each year
+  zoop_scenarios |>
+    dplyr::group_by(taxon, year, scenario) |> 
+    dplyr::select(taxon, year, scenario, value, max_doy) |>
+    dplyr::summarise(max_doy = median(max_doy),
+                     max_val = max(value)) |>
+  ggplot(aes(x = max_doy, y = max_val, 
+             color = as.factor(scenario))) +
+    geom_point(aes(fill = as.factor(scenario))) +
+    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                      breaks = c("baseline","plus1","plus5","plus10")) +
+    xlab("Day of year") + ylab("Maximum value") +
+    facet_wrap(~taxon, ncol=3, scales = "free_y") +
+    theme_bw() + guides(fill = "none") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          axis.text.x = element_text(angle=90),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/zoop_max_val_vs_doy.jpg", width=7, height=4)
+  
   #read in phyto scenarios df
   phyto_scenarios <- read.csv("analysis/data/phyto_scenarios.csv") |>
     dplyr::group_by(taxon, year, scenario) |>
-    dplyr::mutate(max_doy = doy[which.max(value)])
+    dplyr::mutate(max_doy = doy[which.max(value)]) |>
+    dplyr::filter(DateTime >= "2016-01-01" &
+                    DateTime < "2022-01-01") #filtering out the 2 partial years
   
   # median doy across all years
   phyto_scenarios |>
-    dplyr::group_by(taxon, year, scenario) |>
-    dplyr::mutate(median_doy = median(max_doy)) |>
-    dplyr::ungroup() |>
     dplyr::group_by(taxon) |>
-    dplyr::mutate(bl_median = median(max_doy[scenario=="baseline"])) |>
+    dplyr::mutate(bl_median = median(max_doy[scenario == "baseline"])) |>
+    dplyr::ungroup() |>
+    dplyr::group_by(taxon, year, scenario) |> # drop year if you want median across all years
+    dplyr::summarise(
+      median_doy = median(max_doy),
+      bl_median = first(bl_median)) |>
     ggplot(aes(x = median_doy, y = as.factor(scenario), 
                group = as.factor(scenario))) +
     geom_density_ridges(aes(fill = as.factor(scenario))) +
@@ -551,6 +645,47 @@ zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
           panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/phyto_density_plots_max_doy_allyears.jpg", width=7, height=4)
   
+  # just viusalize the median density for all years
+  phyto_scenarios |>
+    dplyr::group_by(taxon) |>
+    dplyr::mutate(bl_median = median(max_doy[scenario == "baseline"])) |>
+    dplyr::ungroup() |>
+    dplyr::group_by(taxon,scenario) |> 
+    dplyr::summarise(
+      median_doy = median(max_doy),
+      bl_median = first(bl_median)) |>
+    dplyr::mutate(scenario = factor(scenario, 
+                                    levels = c("baseline", "plus1",
+                                               "plus5", "plus10"))) |>
+    ggplot(aes(x = median_doy, y = as.factor(scenario), group = as.factor(scenario))) +
+    geom_point(aes(color = as.factor(scenario)), size=3) +
+    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                       breaks = c("baseline","plus1","plus5","plus10")) +
+    geom_vline(aes(xintercept = bl_median), linetype = 'dashed', col = 'black') +
+    facet_wrap(~taxon, ncol=3, scales = "free_x") + ylab("") +
+    theme_bw() + guides(fill = "none") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          axis.text.x = element_text(angle=90),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/phyto_max_doy_allyear_median.jpg", width=7, height=4)
    
 #------------------------------------------------------------------------#
 # effect size fig for zoops
