@@ -517,7 +517,8 @@ zoops_final_pre <- zoops_2015_2016 |>
   filter(Taxon %in% c("Cladocera","Copepoda","Rotifera")) |> 
   mutate(DateTime = as.Date(DateTime)) |> 
   group_by(StartDepth_m, DateTime, Taxon) |> 
-  summarise(Biomass_ugL = mean(Biomass_ugL, na.rm=T))
+  summarise(Biomass_ugL = mean(Biomass_ugL, na.rm=T),
+            Size_mm = mean(MeanLength_mm, na.rm=T))
 
 #calculate cladoceran, copepod, and rotifer biomass for 2014-2018 data
 #zoops_3groups_pre <- zoops_2014_2016 |> 
@@ -547,7 +548,8 @@ zoops_final_post <- zoops_2019_2021 |>
   filter(Taxon %in% c("Cladocera","Copepoda","Rotifera")) |> 
   mutate(DateTime = as.Date(DateTime)) |> 
   group_by(StartDepth_m, DateTime, Taxon) |> 
-  summarise(Biomass_ugL = mean(Biomass_ugL, na.rm=T))
+  summarise(Biomass_ugL = mean(Biomass_ugL, na.rm=T),
+            Size_mm = mean(MeanLength_mm, na.rm=T))
 
 #combine all zoop data
 all_zoops <- bind_rows(zoops_final_pre, zoops_final_post) |> 
@@ -556,6 +558,7 @@ all_zoops <- bind_rows(zoops_final_pre, zoops_final_post) |>
 
 #reformat for glm aed
 all_zoops_final <- all_zoops |> group_by(Taxon) |> 
+  select(-Size_mm) |>
   pivot_wider(names_from = Taxon, values_from = Biomass_ugL,
                names_glue = "{Taxon}_Biomass_ugL") |> 
   rename(ZOO_cladoceran = Cladocera_Biomass_ugL,
@@ -583,4 +586,27 @@ all_zoops_final$year <- year(all_zoops_final$DateTime)
 #look at doy on x and year by color
 ggplot(all_zoops_final, aes(doy, ZOO_cladoceran, color=as.factor(year))) + 
   geom_point() + theme_bw() + geom_line()
-  
+
+# zoop size histogram for the three focal taxa (supplemental figure)
+ggplot(all_zoops, aes(Size_mm, fill=Taxon)) +
+  geom_density(alpha = 0.6) + theme_bw() +
+  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
+                    breaks = c("Cladocera","Copepoda","Rotifera"))+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.background = element_blank(),
+        legend.position = c(0.6, 0.9),
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_blank(),
+        strip.background.x = element_blank(),
+        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+        legend.margin = margin(c(-10,-10,-10,-10)),
+        panel.spacing.x = unit(0.1, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing.y = unit(0, "lines"))
+#ggsave("figures/taxa_size_density_plot.jpg", width=4, height=3)
