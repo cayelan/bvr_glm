@@ -3,7 +3,7 @@
 
 pacman::p_load(tidyverse)
 
-future_temp <- read.csv("temp_scenarios/maxtemp_rcp8.5.csv", skip=8) |> 
+future_temp <- read.csv("analysis/MACA/maxtemp_CCSM4_rcp85.csv", skip=8) |> 
   rename(date = yyyy.mm.dd,
          temp = tasmax_CCSM4_rcp85.K.) |> 
   mutate(temp = temp - 273.15,
@@ -14,11 +14,7 @@ ggplot(future_temp, aes(date, temp)) + geom_line() +
   theme_bw()
 #max temp is 51.3C in 2098
 
-#max temp for just 2020-2050 = 44.6C
-max(future_temp$temp[future_temp$date>="2020-01-01" &
-                       future_temp$date<="2051-01-01"])
-
-future_temp_rcp4.5 <- read.csv("temp_scenarios/maxtemp_rcp4.5.csv", skip=8) |> 
+future_temp_rcp4.5 <- read.csv("analysis/MACA/maxtemp_CCSM4_rcp45.csv", skip=8) |> 
   rename(date = yyyy.mm.dd,
          temp = tasmax_CCSM4_rcp45.K.) |> 
   mutate(temp = temp - 273.15,
@@ -30,21 +26,9 @@ ggplot(future_temp_rcp4.5, aes(date, temp)) + geom_line() +
 #max temp is 46.2C in 2057
 
 #vs historical max temp from 1950-2005 ESM2M model
-historical_temp_ESM2M <- read.csv("temp_scenarios/historical_temp_ESM2M.csv", skip=8) |> 
+historical_temp_ESM2M <- read.csv("analysis/MACA/historical_temp_ESM2M.csv", skip=8) |> 
   rename(date = yyyy.mm.dd,
-         temp = tasmax_CCSM4_historical.K.) |> 
-  mutate(temp = temp - 273.15,
-         date = as.Date(date))
-
-#plot historical max temps
-ggplot(historical_temp_ESM2M, aes(date, temp)) + geom_line() +
-  theme_bw()
-#max temp is 39.9C in 1955
-
-#vs historical max temp from 1950-2005 ESM2M model
-historical_temp_ESM2M <- read.csv("temp_scenarios/historical_temp_ESM2M.csv", skip=8) |> 
-  rename(date = yyyy.mm.dd,
-         temp = tasmax_CCSM4_historical.K.) |> 
+         temp = tasmax_GFDL.ESM2M_historical.K.) |> 
   mutate(temp = temp - 273.15,
          date = as.Date(date))
 
@@ -54,9 +38,9 @@ ggplot(historical_temp_ESM2M, aes(date, temp)) + geom_line() +
 #max temp is 39.9C in 1955
 
 #vs historical max temp from 1950-2005 ESM2G model
-historical_temp_ESM2G <- read.csv("temp_scenarios/historical_temp_ESM2G.csv", skip=8) |> 
+historical_temp_ESM2G <- read.csv("analysis/MACA/historical_temp_ESM2G.csv", skip=8) |> 
   rename(date = yyyy.mm.dd,
-         temp = tasmax_CCSM4_historical.K.) |> 
+         temp = tasmax_GFDL.ESM2G_historical.K.) |> 
   mutate(temp = temp - 273.15,
          date = as.Date(date))
 
@@ -65,12 +49,24 @@ ggplot(historical_temp_ESM2G, aes(date, temp)) + geom_line() +
   theme_bw()
 #max temp is 39.9C in 1955
 
+#vs historical max temp from 1950-2005 CCSM4 model
+historical_temp_CCSM4 <- read.csv("analysis/MACA/historical_temp_CCSM4.csv", skip=8) |> 
+  rename(date = yyyy.mm.dd,
+         temp = tasmax_CCSM4_historical.K.) |> 
+  mutate(temp = temp - 273.15,
+         date = as.Date(date))
+
+#plot historical max temps
+ggplot(historical_temp_CCSM4, aes(date, temp)) + geom_line() +
+  theme_bw()
+#max temp is 39.9C in 1955
+
 #-----------------------------------------------------------------------------#
 # Looking at a different model to confirm results (37.313, -79.816)
 
 # GFDL-ESM2M (USA)
 
-future_temp_esm2m <- read.csv("temp_scenarios/maxtemp_rcp8.5_GFDL-ESM2M.csv", skip=8) |> 
+future_temp_esm2m <- read.csv("analysis/MACA/maxtemp_ESM2M_rcp85.csv", skip=8) |> 
   rename(date = yyyy.mm.dd,
          temp = tasmax_GFDL.ESM2M_rcp85.K.) |> 
   mutate(temp = temp - 273.15,
@@ -85,7 +81,7 @@ ggplot(future_temp_esm2m, aes(date, temp)) + geom_line() +
 max(future_temp_esm2m$temp[future_temp_esm2m$date>="2020-01-01" &
                              future_temp_esm2m$date<="2051-01-01"])
 
-future_temp_rcp4.5_esm2m <- read.csv("temp_scenarios/maxtemp_rcp4.5_GFDL-ESM2M.csv", skip=8) |> 
+future_temp_rcp4.5_esm2m <- read.csv("temp_scenarios/maxtemp_ESM2M_rcp45.csv", skip=8) |> 
   rename(date = yyyy.mm.dd,
          temp = tasmax_GFDL.ESM2M_rcp45.K.) |> 
   mutate(temp = temp - 273.15,
@@ -99,7 +95,7 @@ ggplot(future_temp_rcp4.5_esm2m, aes(date, temp)) + geom_line() +
 
 # GFDL-ESM2G (USA)
 
-future_temp_esm2g <- read.csv("temp_scenarios/maxtemp_rcp8.5_GFDL-ESM2G.csv", skip=8) |> 
+future_temp_esm2g <- read.csv("temp_scenarios/maxtemp_ESM2G_rcp85.csv", skip=8) |> 
   rename(date = yyyy.mm.dd,
          temp = tasmax_GFDL.ESM2G_rcp85.K.) |> 
   mutate(temp = temp - 273.15,
@@ -114,7 +110,7 @@ ggplot(future_temp_esm2g, aes(date, temp)) + geom_line() +
 max(future_temp_esm2g$temp[future_temp_esm2g$date>="2020-01-01" &
                              future_temp_esm2g$date<="2051-01-01"])
 
-future_temp_rcp4.5_esm2g <- read.csv("temp_scenarios/maxtemp_rcp4.5_GFDL-ESM2G.csv", skip=8) |> 
+future_temp_rcp4.5_esm2g <- read.csv("temp_scenarios/maxtemp_ESM2G_rcp45.csv", skip=8) |> 
   rename(date = yyyy.mm.dd,
          temp = tasmax_GFDL.ESM2G_rcp45.K.) |> 
   mutate(temp = temp - 273.15,
