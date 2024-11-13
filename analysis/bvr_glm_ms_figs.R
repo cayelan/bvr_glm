@@ -161,7 +161,13 @@ all_vars_final <- all_vars |>
 assign(paste0("all_vars_final_", scenario[i]), all_vars_final)
 
 mod_vars_final <- mod_vars |> 
-  filter(Depth %in% c(0.1,9)) |> 
+  filter(Depth %in% c(0.1,9) &
+         DateTime >= as.POSIXct("2015-07-07")) |> 
+  rename("temp_temp" = "temp",
+         "NIT_nh4" = "NIT_amm",
+         "NIT_no3" = "NIT_nit",
+         "PHS_po4" = "PHS_frp",
+         "PHY_chla" = "PHY_tchla") |>
   pivot_longer(cols = -c(DateTime,Depth), 
                names_pattern = "(...)_(...*)$",
                names_to = c("type", "var")) |> 
@@ -170,48 +176,53 @@ assign(paste0("mod_vars_final_", scenario[i]), mod_vars_final)
 }
 
 #-------------------------------------------------------------#
-#df for text annotations
-ann_text <- data.frame(y_val = c(30, 370, 90, 18, 7.5, 0.3, 0.23, 458, 63, 14.5),
-                       y_val2 = c(12.6, 360, 135, 1100, 250, 0.36, 0.65, 530, 60, 11),
-                       y_valid1 = c(26.3, 425, 68, 15, 4.1, 0.24, 0.119, 345, 57, 6.3),
-                       y_valid2 = c(10.5, 370, 85, 650, 85, 0.27, 0.155, 440, 49, 9.8),
-                       var = c("temp", "oxy", "dic", "ch4", "nh4",
-                               "no3", "po4", "docr", "doc", "chla"),
-                       label = c("Temp","DO","DIC","CH[4]","NH[4]",
-                                 "NO[3]","PO[4]","DOC[R]","DOC[L]",
-                                 "Chl~italic('a')"))
+# Define the labels as expressions
+labels <- c(
+  expression("Water Temp (" * degree * "C)"),
+  expression("DO (mg L"^{-1}*")"),
+  expression("NH"[4] * " (" * mu * "g L"^{-1}*")"),
+  expression("NO"[3] * " (" * mu * "g L"^{-1}*")"),
+  expression("PO"[4] * " (" * mu * "g L"^{-1}*")"),
+  expression("Chlorophyll " * italic(a) * " (" * mu * "g L"^{-1}*")")
+)
+
+# Apply these labels as factor levels after defining them
+all_vars_final_baseline <- all_vars_final_baseline |>
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,6,3)],
+                           labels = labels))
+
+mod_vars_final_baseline <- mod_vars_final_baseline |>
+  mutate(variable = factor(var, levels = unique(var), labels = labels))
 
 # reorder vars
 all_vars_final_baseline$var <- factor(all_vars_final_baseline$var, 
-                                      levels = c("temp", "oxy", "nh4", "no3", "po4", "chla"))
+                                      levels = c("temp", "oxy", "nh4", 
+                                                 "no3", "po4", "chla"))
+mod_vars_final_baseline$var <- factor(mod_vars_final_baseline$var, 
+                                      levels = c("temp", "oxy", "nh4", 
+                                                 "no3", "po4", "chla"))
 
-#ginormous plot with all vars for 0.1m
+# plot vars for 0.1m
 ggplot() +
-  geom_line(data = subset(all_vars_final_baseline, type %in% "mod" & 
-                            Depth %in% 0.1), aes(DateTime, value, color = "modeled")) +
-  geom_point(data = subset(all_vars_final_baseline, type %in% "obs" & 
-                             Depth %in% 0.1), aes(DateTime, value, color = "observed")) + 
-  facet_wrap(~ var, 
-             labeller = labeller(var = c(
-               temp = bquote("Water Temperature (°C)"),
-               oxy = bquote("Dissolved Oxygen (mg/L)"),
-               nh4 = bquote("NH[4]*(mg/L)"),
-               no3 = "NO[3]~(mg/L)",
-               po4 = "PO[4]~(mg/L)",
-               chla = bquote("Chlorophyll~italic(a)~(µg/L)")
-             )), 
-             scales = "free_y", nrow = 3) + 
+  geom_line(data = subset(mod_vars_final_baseline, Depth %in% 0.1), 
+            aes(DateTime, value, color = "modeled")) +
+  geom_point(data = subset(all_vars_final_baseline, type %in% "obs" & Depth %in% 0.1), 
+             aes(DateTime, value, color = "observed")) + 
+  facet_wrap(~ variable, scales = "free_y", nrow = 3,
+             labeller = label_parsed) + 
   theme_bw() + xlab("") +
-  scale_color_manual("", values = c("black", "red"),
-                     guide = guide_legend(override.aes = list(
-                       color = c("red", "black"),
-                       linetype = c("blank", "solid"),
-                       shape = c(16, NA)))) +
+  scale_color_manual(
+    name = "",
+    values = c("modeled" = "black", "observed" = "red"),
+    labels = c("modeled" = "Modeled", "observed" = "Observed"),
+    guide = guide_legend(override.aes = list(
+      linetype = c("solid", "blank"),
+                       shape = c(NA, 16)))) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
         legend.background = element_blank(),
-        legend.position = c(0.9, 0.17),
+        legend.position = c(0.9, 0.26),
         text = element_text(size = 10), 
         panel.border = element_rect(colour = "black", fill = NA),
         strip.background.x = element_blank(),
@@ -219,109 +230,39 @@ ggplot() +
         panel.spacing.x = unit(0.1, "in"),
         panel.background = element_rect(fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/allvars_calib_mod_vs_obs_0.1m.jpg", width=6, height=6)
+#ggsave("figures/allvars_mod_vs_obs_0.1m.jpg", width=6, height=6)
 
-#ginormous plot with all vars for 9m
+# plot vars for 9m
 ggplot() +
-  geom_line(data=subset(all_vars_final_baseline, type %in% "mod" & 
-                          period %in% "calib" & Depth %in% 9), aes(DateTime, value, color = "modeled")) +
-  geom_point(data=subset(all_vars_final_baseline, type %in% "obs" &
-                           period %in% "calib" & Depth %in% 9), aes(DateTime, value, color="observed")) + 
-  facet_wrap(~factor(var,levels = c("temp", "oxy", "dic", "ch4", "nh4",
-                                    "no3", "po4", "docr", "doc", "chla")), 
-             scales = "free_y", nrow=5) + theme_bw() + xlab("") +
-  geom_text(data    = ann_text,
-            mapping = aes(x = as.POSIXct("2015-05-01"), 
-                          y = y_val2, label = label),
-            hjust   = -0.1, parse=T) +
-  scale_color_manual("", values = c("black","red"),
-                     guide = guide_legend(override.aes = list(
-                       color = c("red","black"),
-                       linetype = c("blank", "solid"),
-                       shape = c(16, NA)))) +
+  geom_line(data = subset(mod_vars_final_baseline, Depth %in% 9), 
+            aes(DateTime, value, color = "modeled")) +
+  geom_point(data = subset(all_vars_final_baseline, 
+                           type %in% "obs" & Depth %in% 9), 
+             aes(DateTime, value, color = "observed")) + 
+  facet_wrap(~ variable, scales = "free_y", nrow = 3,
+             labeller = label_parsed) + 
+  theme_bw() + xlab("") +
+  scale_color_manual(
+    name = "",
+    values = c("modeled" = "black", "observed" = "red"),
+    labels = c("modeled" = "Modeled", "observed" = "Observed"),
+    guide = guide_legend(override.aes = list(
+      linetype = c("solid", "blank"),
+      shape = c(NA, 16)))) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
         legend.background = element_blank(),
-        legend.position = c(0.9, 0.17),
-        text = element_text(size=10), 
+        legend.position = c(0.9, 0.26),
+        text = element_text(size = 10), 
         panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_blank(),
         strip.background.x = element_blank(),
         plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
         panel.spacing.x = unit(0.1, "in"),
-        panel.background = element_rect(
-          fill = "white"),
+        panel.background = element_rect(fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/allvars_calib_mod_vs_obs_9m.jpg", width=6, height=6)
+#ggsave("figures/allvars_mod_vs_obs_9m.jpg", width=6, height=6)
 
-# validation period 0.1m
-ggplot() +
-  geom_line(data=subset(all_vars_final_baseline, type %in% "mod" & 
-                          period %in% "valid" & Depth %in% 0.1), aes(DateTime, value, color = "modeled")) +
-  geom_point(data=subset(all_vars_final_baseline, type %in% "obs" &
-                           period %in% "valid" & Depth %in% 0.1), aes(DateTime, value, color="observed")) + 
-  facet_wrap(~factor(var,levels = c("temp", "oxy", "dic", "ch4", "nh4",
-                                    "no3", "po4", "docr", "doc", "chla")), 
-             scales = "free_y", nrow=5) + theme_bw() + xlab("") +
-  geom_text(data    = ann_text,
-            mapping = aes(x = as.POSIXct("2021-01-01"), 
-                          y = y_valid1, label = label),
-            hjust   = -0.1, parse=T) +
-  scale_color_manual("", values = c("black","red"),
-                     guide = guide_legend(override.aes = list(
-                       color = c("red","black"),
-                       linetype = c("blank", "solid"),
-                       shape = c(16, NA)))) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.background = element_blank(),
-        legend.position = c(0.9, 0.15),
-        text = element_text(size=10), 
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_blank(),
-        strip.background.x = element_blank(),
-        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
-        panel.spacing.x = unit(0.1, "in"),
-        panel.background = element_rect(
-          fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/allvars_valid_mod_vs_obs_0.1m.jpg", width=6, height=6)
-
-# validation period 9m
-ggplot() +
-  geom_line(data=subset(all_vars_final_baseline, type %in% "mod" & 
-                          period %in% "valid" & Depth %in% 9), aes(DateTime, value, color = "modeled")) +
-  geom_point(data=subset(all_vars_final_baseline, type %in% "obs" &
-                           period %in% "valid" & Depth %in% 9), aes(DateTime, value, color="observed")) + 
-  facet_wrap(~factor(var,levels = c("temp", "oxy", "dic", "ch4", "nh4",
-                                    "no3", "po4", "docr", "doc", "chla")), 
-             scales = "free_y", nrow=5) + theme_bw() + xlab("") +
-  geom_text(data    = ann_text,
-            mapping = aes(x = as.POSIXct("2021-01-01"), 
-                          y = y_valid2, label = label),
-            hjust   = -0.1, parse=T) +
-  scale_color_manual("", values = c("black","red"),
-                     guide = guide_legend(override.aes = list(
-                       color = c("red","black"),
-                       linetype = c("blank", "solid"),
-                       shape = c(16, NA)))) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.background = element_blank(),
-        legend.position = c(0.85, 0.15),
-        text = element_text(size=10), 
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_blank(),
-        strip.background.x = element_blank(),
-        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
-        panel.spacing.x = unit(0.1, "in"),
-        panel.background = element_rect(
-          fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/allvars_valid_mod_vs_obs_9m.jpg", width=6, height=6)
 
 #modeled vars from 2000-2022 for each scenario
 scenarios_df <- mget(c("mod_vars_final_baseline","mod_vars_final_plus1",

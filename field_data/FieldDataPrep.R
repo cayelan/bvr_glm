@@ -589,7 +589,7 @@ ggplot(all_zoops_final, aes(doy, ZOO_cladoceran, color=as.factor(year))) +
 
 # zoop size histogram for the three focal taxa (supplemental figure)
 ggplot(all_zoops, aes(Size_mm, fill=Taxon)) +
-  geom_density(alpha = 0.6) + theme_bw() +
+  geom_density() + theme_bw() +
   scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
                     breaks = c("Cladocera","Copepoda","Rotifera"))+
   theme(panel.grid.major = element_blank(), 

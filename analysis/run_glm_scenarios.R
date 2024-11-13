@@ -1,6 +1,9 @@
 # script to run glm and generate output.nc file
 # Note - run spin-up.R first!
 
+#list of scenarios
+scenario <- c("baseline","plus1","plus5","plus10")
+
 # run and plot each scenario
 for (i in 1:length(scenario)){
   

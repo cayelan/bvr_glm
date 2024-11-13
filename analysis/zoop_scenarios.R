@@ -371,14 +371,18 @@ ggplot() +
 
 zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   mutate(DateTime = as.Date(DateTime)) |>
-  filter(DateTime >= "2015-07-07")
-  
+  filter(DateTime >= "2015-07-07") |>
+  group_by(taxon, scenario) |>
+  mutate(mean_biom = mean(value)) |>
+  ungroup() |>
+  mutate(diff = value - mean_biom)
+
+# relative zoop density for baseline vs. plus 10
   ggplot(data = subset(zoop_scenarios, scenario %in% c("baseline","plus10")),
          aes(x=DateTime, y = value, color=taxon)) +
-  geom_area(aes(color = taxon, fill = taxon),
+  geom_area(aes(fill = taxon, color=taxon),
             position = "fill", 
-            stat = "identity", 
-            alpha=0.7) +
+            stat = "identity") +
   facet_wrap(~scenario, scales = "free_x")+
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"))+
   scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
@@ -411,6 +415,114 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/BVR_relative_zoop_scenarios.jpg", width=7, height=4) 
   
+# biomass for each year + taxa
+  ggplot(zoop_scenarios,
+         aes(x=DateTime, y = value, color=scenario)) +
+    geom_line() +
+    facet_wrap(~taxon, scales = "free_y", nrow=3)+
+    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                       breaks = c("baseline","plus1","plus5","plus10")) +
+    scale_x_date(expand = c(0,0), date_breaks = "1 year", 
+                 date_labels = "%Y") +
+    ylab(expression("Biomass (" * mu * "g L"^{-1}*")")) + xlab("") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          axis.text.x = element_text(angle=90),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-15,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/BVR_zoop_biom_scenario_lineplot.jpg", width=7, height=4) 
+  
+# difference (value - mean) for each scenario and taxa 
+  ggplot(zoop_scenarios,
+         aes(x=DateTime, y = diff, color=scenario)) +
+    geom_line() +
+    facet_wrap(~taxon, scales = "free_y", nrow=3)+
+    geom_hline(yintercept = 0, linetype = "dotted", color = "black") +
+    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                       breaks = c("baseline","plus1","plus5","plus10")) +
+    scale_x_date(expand = c(0,0), date_breaks = "1 year", 
+                 date_labels = "%Y") +
+    ylab("Difference from mean") + xlab("") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-15,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/BVR_zoop_diff_from_mean_timeseries.jpg", width=7, height=4) 
+  
+#reverse axes and summarize by year
+ diff_zoops <- zoop_scenarios |>
+   group_by(taxon, year, scenario) |>
+   summarise(mean_diff = mean(diff, na.rm = TRUE), 
+                   sd = sd(diff, na.rm = TRUE)) 
+ 
+ ggplot(diff_zoops) + 
+   geom_point(aes(x=mean_diff, 
+                  y=factor(scenario,levels=c("baseline","plus1",
+                                             "plus5","plus10")), 
+                           color=scenario), size=3) +
+   theme_bw() + xlab("Difference from mean") + ylab("") +
+   facet_wrap(~taxon, scales="free_x") + 
+   scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                      breaks = c("baseline","plus1","plus5","plus10")) +
+   geom_vline(xintercept = 0, linetype = "dashed") +
+   #geom_errorbarh(aes(y = factor(scenario, levels = c("baseline","plus1",
+   #                                                   "plus5", "plus10")), 
+   #                   xmin = mean_diff - sd, xmax = mean_diff + sd), 
+   #               height = 0.2) +
+   theme(panel.grid.major = element_blank(), 
+         panel.grid.minor = element_blank(),
+         axis.line = element_line(colour = "black"),
+         legend.background = element_blank(),
+         legend.position = "right",
+         text = element_text(size=10), 
+         axis.text.x = element_text(angle=90),
+         panel.border = element_rect(colour = "black", fill = NA),
+         strip.background.x = element_blank(),
+         plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+         legend.margin = margin(c(-10,-1,-10,-10)),
+         panel.spacing.x = unit(0.1, "in"),
+         panel.background = element_rect(
+           fill = "white"),
+         panel.spacing.y = unit(0, "lines"))
+ #ggsave("figures/zoop_mean_diff_allyears.jpg", width=7, height=4)
+ 
+
+ 
+ 
+ 
+  
 #create a combined phyto df with all scenarios
 #  phyto_scenarios <-  mget(c("all_phytos_baseline","all_phytos_plus1",
 #                            "all_phytos_plus5", "all_phytos_plus10")) |>
@@ -431,8 +543,7 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
          aes(x=DateTime, y = value, color=taxon)) +
     geom_area(aes(color = taxon, fill = taxon),
               position = "fill", 
-              stat = "identity", 
-              alpha=0.7) +
+              stat = "identity") +
     facet_wrap(~scenario, scales = "free_x")+
     scale_color_manual(values = c("cyan","green","brown4"))+
     scale_fill_manual(values = c("cyan","green","brown4"))+
@@ -466,12 +577,13 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   #ggsave("figures/BVR_relative_phyto_scenarios.jpg", width=7, height=4) 
   
 #------------------------------------------------------------------------#
-# density plot of max peak
+# density plots
   
   #read in zoop scenarios df
   zoop_scenarios <- read.csv("analysis/data/zoop_scenarios.csv") |>
     dplyr::group_by(taxon, year, scenario) |>
-    dplyr::mutate(max_doy = doy[which.max(value)]) |>
+    dplyr::mutate(max_doy = doy[which.max(value)],
+                  max_value = max(value)) |>
     dplyr::filter(DateTime >= "2016-01-01" &
                     DateTime < "2022-01-01") #filtering out the 2 partial years
   
@@ -517,6 +629,58 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
           panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/zoop_density_plots_max_doy_allyears.jpg", width=7, height=4)
 
+# max biomass values for all years
+ zoop_scenarios |>
+   dplyr::group_by(taxon) |>
+   dplyr::mutate(bl_median = median(max_value[scenario == "baseline"])) |>
+   dplyr::ungroup() |>
+   dplyr::group_by(taxon, year, scenario) |> 
+   dplyr::summarise(
+     max_biom = max(max_value),
+     bl_median = first(bl_median)) |>
+   ggplot(aes(x = max_biom, y = as.factor(scenario), 
+              group = as.factor(scenario))) +
+   geom_density_ridges(aes(fill = as.factor(scenario))) +
+   scale_fill_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+   scale_y_discrete(limits = scenario) + xlab("max biomass") +
+   geom_vline(aes(xintercept=bl_median), 
+              linetype='dashed', col = 'black') +
+   facet_wrap(~taxon, ncol=3, scales = "free_x") + ylab("") +
+   theme_bw() + guides(fill = "none") +
+   theme(panel.grid.major = element_blank(), 
+         panel.grid.minor = element_blank(),
+         axis.line = element_line(colour = "black"),
+         legend.key = element_blank(),
+         legend.background = element_blank(),
+         legend.position = "top",
+         legend.title = element_blank(),
+         text = element_text(size=10), 
+         axis.text.y = element_text(size = 10),
+         panel.border = element_rect(colour = "black", fill = NA),
+         strip.text.x = element_text(face = "bold",hjust = 0),
+         axis.text.x = element_text(angle=90),
+         strip.background.x = element_blank(),
+         axis.title.y = element_text(size = 11),
+         plot.margin = unit(c(0, 1, 0, 0), "cm"),
+         legend.box.margin = margin(0,-10,-10,-10),
+         legend.margin=margin(0,0,0,0),
+         panel.spacing.x = unit(0.2, "in"),
+         panel.background = element_rect(
+           fill = "white"),
+         panel.spacing = unit(0.5, "lines"))
+ #ggsave("figures/zoop_density_plots_max_biomass_allyears.jpg", width=7, height=4)
+ 
+ 
+  
+  
+  
+  
+  
+  
+  
+  
+  
 # just viusalize the median density for all years
   zoop_scenarios |>
     dplyr::group_by(taxon) |>
