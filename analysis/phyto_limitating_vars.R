@@ -9,7 +9,7 @@ scenario <- c("baseline","plus1","plus5","plus10")
 
 for(j in 1:length(scenario)) {
   
-  nc_file = paste0("sims/",scenario[j],"/output/output.nc")  
+  nc_file = paste0("sims/spinup/",scenario[j],"/output/output.nc")  
   
 phytos <- c('cyano','green','diatom')
 limits <- c("fNit","fI","fPho","fSil","fT","fSal")

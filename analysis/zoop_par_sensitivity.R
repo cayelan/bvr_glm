@@ -247,8 +247,7 @@ ggplot(data = zoop_pars,
        aes(x=DateTime, y = value, color=taxon)) +
   geom_area(aes(color = taxon, fill = taxon),
             position = "fill", 
-            stat = "identity", 
-            alpha=0.7) +
+            stat = "identity") +
   facet_wrap(~pars, scales = "free_x")+
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"))+
   scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+

@@ -175,6 +175,17 @@ mod_vars_final <- mod_vars |>
 assign(paste0("mod_vars_final_", scenario[i]), mod_vars_final)
 }
 
+# write modeled vars to file
+#mod_vars <-  mget(c("mod_vars_final_baseline","mod_vars_final_plus1",
+#                 "mod_vars_final_plus5", "mod_vars_final_plus10")) |>
+#                   setNames(paste0(scenario)) |>
+#                   bind_rows(.id = "scenario") |>
+#                   relocate(scenario, .after = last_col()) |>
+#             filter(DateTime >= as.POSIXct("2015-07-07")) |>
+#             select(-type)
+#write.csv(mod_vars, "./analysis/data/mod_vars.csv", row.names = F)
+
+
 #-------------------------------------------------------------#
 # Define the labels as expressions
 labels <- c(

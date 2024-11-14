@@ -446,7 +446,192 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
           panel.background = element_rect(
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
-  #ggsave("figures/BVR_zoop_biom_scenario_lineplot.jpg", width=7, height=4) 
+#ggsave("figures/BVR_zoop_biom_scenario_lineplot.jpg", width=7, height=4) 
+  
+#boxplots for scenarios + year facets
+  ggplot(zoop_scenarios, aes(x = factor(
+    scenario,levels=c("baseline","plus1","plus5","plus10")),
+    y = value, fill = taxon)) +
+    geom_boxplot() + facet_wrap(~year) +
+    labs(y = expression("Biomass (" * mu * "g L"^{-1}*")"), x = "") +
+    theme_bw() + scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-15,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+#ggsave("figures/zoop_biom_vs_scenario_year_facet_boxplots.jpg", width=7, height=4) 
+    
+# smoothed monthly biomass for each scenario
+  zoop_scenarios |>
+    mutate(month = lubridate::month(DateTime)) |>
+    group_by(taxon, scenario, month) |>
+    summarise(monthly_biom = mean(value), .groups = "drop") |>
+    ggplot(aes(x = factor(month), y = monthly_biom, color = factor(
+      scenario, levels = c("baseline", "plus1", "plus5", "plus10")),
+      group = interaction(taxon, scenario))) +  # Add `group` aesthetic
+    geom_line() +
+    geom_smooth(method = "loess") +
+    facet_wrap(~taxon) +
+    scale_x_discrete(labels = c("Jan","","Mar","","May","","Jul","","Sep","","Nov","")) +
+    labs(y = expression("Biomass (" * mu * " g L"^{-1}*")"), x = "") +
+    scale_color_manual("", values = c("#00603d", "#c6a000", "#c85b00", "#680000"),
+                       breaks = c("baseline", "plus1", "plus5", "plus10")) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.direction = "horizontal",
+          legend.title = element_blank(),
+          text = element_text(size = 10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold", hjust = 0),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0, -10, -10, -10),
+          legend.margin = margin(0, 0, 0, 0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+#ggsave("figures/smoothed_monthly_biom.jpg", width=7, height=4) 
+  
+  
+# scenario boxplots across taxa
+zoop_mean_biom <-  zoop_scenarios |>
+    group_by(taxon, scenario, year) |>
+    summarise(mean_biom = mean(value)) 
+
+  ggplot(zoop_mean_biom, aes(x=factor(
+    scenario,levels=c("baseline","plus1","plus5","plus10")), 
+             y = mean_biom, fill=taxon)) +
+    geom_boxplot() +
+    scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
+    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
+    geom_text(data = subset(zoop_mean_biom, scenario == "plus10" & taxon == "rotifer"),
+              aes(x = 4.15, y = max(mean_biom) - 7, label = "*"), 
+              size = 10, color = "black") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = c(0.1,0.9),
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-15,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+#ggsave("figures/BVR_zoop_biom_scenario_boxplot.jpg", width=7, height=4) 
+  
+# cannot do nonparametric tests that identify interactions between scenario and taxa bc scenarios lack independence (i.e., shared env influences)
+# so let's try mixed-effects model
+install.packages("lme4")
+install.packages("lmerTest")
+library(lme4)
+library(lmerTest)
+  
+# Mixed-effects model with fixed effects for scenario and taxon, random intercept for period
+model <- lmer(mean_biom ~ scenario * taxon + (1 | year), 
+              data = zoop_mean_biom)
+
+summary(model) #plus 10 has a positive effect on rotifer biomass
+
+install.packages("emmeans")
+library(emmeans)
+
+# Pairwise comparisons for scenarios within each taxon
+emmeans(model, pairwise ~ scenario | taxon)
+# rotifer biom for plus 10 is sig greater than in other scenarios
+   
+#-------------------------------------------------------------------------#
+# playing around with some other visualizations
+ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
+  geom_point(size=2) + geom_line(size=1) +
+  facet_wrap(~taxon) +
+  labs(y = expression("Biomass (" * mu * "g L"^{-1}*")"), x = "") +
+  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold",hjust = 0),
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(-25,0,10,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"))
+#ggsave("figures/zoop_annual_biom_scenario_lineplot.jpg", width=7, height=4) 
+
+# line plots for each taxa/scenario
+ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
+  geom_line() +
+  facet_grid(taxon ~ factor(scenario,levels=c("baseline","plus1",
+                                              "plus5","plus10"))) +
+  labs(y = expression("Biomass (" * mu * "g L"^{-1}*")"), x = "") +
+  theme_bw() +
+  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text = element_text(face = "bold",hjust = 0),
+        strip.background = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(-25,0,10,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"))
+#ggsave("figures/zoop_annual_biom_taxa_timing.jpg", width=7, height=4) 
   
 # difference (value - mean) for each scenario and taxa 
   ggplot(zoop_scenarios,
@@ -479,7 +664,7 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
           panel.background = element_rect(
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
-  #ggsave("figures/BVR_zoop_diff_from_mean_timeseries.jpg", width=7, height=4) 
+#ggsave("figures/BVR_zoop_diff_from_mean_timeseries.jpg", width=7, height=4) 
   
 #reverse axes and summarize by year
  diff_zoops <- zoop_scenarios |>
@@ -497,10 +682,6 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                       breaks = c("baseline","plus1","plus5","plus10")) +
    geom_vline(xintercept = 0, linetype = "dashed") +
-   #geom_errorbarh(aes(y = factor(scenario, levels = c("baseline","plus1",
-   #                                                   "plus5", "plus10")), 
-   #                   xmin = mean_diff - sd, xmax = mean_diff + sd), 
-   #               height = 0.2) +
    theme(panel.grid.major = element_blank(), 
          panel.grid.minor = element_blank(),
          axis.line = element_line(colour = "black"),
@@ -516,7 +697,7 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
          panel.background = element_rect(
            fill = "white"),
          panel.spacing.y = unit(0, "lines"))
- #ggsave("figures/zoop_mean_diff_allyears.jpg", width=7, height=4)
+#ggsave("figures/zoop_mean_diff_allyears.jpg", width=7, height=4)
   
 #create a combined phyto df with all scenarios
 #  phyto_scenarios <-  mget(c("all_phytos_baseline","all_phytos_plus1",
