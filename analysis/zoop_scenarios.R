@@ -517,11 +517,6 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
            fill = "white"),
          panel.spacing.y = unit(0, "lines"))
  #ggsave("figures/zoop_mean_diff_allyears.jpg", width=7, height=4)
- 
-
- 
- 
- 
   
 #create a combined phyto df with all scenarios
 #  phyto_scenarios <-  mget(c("all_phytos_baseline","all_phytos_plus1",
@@ -670,18 +665,27 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
            fill = "white"),
          panel.spacing = unit(0.5, "lines"))
  #ggsave("figures/zoop_density_plots_max_biomass_allyears.jpg", width=7, height=4)
+  
+#----------------------------------------------------------------#
+# KW tests for max biomass differences across scenarios for each taxa 
+zoop_max_biom <- zoop_scenarios |>
+   dplyr::group_by(taxon, year, scenario) |> 
+   dplyr::select(taxon, year, scenario, value, max_doy) |>
+   dplyr::summarise(max_doy = median(max_doy),
+                    max_val = max(value))
+
+kruskal.test(zoop_max_biom$max_val[zoop_max_biom$taxon=="cladoceran"]~
+               zoop_max_biom$scenario[zoop_max_biom$taxon=="cladoceran"])
+
+kruskal.test(zoop_max_biom$max_val[zoop_max_biom$taxon=="copepod"]~
+               zoop_max_biom$scenario[zoop_max_biom$taxon=="copepod"])
+
+kruskal.test(zoop_max_biom$max_val[zoop_max_biom$taxon=="rotifer"]~
+               zoop_max_biom$scenario[zoop_max_biom$taxon=="rotifer"])
+ # no significant differences in max biomass across scenarios for any of the taxa
  
- 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-# just viusalize the median density for all years
+
+# just visualize the median density for all years
   zoop_scenarios |>
     dplyr::group_by(taxon) |>
     dplyr::mutate(bl_median = median(max_doy[scenario == "baseline"])) |>
@@ -724,12 +728,7 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   #ggsave("figures/zoop_density_plots_max_doy_allyear_median.jpg", width=7, height=4)
   
 # also plot the doy as a point for each year
-  zoop_scenarios |>
-    dplyr::group_by(taxon, year, scenario) |> 
-    dplyr::select(taxon, year, scenario, value, max_doy) |>
-    dplyr::summarise(max_doy = median(max_doy),
-                     max_val = max(value)) |>
-  ggplot(aes(x = max_doy, y = max_val, 
+  ggplot(zoop_max_biom, aes(x = max_doy, y = max_val, 
              color = as.factor(scenario))) +
     geom_point(aes(fill = as.factor(scenario))) +
     scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
@@ -929,6 +928,22 @@ zoop_effect_size |>
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
 #ggsave("figures/zoop_scenario_effect_size_sd.jpg", width=7, height=4)
+
+# KW tests for effect size across scenarios for each taxa
+annual_effect_size <- zoop_effect_size |> 
+  dplyr::group_by(taxon, scenario, sd) |> 
+  dplyr::summarise(median = median(value)) 
+
+kruskal.test(annual_effect_size$median[annual_effect_size$taxon=="cladoceran"]~
+               annual_effect_size$scenario[annual_effect_size$taxon=="cladoceran"])
+
+kruskal.test(annual_effect_size$median[annual_effect_size$taxon=="copepod"]~
+               annual_effect_size$scenario[annual_effect_size$taxon=="copepod"])
+
+kruskal.test(annual_effect_size$median[annual_effect_size$taxon=="rotifer"]~
+               annual_effect_size$scenario[annual_effect_size$taxon=="rotifer"])
+# no significant differences in effect size across scenarios for any of the taxa
+
 
 # effect size fig for phytos
 phyto_scenarios_summary <- phyto_scenarios |>
