@@ -607,7 +607,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
   geom_line() +
   facet_grid(taxon ~ factor(scenario,levels=c("baseline","plus1",
                                               "plus5","plus10"))) +
-  labs(y = expression("Biomass (" * mu * "g L"^{-1}*")"), x = "") +
+  labs(y = expression("Biomass (" * mu * " g L"^{-1}*")"), x = "") +
   theme_bw() +
   scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
@@ -751,6 +751,43 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
   #ggsave("figures/BVR_relative_phyto_scenarios.jpg", width=7, height=4) 
+  
+  
+  phyto_mean_biom <-  phyto_scenarios |>
+    group_by(taxon, scenario, year) |>
+    summarise(mean_biom = mean(value)) 
+  
+  # line plots for each taxa/scenario
+  ggplot(phyto_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
+    geom_line() +
+    facet_grid(taxon ~ factor(scenario,levels=c("baseline","plus1",
+                                                "plus5","plus10")),
+               scales = "free_y") +
+    labs(y = expression("Biomass (" * mu * " g L"^{-1}*")"), x = "") +
+    theme_bw() +
+    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                       breaks = c("baseline","plus1","plus5","plus10")) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "bottom",
+          legend.direction = "horizontal",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text = element_text(face = "bold",hjust = 0),
+          strip.background = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-10,-10),
+          legend.margin=margin(-25,0,10,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"))
+  #ggsave("figures/phyto_annual_biom_taxa_timing.jpg", width=7, height=4) 
   
 #------------------------------------------------------------------------#
 # density plots

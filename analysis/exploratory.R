@@ -284,3 +284,136 @@ ggplot(data=subset(mod_vars, Depth==9), aes(x=factor(
           fill = "white"),
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/mod_vars_scenario_boxplot_9m.jpg", width=7, height=4) 
+
+# line plots for each taxa/scenario
+mean_mod_vars <-  mod_vars |>
+  mutate(year = lubridate::year(DateTime)) |>
+  group_by(var, year, scenario, Depth) |>
+  summarise(mean_val = mean(value)) 
+  
+ggplot(data=subset(mean_mod_vars,Depth==0.1),
+       aes(x = year, y = mean_val,  color = scenario)) +
+  geom_line(size=1) + geom_point(size=2) +
+  facet_wrap(~var, scales = "free") +
+  xlab("") + theme_bw() +
+  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text = element_text(face = "bold",hjust = 0),
+        strip.background = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(-25,0,10,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"))
+#ggsave("figures/mod_var_annual_timing_0.1m.jpg", width=7, height=4) 
+
+ggplot(data=subset(mean_mod_vars,Depth==9),
+       aes(x = year, y = mean_val,  color = scenario)) +
+  geom_line(size=1) + geom_point(size=2) +
+  facet_wrap(~var, scales = "free") +
+  xlab("") + theme_bw() +
+  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text = element_text(face = "bold",hjust = 0),
+        strip.background = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(-25,0,10,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"))
+#ggsave("figures/mod_var_annual_timing_9m.jpg", width=7, height=4) 
+
+# now time to look at some phytos
+
+phyto_mean_biom <-read.csv("analysis/data/phyto_scenarios.csv") |>
+  group_by(taxon, year, scenario) |>
+  summarise(mean_biom = mean(value)) |>
+  filter(year %in% c(2016:2021))
+
+ggplot(phyto_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
+  geom_line(size=1) + geom_point(size=2) +
+  facet_wrap(~taxon, scales = "free") +
+  xlab("") + theme_bw() +
+  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text = element_text(face = "bold",hjust = 0),
+        strip.background = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(-25,0,10,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"))
+#ggsave("figures/phyto_annual_biom_timing.jpg", width=7, height=4) 
+
+zoop_mean_biom <-read.csv("analysis/data/zoop_scenarios.csv") |>
+  group_by(taxon, year, scenario) |>
+  summarise(mean_biom = mean(value)) |>
+  filter(year %in% c(2016:2021))
+
+ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
+  geom_line(size=1) + geom_point(size=2) +
+  facet_wrap(~taxon, scales = "free") +
+  xlab("") + theme_bw() +
+  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text = element_text(face = "bold",hjust = 0),
+        strip.background = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(-25,0,10,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"))
+#ggsave("figures/zoop_annual_biom_timing.jpg", width=7, height=4) 
+
