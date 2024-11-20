@@ -3,12 +3,15 @@
 
 #install hydroGOF
 if (!require(devtools)) install.packages("devtools")
+if (!require(devtools)) install.packages("pacman")
 library(devtools)
 install_github("hzambran/hydroTSM")
 install_github("hzambran/hydroGOF")
 
+devtools::install_github("eliocamp/tagger")
+
 #load packages
-pacman::p_load(tidyverse,lubridate, hydroGOF, glmtools)
+pacman::p_load(tidyverse,lubridate, hydroGOF, glmtools, ggtext, tagger)
 
 # create modeled vs. observed df for each variable
 #focal depths
@@ -190,11 +193,11 @@ assign(paste0("mod_vars_final_", scenario[i]), mod_vars_final)
 # Define the labels as expressions
 labels <- c(
   expression("Water Temp (" * degree * "C)"),
-  expression("DO (mg L"^{-1}*")"),
-  expression("NH"[4] * " (" * mu * "g L"^{-1}*")"),
-  expression("NO"[3] * " (" * mu * "g L"^{-1}*")"),
-  expression("PO"[4] * " (" * mu * "g L"^{-1}*")"),
-  expression("Chlorophyll " * italic(a) * " (" * mu * "g L"^{-1}*")")
+  expression("DO (mmol L"^{-1}*")"),
+  expression("NH"[4] * " (" * mu * " g L"^{-1}*")"),
+  expression("NO"[3] * " (" * mu * " g L"^{-1}*")"),
+  expression("DRP (" * mu * " g L"^{-1}*")"),
+  expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")")
 )
 
 # Apply these labels as factor levels after defining them
@@ -203,7 +206,8 @@ all_vars_final_baseline <- all_vars_final_baseline |>
                            labels = labels))
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
-  mutate(variable = factor(var, levels = unique(var), labels = labels))
+  mutate(variable = factor(var, levels = unique(var), labels = labels)) |>
+  na.omit()
 
 # reorder vars
 all_vars_final_baseline$var <- factor(all_vars_final_baseline$var, 
@@ -229,6 +233,7 @@ ggplot() +
     guide = guide_legend(override.aes = list(
       linetype = c("solid", "blank"),
                        shape = c(NA, 16)))) +
+  tag_facets() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -240,7 +245,8 @@ ggplot() +
         plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
         panel.spacing.x = unit(0.1, "in"),
         panel.background = element_rect(fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
+        panel.spacing.y = unit(0, "lines"),  
+        strip.background = element_blank())
 #ggsave("figures/allvars_mod_vs_obs_0.1m.jpg", width=6, height=6)
 
 # plot vars for 9m
@@ -260,6 +266,7 @@ ggplot() +
     guide = guide_legend(override.aes = list(
       linetype = c("solid", "blank"),
       shape = c(NA, 16)))) +
+  tag_facets() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -271,8 +278,42 @@ ggplot() +
         plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
         panel.spacing.x = unit(0.1, "in"),
         panel.background = element_rect(fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
+        panel.spacing.y = unit(0, "lines"),
+        strip.background = element_blank())
 #ggsave("figures/allvars_mod_vs_obs_9m.jpg", width=6, height=6)
+
+# numbers for results text
+mod_vars_final_baseline <- mod_vars_final_baseline |>
+  mutate(season = ifelse(month(DateTime) %in% c(6,7,8), "summer",
+                         ifelse(month(DateTime) %in% c(12,1,2), "winter", NA)))
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="temp" & 
+       mod_vars_final_baseline$Depth==0.1 & 
+       mod_vars_final_baseline$season=="summer"])
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="temp" & 
+                                     mod_vars_final_baseline$Depth==0.1 & 
+                                     mod_vars_final_baseline$season=="winter"])
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="oxy" & 
+                                     mod_vars_final_baseline$Depth==0.1 & 
+                                     mod_vars_final_baseline$season=="summer"])
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="oxy" & 
+                                     mod_vars_final_baseline$Depth==0.1 & 
+                                     mod_vars_final_baseline$season=="winter"])
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="nh4" & 
+                                     mod_vars_final_baseline$Depth==0.1 ])
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
+                                     mod_vars_final_baseline$Depth==0.1 ])
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
+                                     mod_vars_final_baseline$Depth==0.1 ])
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
+                                     mod_vars_final_baseline$Depth==0.1 ])
 
 
 #modeled vars from 2000-2022 for each scenario
@@ -704,13 +745,13 @@ full_n_val <- c("n_val",length(obstemp$DateTime[which(obstemp$DateTime >= "2021-
                 length(obs_chla$DateTime[which(obs_chla$DateTime >= "2021-01-01")]))
 
 full_gof_all_table <- all_gof %>% 
-  filter(Parameter == "r.Spearman_all" | Parameter == "R2_all" | Parameter == "RMSE_all" | Parameter == "PBIAS%_all" | Parameter == "NMAE_all")
+  filter(Parameter == "R2_all" | Parameter == "RMSE_all" | Parameter == "PBIAS%_all" | Parameter == "NMAE_all")
 
 full_gof_cal_table <- all_gof_cal %>% 
-  filter(Parameter == "r.Spearman_cal" | Parameter == "R2_cal" | Parameter == "RMSE_cal" | Parameter == "PBIAS%_cal" | Parameter == "NMAE_cal")
+  filter(Parameter == "R2_cal" | Parameter == "RMSE_cal" | Parameter == "PBIAS%_cal" | Parameter == "NMAE_cal")
 
 full_gof_val_table <- all_gof_val %>% 
-  filter(Parameter == "r.Spearman_val" | Parameter == "R2_val" | Parameter == "RMSE_val" | Parameter == "PBIAS%_val" | Parameter == "NMAE_val")
+  filter(Parameter == "R2_val" | Parameter == "RMSE_val" | Parameter == "PBIAS%_val" | Parameter == "NMAE_val")
 
 full_gof_table <- rbind(full_n_all,full_gof_all_table,full_n_cal,full_gof_cal_table,full_n_val,full_gof_val_table)
 

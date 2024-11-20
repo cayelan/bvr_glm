@@ -1,6 +1,10 @@
 # script to run glm and generate output.nc file
 # Note - run spin-up.R first!
 
+# install glmtools
+library(devtools)
+devtools::install_github("rqthomas/glmtools", force = TRUE)
+
 #list of scenarios
 scenario <- c("baseline","plus1","plus5","plus10")
 
@@ -73,17 +77,20 @@ ggplot(all_scenarios_output, aes(time, Surface.Temp, color=as.factor(scenario)))
         panel.spacing.y = unit(0, "lines"))
 #ggsave("figures/surf_temp_scenarios.jpg", width=4, height=3)
 
+# numbers for results text
+mean(all_scenarios_output$Surface.Temp[
+  all_scenarios_output$scenario=="baseline"])
 
+mean(all_scenarios_output$Surface.Temp[
+  all_scenarios_output$scenario=="plus1"])
 
-jpeg('figures/surf_temp_scenarios.jpg',width=5, height=4, units="in", res=500)
-plot(baseline$DateTime, baseline$Surface.Temp, 
-     ylab=expression("Water temperature ("*degree*C*")"),
-     type = "l", ylim=c(-10,40), col = "#00603d", xlab=c(""))
-points(plus1C$DateTime, plus1C$Surface.Temp, col="#c6a000", type="l")
-points(plus5C$DateTime, plus5C$Surface.Temp, col="#c85b00", type="l")
-points(plus10C$DateTime, plus10C$Surface.Temp, col="#680000", type="l")
-legend("bottom", legend=c("baseline", "plus1C","plus5C","plus10C"),
-       col=c("#00603d", "#c6a000","#c85b00","#680000"), 
-       lty=1, cex=0.7, bty='n', horiz=T)
-dev.off()
+mean(all_scenarios_output$Surface.Temp[
+  all_scenarios_output$scenario=="plus5"])
 
+mean(all_scenarios_output$Surface.Temp[
+  all_scenarios_output$scenario=="plus10"])
+
+mean(all_scenarios_output$Surface.Temp[
+  all_scenarios_output$scenario=="plus10"]) -
+  mean(all_scenarios_output$Surface.Temp[
+    all_scenarios_output$scenario=="baseline"])

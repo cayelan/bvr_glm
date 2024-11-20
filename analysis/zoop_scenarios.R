@@ -1,7 +1,7 @@
 # Plankton air temp scenarios
 # 22 August 2024
 
-pacman::p_load(ggplot2,ggridges,dplyr)
+pacman::p_load(ggplot2,ggridges,dplyr, emeans, lme4, lmerTest)
 
 scenario <- c("baseline","plus1", "plus5","plus10")
 
@@ -386,8 +386,9 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   facet_wrap(~scenario, scales = "free_x")+
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"))+
   scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
-  scale_x_date(expand = c(0,0), date_breaks = "1 year", 
-               date_labels = "%Y") +
+  scale_x_date(expand = c(0,0), 
+               breaks = as.Date(c("2016-01-01", "2018-01-01", "2020-01-01", "2022-01-01")),
+               date_labels = '%Y') +
   scale_y_continuous(expand = c(0,0))+
   xlab("") + ylab("Relative biomass") +
   guides(color= "none",
@@ -403,7 +404,6 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
         axis.text.y = element_text(size = 10),
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_text(face = "bold",hjust = 0),
-        axis.text.x = element_text(angle=90),
         strip.background.x = element_blank(),
         axis.title.y = element_text(size = 11),
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
@@ -414,6 +414,13 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
           fill = "white"),
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/BVR_relative_zoop_scenarios.jpg", width=7, height=4) 
+  
+# proportion boxplots for each scenario
+mean_proportions <- zoop_scenarios |>
+    group_by(DateTime, scenario) |>
+    mutate(proportion = value / sum(value)) |>
+    group_by(taxon, scenario) |>
+    summarise(mean_proportion = mean(proportion)) 
   
 # biomass for each year + taxa
   ggplot(zoop_scenarios,
@@ -576,7 +583,7 @@ emmeans(model, pairwise ~ scenario | taxon)
 ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
   geom_point(size=2) + geom_line(size=1) +
   facet_wrap(~taxon) +
-  labs(y = expression("Biomass (" * mu * "g L"^{-1}*")"), x = "") +
+  labs(y = expression("Biomass (" * mu * " g L"^{-1}*")"), x = "") +
   scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
   theme_bw() +

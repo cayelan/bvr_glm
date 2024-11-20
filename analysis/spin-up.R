@@ -1,9 +1,5 @@
 # script to prep glm nml file and met/inflow files for 15-year spin-up
 
-# install glmtools
-library(devtools)
-devtools::install_github("rqthomas/glmtools", force = TRUE)
-
 #load packages
 pacman::p_load(glmtools, zoo)
 
