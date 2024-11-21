@@ -1,7 +1,7 @@
 # Plankton air temp scenarios
 # 22 August 2024
 
-pacman::p_load(ggplot2,ggridges,dplyr, emeans, lme4, lmerTest)
+pacman::p_load(ggplot2,ggridges,dplyr, emmeans, lme4, lmerTest, FSA)
 
 scenario <- c("baseline","plus1", "plus5","plus10")
 
@@ -560,8 +560,6 @@ zoop_mean_biom <-  zoop_scenarios |>
   
 # cannot do nonparametric tests that identify interactions between scenario and taxa bc scenarios lack independence (i.e., shared env influences)
 # so let's try mixed-effects model
-install.packages("lme4")
-install.packages("lmerTest")
 library(lme4)
 library(lmerTest)
   
@@ -571,7 +569,6 @@ model <- lmer(mean_biom ~ scenario * taxon + (1 | year),
 
 summary(model) #plus 10 has a positive effect on rotifer biomass
 
-install.packages("emmeans")
 library(emmeans)
 
 # Pairwise comparisons for scenarios within each taxon
@@ -808,23 +805,25 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
                     DateTime < "2022-01-01") #filtering out the 2 partial years
   
 # median doy across all years
-  zoop_scenarios |>
+zoop_timing <-  zoop_scenarios |>
     dplyr::group_by(taxon) |>
-    dplyr::mutate(bl_median = median(max_doy[scenario == "baseline"])) |>
+    dplyr::mutate(bl_mean = mean(max_doy[scenario == "baseline"])) |>
     dplyr::ungroup() |>
     dplyr::group_by(taxon, year,scenario) |> 
     dplyr::summarise(
-      median_doy = median(max_doy),
-      bl_median = first(bl_median)) |>
-  ggplot(aes(x = median_doy, y = as.factor(scenario), 
+      mean_doy = mean(max_doy),
+      bl_mean = first(bl_mean))
+
+  ggplot(zoop_timing, aes(x = mean_doy, y = as.factor(scenario), 
              group = as.factor(scenario))) +
     geom_density_ridges(aes(fill = as.factor(scenario))) +
     scale_fill_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                       breaks = c("baseline","plus1","plus5","plus10")) +
-    scale_y_discrete(limits = scenario) + xlab("max doy") +
-    geom_vline(aes(xintercept=bl_median), 
+    scale_y_discrete(limits = scenario) +
+    xlab("Day of year") + ylab("") +
+    geom_vline(aes(xintercept=bl_mean), 
                linetype='dashed', col = 'black') +
-    facet_wrap(~taxon, ncol=3, scales = "free_x") + ylab("") +
+    facet_wrap(~taxon, ncol=3, scales = "free_x") +
     theme_bw() + guides(fill = "none") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
@@ -847,26 +846,46 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
           panel.background = element_rect(
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/zoop_density_plots_max_doy_allyears.jpg", width=7, height=4)
+#ggsave("figures/zoop_density_plots_max_doy_allyears_timing.jpg", width=7, height=4)
 
+# numbers for results text
+  mean(zoop_timing$mean_doy[zoop_timing$scenario=="baseline" &
+                              zoop_timing$taxon=="cladoceran"]) - 
+  mean(zoop_timing$mean_doy[zoop_timing$scenario=="plus10" &
+                            zoop_timing$taxon=="cladoceran"])
+  
+  mean(zoop_timing$mean_doy[zoop_timing$scenario=="baseline" &
+                              zoop_timing$taxon=="copepod"]) - 
+    mean(zoop_timing$mean_doy[zoop_timing$scenario=="plus10" &
+                                zoop_timing$taxon=="copepod"])
+  
+  mean(zoop_timing$mean_doy[zoop_timing$scenario=="baseline" &
+                              zoop_timing$taxon=="rotifer"]) - 
+    mean(zoop_timing$mean_doy[zoop_timing$scenario=="plus10" &
+                                zoop_timing$taxon=="rotifer"])
+  
+  
 # max biomass values for all years
- zoop_scenarios |>
+ zoop_mag <- zoop_scenarios |>
    dplyr::group_by(taxon) |>
-   dplyr::mutate(bl_median = median(max_value[scenario == "baseline"])) |>
+   dplyr::mutate(bl_mean = mean(max_value[scenario == "baseline"])) |>
    dplyr::ungroup() |>
    dplyr::group_by(taxon, year, scenario) |> 
    dplyr::summarise(
-     max_biom = max(max_value),
-     bl_median = first(bl_median)) |>
-   ggplot(aes(x = max_biom, y = as.factor(scenario), 
+     max_biom = max(value),
+     bl_mean = first(bl_mean)) 
+ 
+   ggplot(zoop_mag, aes(x = max_biom, y = as.factor(scenario), 
               group = as.factor(scenario))) +
    geom_density_ridges(aes(fill = as.factor(scenario))) +
    scale_fill_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
    scale_y_discrete(limits = scenario) + xlab("max biomass") +
-   geom_vline(aes(xintercept=bl_median), 
+   geom_vline(aes(xintercept=bl_mean), 
               linetype='dashed', col = 'black') +
-   facet_wrap(~taxon, ncol=3, scales = "free_x") + ylab("") +
+   facet_wrap(~taxon, ncol=3, scales = "free_x") + 
+   xlab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
+   ylab("") +
    theme_bw() + guides(fill = "none") +
    theme(panel.grid.major = element_blank(), 
          panel.grid.minor = element_blank(),
@@ -889,28 +908,55 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
          panel.background = element_rect(
            fill = "white"),
          panel.spacing = unit(0.5, "lines"))
- #ggsave("figures/zoop_density_plots_max_biomass_allyears.jpg", width=7, height=4)
+ #ggsave("figures/zoop_density_plots_max_biomass_allyears_mag.jpg", width=7, height=4)
+ 
+# numbers for results text
+   mean(zoop_mag$max_biom[zoop_mag$scenario=="baseline" &
+                            zoop_mag$taxon=="cladoceran"]) - 
+     mean(zoop_mag$max_biom[zoop_mag$scenario=="plus10" &
+                              zoop_mag$taxon=="cladoceran"])
+   
+   mean(zoop_mag$max_biom[zoop_mag$scenario=="baseline" &
+                               zoop_mag$taxon=="copepod"]) - 
+     mean(zoop_mag$max_biom[zoop_mag$scenario=="plus10" &
+                                 zoop_mag$taxon=="copepod"])
+   
+   mean(zoop_mag$max_biom[zoop_mag$scenario=="baseline" &
+                            zoop_mag$taxon=="rotifer"]) - 
+     mean(zoop_mag$max_biom[zoop_mag$scenario=="plus10" &
+                              zoop_mag$taxon=="rotifer"])
   
 #----------------------------------------------------------------#
 # KW tests for max biomass differences across scenarios for each taxa 
-zoop_max_biom <- zoop_scenarios |>
-   dplyr::group_by(taxon, year, scenario) |> 
-   dplyr::select(taxon, year, scenario, value, max_doy) |>
-   dplyr::summarise(max_doy = median(max_doy),
-                    max_val = max(value))
+kruskal.test(zoop_mag$max_biom[zoop_mag$taxon=="cladoceran"]~
+               zoop_mag$scenario[zoop_mag$taxon=="cladoceran"])
 
-kruskal.test(zoop_max_biom$max_val[zoop_max_biom$taxon=="cladoceran"]~
-               zoop_max_biom$scenario[zoop_max_biom$taxon=="cladoceran"])
+kruskal.test(zoop_mag$max_biom[zoop_mag$taxon=="copepod"]~
+               zoop_mag$scenario[zoop_mag$taxon=="copepod"])
 
-kruskal.test(zoop_max_biom$max_val[zoop_max_biom$taxon=="copepod"]~
-               zoop_max_biom$scenario[zoop_max_biom$taxon=="copepod"])
-
-kruskal.test(zoop_max_biom$max_val[zoop_max_biom$taxon=="rotifer"]~
-               zoop_max_biom$scenario[zoop_max_biom$taxon=="rotifer"])
+kruskal.test(zoop_mag$max_biom[zoop_mag$taxon=="rotifer"]~
+               zoop_mag$scenario[zoop_mag$taxon=="rotifer"])
  # no significant differences in max biomass across scenarios for any of the taxa
  
+# KW tests for timing of max biomass  across scenarios for each taxa 
+kruskal.test(zoop_timing$mean_doy[zoop_timing$taxon=="cladoceran"]~
+               zoop_timing$scenario[zoop_timing$taxon=="cladoceran"])
 
-# just visualize the median density for all years
+kruskal.test(zoop_timing$mean_doy[zoop_timing$taxon=="copepod"]~
+               zoop_timing$scenario[zoop_timing$taxon=="copepod"])
+
+kruskal.test(zoop_timing$mean_doy[zoop_timing$taxon=="rotifer"]~
+               zoop_timing$scenario[zoop_timing$taxon=="rotifer"])
+# rotifer timing is sig different
+
+#perform Dunn's Test with Bonferroni correction for p-values
+dunnTest(zoop_timing$mean_doy[zoop_timing$taxon=="rotifer"]~
+           zoop_timing$scenario[zoop_timing$taxon=="rotifer"],
+         method="bonferroni")
+# rotifer plus 10 biomass peaks happen earlier than plus 1 or baseline
+
+
+# just visualize the median biomass for all years
   zoop_scenarios |>
     dplyr::group_by(taxon) |>
     dplyr::mutate(bl_median = median(max_doy[scenario == "baseline"])) |>
@@ -1081,6 +1127,7 @@ kruskal.test(zoop_max_biom$max_val[zoop_max_biom$taxon=="rotifer"]~
     dplyr::group_by(taxon, year, scenario) |>
     dplyr::summarise(mean = mean(value),
                      sd = sd(value),
+                     doy = doy[which.max(value)],
                      size = n()) 
   
 # function to calculate the pooled sd
@@ -1096,23 +1143,24 @@ kruskal.test(zoop_max_biom$max_val[zoop_max_biom$taxon=="rotifer"]~
         (sum(group_sizes) - length(group_sizes))
     )
   }
-  
-zoop_effect_size <- zoop_scenarios_summary |>
+
+# effect size for change in magnitude of biomass 
+zoop_effect_size_magnitude <- zoop_scenarios_summary |>
   dplyr::group_by(taxon, year) |> 
   dplyr::summarise(plus1 = (mean[scenario=="plus1"] - 
-                     mean[scenario=="baseline"]) / 
+                              mean[scenario=="baseline"]) / 
                      pooled_sd(group_sizes = c(size[scenario=="baseline"],
                                                size[scenario=="plus1"]),
                                  group_sd = c(sd[scenario=="baseline"],
                                               sd[scenario=="plus1"])),
                    plus5 = (mean[scenario=="plus5"] - 
-                                 mean[scenario=="baseline"]) / 
+                              mean[scenario=="baseline"]) / 
                      pooled_sd(group_sizes = c(size[scenario=="baseline"],
                                                size[scenario=="plus1"]), 
                                group_sd = c(sd[scenario=="baseline"],
                                             sd[scenario=="plus5"])),
                    plus10 = (mean[scenario=="plus10"] - 
-                                 mean[scenario=="baseline"]) / 
+                               mean[scenario=="baseline"]) / 
                      pooled_sd(group_sizes = c(size[scenario=="baseline"],
                                                size[scenario=="plus1"]),
                                group_sd = c(sd[scenario=="baseline"],
@@ -1124,10 +1172,10 @@ zoop_effect_size <- zoop_scenarios_summary |>
   dplyr::mutate(sd = sd(value)) 
 
 # plot median effect sizes for each scenario  
-zoop_effect_size |> 
+zoop_effect_size_magnitude |> 
   dplyr::group_by(taxon, scenario, sd) |> 
-  dplyr::summarise(median = median(value)) |> 
-  ggplot() + geom_point(aes(x=median, y=factor(scenario,levels=c("plus1","plus5","plus10")), 
+  dplyr::summarise(mean = mean(value)) |> 
+  ggplot() + geom_point(aes(x=mean, y=factor(scenario,levels=c("plus1","plus5","plus10")), 
                              color=scenario), size=3) +
   theme_bw() + xlab("Effect Size") + ylab("") +
   facet_wrap(~taxon, scales="free_x") + 
@@ -1136,7 +1184,7 @@ zoop_effect_size |>
                      labels = c("+1C","+5C","+10C")) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_errorbarh(aes(y = factor(scenario, levels = c("plus1", "plus5", "plus10")), 
-                     xmin = median - sd, xmax = median + sd), 
+                     xmin = mean - sd, xmax = mean + sd), 
                  height = 0.2) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -1152,22 +1200,107 @@ zoop_effect_size |>
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/zoop_scenario_effect_size_sd.jpg", width=7, height=4)
+#ggsave("figures/zoop_scenario_effect_size_sd_magnitude.jpg", width=7, height=4)
+
+# kw tests for significant differences in ES across across scenarios
+kruskal.test(zoop_effect_size_magnitude$value[zoop_effect_size_magnitude$taxon=="cladoceran"]~
+               zoop_effect_size_magnitude$scenario[zoop_effect_size_magnitude$taxon=="cladoceran"])
+
+kruskal.test(zoop_effect_size_magnitude$value[zoop_effect_size_magnitude$taxon=="copepod"]~
+               zoop_effect_size_magnitude$scenario[zoop_effect_size_magnitude$taxon=="copepod"])
+
+kruskal.test(zoop_effect_size_magnitude$value[zoop_effect_size_magnitude$taxon=="rotifer"]~
+               zoop_effect_size_magnitude$scenario[zoop_effect_size_magnitude$taxon=="rotifer"])
+# clads and rotifers are sig different
+
+#perform Dunn's Test with Bonferroni correction for p-values
+dunnTest(zoop_effect_size_magnitude$value[zoop_effect_size_magnitude$taxon=="cladoceran"]~
+           zoop_effect_size_magnitude$scenario[zoop_effect_size_magnitude$taxon=="cladoceran"],
+         method="bonferroni")
+# clad ES in plus10 is greater than in plus1
+
+dunnTest(zoop_effect_size_magnitude$value[zoop_effect_size_magnitude$taxon=="rotifer"]~
+           zoop_effect_size_magnitude$scenario[zoop_effect_size_magnitude$taxon=="rotifer"],
+         method="bonferroni")
+# clad ES in plus10 is greater than in plus1
+
+# effect size for timing of zooplankton biomass peaks
+zoop_effect_size_timing <- zoop_scenarios_summary |>
+  dplyr::group_by(taxon, year) |> 
+  dplyr::summarise(plus1 = (doy[scenario=="plus1"] - 
+                              doy[scenario=="baseline"]) / 
+                     pooled_sd(group_sizes = c(size[scenario=="baseline"],
+                                               size[scenario=="plus1"]),
+                               group_sd = c(sd[scenario=="baseline"],
+                                            sd[scenario=="plus1"])),
+                   plus5 = (doy[scenario=="plus5"] - 
+                              doy[scenario=="baseline"]) / 
+                     pooled_sd(group_sizes = c(size[scenario=="baseline"],
+                                               size[scenario=="plus1"]), 
+                               group_sd = c(sd[scenario=="baseline"],
+                                            sd[scenario=="plus5"])),
+                   plus10 = (doy[scenario=="plus10"] - 
+                               doy[scenario=="baseline"]) / 
+                     pooled_sd(group_sizes = c(size[scenario=="baseline"],
+                                               size[scenario=="plus1"]),
+                               group_sd = c(sd[scenario=="baseline"],
+                                            sd[scenario=="plus10"]))) |>
+  tidyr::pivot_longer(cols = -c(taxon,year),
+                      names_to = "scenario",
+                      values_to = "value") |> dplyr::ungroup() |> 
+  dplyr::group_by(taxon,scenario) |>
+  dplyr::mutate(sd = sd(value)) 
+
+# plot median effect sizes for each scenario  
+zoop_effect_size_timing |> 
+  filter(value >= -11.5) |>
+  #dplyr::group_by(taxon, scenario, sd) |> 
+  #dplyr::summarise(mean = mean(value)) |> 
+  ggplot() + geom_point(aes(x=value, y=factor(scenario,levels=c("plus1","plus5","plus10")), 
+                            color=scenario), size=3) +
+  theme_bw() + xlab("Effect Size") + ylab("") +
+  facet_wrap(~taxon, scales="free_x") + 
+  scale_color_manual("", values = c("#c6a000","#c85b00","#680000"),
+                     breaks = c("plus1","plus5","plus10"),
+                     labels = c("+1C","+5C","+10C")) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  #geom_errorbarh(aes(y = factor(scenario, levels = c("plus1", "plus5", "plus10")), 
+  #                   xmin = mean - sd, xmax = mean + sd), 
+  #               height = 0.2) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.background = element_blank(),
+        legend.position = "right",
+        text = element_text(size=10), 
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.background.x = element_blank(),
+        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+        legend.margin = margin(c(-10,-1,-10,-10)),
+        panel.spacing.x = unit(0.1, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing.y = unit(0, "lines"))
+#ggsave("figures/zoop_scenario_effect_size_sd_timing_points_no_outlier.jpg", width=7, height=4)
+
 
 # KW tests for effect size across scenarios for each taxa
-annual_effect_size <- zoop_effect_size |> 
-  dplyr::group_by(taxon, scenario, sd) |> 
-  dplyr::summarise(median = median(value)) 
+kruskal.test(zoop_effect_size_timing$value[zoop_effect_size_timing$taxon=="cladoceran"]~
+               zoop_effect_size_timing$scenario[zoop_effect_size_timing$taxon=="cladoceran"])
 
-kruskal.test(annual_effect_size$median[annual_effect_size$taxon=="cladoceran"]~
-               annual_effect_size$scenario[annual_effect_size$taxon=="cladoceran"])
+kruskal.test(zoop_effect_size_timing$value[zoop_effect_size_timing$taxon=="copepod"]~
+               zoop_effect_size_timing$scenario[zoop_effect_size_timing$taxon=="copepod"])
 
-kruskal.test(annual_effect_size$median[annual_effect_size$taxon=="copepod"]~
-               annual_effect_size$scenario[annual_effect_size$taxon=="copepod"])
+kruskal.test(zoop_effect_size_timing$value[zoop_effect_size_timing$taxon=="rotifer"]~
+               zoop_effect_size_timing$scenario[zoop_effect_size_timing$taxon=="rotifer"])
+# effect size differs for rotifers!
 
-kruskal.test(annual_effect_size$median[annual_effect_size$taxon=="rotifer"]~
-               annual_effect_size$scenario[annual_effect_size$taxon=="rotifer"])
-# no significant differences in effect size across scenarios for any of the taxa
+#perform Dunn's Test with Bonferroni correction for p-values
+dunnTest(zoop_effect_size_timing$value[zoop_effect_size_timing$taxon=="rotifer"]~
+           zoop_effect_size_timing$scenario[zoop_effect_size_timing$taxon=="rotifer"],
+         method="bonferroni")
+# plus10 rotifer ES is lower than plus1
+
 
 
 # effect size fig for phytos

@@ -156,8 +156,7 @@ ggplot(zoop_diag, aes(x=factor(
 mod_vars <- read.csv("./analysis/data/mod_vars.csv") |>
   mutate(year = lubridate::year(DateTime)) |>
   group_by(year, Depth, scenario, var) |>
-  summarise(yearly_mean = mean(value)) |>
-  filter(!year %in% c("2015","2022"))
+  summarise(yearly_mean = mean(value)) 
 
 ggplot(data=subset(mod_vars,Depth==0.1),
        aes(x = year, y = yearly_mean, color = scenario)) +
@@ -221,8 +220,8 @@ ggplot(data=subset(mod_vars,Depth==9),
 
 
 # boxplots
-ggplot(data=subset(mod_vars, Depth==0.1), aes(x=factor(
-  scenario,levels=c("baseline","plus1","plus5","plus10")), 
+ggplot(data=subset(mod_vars, Depth==0.1 & !year %in% c("2015","2022")),
+       aes(x=factor(scenario,levels=c("baseline","plus1","plus5","plus10")), 
   y = yearly_mean, fill=var)) +
   scale_fill_manual(values = NatParksPalettes::
                       natparks.pals("Volcanoes", 6, direction = -1))+
@@ -253,8 +252,8 @@ ggplot(data=subset(mod_vars, Depth==0.1), aes(x=factor(
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/mod_vars_scenario_boxplot_0.1m.jpg", width=7, height=4) 
 
-ggplot(data=subset(mod_vars, Depth==9), aes(x=factor(
-  scenario,levels=c("baseline","plus1","plus5","plus10")), 
+ggplot(data=subset(mod_vars, Depth==9 & !year %in% c("2015","2022")),
+       aes(x=factor(scenario,levels=c("baseline","plus1","plus5","plus10")), 
   y = yearly_mean, fill=var)) +
   scale_fill_manual(values = NatParksPalettes::
                       natparks.pals("Volcanoes", 6, direction = -1))+
@@ -285,16 +284,32 @@ ggplot(data=subset(mod_vars, Depth==9), aes(x=factor(
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/mod_vars_scenario_boxplot_9m.jpg", width=7, height=4) 
 
+labels <- c(
+  expression("Water Temp (" * degree * "C)"),
+  expression("DO (mmol L"^{-1}*")"),
+  expression("NH"[4] * " (" * mu * " g L"^{-1}*")"),
+  expression("NO"[3] * " (" * mu * " g L"^{-1}*")"),
+  expression("DRP (" * mu * " g L"^{-1}*")"),
+  expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")")
+)
+
 # line plots for each taxa/scenario
 mean_mod_vars <-  mod_vars |>
-  mutate(year = lubridate::year(DateTime)) |>
   group_by(var, year, scenario, Depth) |>
-  summarise(mean_val = mean(value)) 
+  summarise(mean_val = mean(yearly_mean)) |>
+  ungroup() |>
+  mutate(variable = factor(var, levels = unique(var)[c(6,4,2,3,5,1)],
+                           labels = labels))
+
+mean_mod_vars$var <- factor(mean_mod_vars$var, 
+                                      levels = c("temp", "oxy", "nh4", 
+                                                 "no3", "po4", "chla"))
   
-ggplot(data=subset(mean_mod_vars,Depth==0.1),
+ggplot(data=subset(mean_mod_vars,Depth==0.1 & !year %in% c("2015","2022")),
        aes(x = year, y = mean_val,  color = scenario)) +
   geom_line(size=1) + geom_point(size=2) +
-  facet_wrap(~var, scales = "free") +
+  facet_wrap(~variable, scales = "free",
+             labeller = label_parsed) +
   xlab("") + theme_bw() +
   scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
@@ -320,10 +335,11 @@ ggplot(data=subset(mean_mod_vars,Depth==0.1),
           fill = "white"))
 #ggsave("figures/mod_var_annual_timing_0.1m.jpg", width=7, height=4) 
 
-ggplot(data=subset(mean_mod_vars,Depth==9),
+ggplot(data=subset(mean_mod_vars,Depth==9 & !year %in% c("2015","2022")),
        aes(x = year, y = mean_val,  color = scenario)) +
   geom_line(size=1) + geom_point(size=2) +
-  facet_wrap(~var, scales = "free") +
+  facet_wrap(~variable, scales = "free",
+             labeller = label_parsed) +
   xlab("") + theme_bw() +
   scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
@@ -348,6 +364,55 @@ ggplot(data=subset(mean_mod_vars,Depth==9),
         panel.background = element_rect(
           fill = "white"))
 #ggsave("figures/mod_var_annual_timing_9m.jpg", width=7, height=4) 
+
+# numbers for results text
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                              mean_mod_vars$scenario=="baseline" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
+                              mean_mod_vars$scenario=="baseline" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="nh4" &
+                              mean_mod_vars$scenario=="plus5" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="nh4" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
+                              mean_mod_vars$scenario=="plus5" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
+                              mean_mod_vars$scenario=="plus5" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
+                              mean_mod_vars$scenario=="plus5" &
+                              mean_mod_vars$Depth==0.1])
+
+mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
 
 # now time to look at some phytos
 

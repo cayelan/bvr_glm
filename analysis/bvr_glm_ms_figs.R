@@ -3,7 +3,7 @@
 
 #install hydroGOF
 if (!require(devtools)) install.packages("devtools")
-if (!require(devtools)) install.packages("pacman")
+if (!require(pacman)) install.packages("pacman")
 library(devtools)
 install_github("hzambran/hydroTSM")
 install_github("hzambran/hydroGOF")
