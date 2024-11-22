@@ -1,7 +1,7 @@
 # Plankton air temp scenarios
 # 22 August 2024
 
-pacman::p_load(ggplot2,ggridges,dplyr, emmeans, lme4, lmerTest, FSA)
+pacman::p_load(ggplot2,ggridges,dplyr, ART, FSA)
 
 scenario <- c("baseline","plus1", "plus5","plus10")
 
@@ -558,23 +558,57 @@ zoop_mean_biom <-  zoop_scenarios |>
           panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/BVR_zoop_biom_scenario_boxplot.jpg", width=7, height=4) 
   
-# cannot do nonparametric tests that identify interactions between scenario and taxa bc scenarios lack independence (i.e., shared env influences)
-# so let's try mixed-effects model
-library(lme4)
-library(lmerTest)
+# Aligned Rank Transform (ART)
   
-# Mixed-effects model with fixed effects for scenario and taxon, random intercept for period
-model <- lmer(mean_biom ~ scenario * taxon + (1 | year), 
-              data = zoop_mean_biom)
+zoop_annual_biom <-  zoop_scenarios |>
+  group_by(taxon, scenario, year) |>
+  summarise(mean_biom = mean(value)) |>
+  mutate(taxon = as.factor(taxon),
+         scenario = as.factor(scenario),
+         year = as.factor(year))
+  
+art_model <- art(mean_biom ~ scenario * taxon + (1 | year), 
+                 data = zoop_annual_biom)
+anova(art_model)
+# both main effects and interaction is significant
 
-summary(model) #plus 10 has a positive effect on rotifer biomass
+# post-hoc tests
+# Test main effect of scenario - yes difference
+kruskal_scenario <- kruskal.test(mean_biom ~ scenario, data = zoop_annual_biom)
 
-library(emmeans)
+# Test main effect of taxon - no difference
+kruskal_taxon <- kruskal.test(mean_biom ~ taxon, data = zoop_annual_biom)
 
-# Pairwise comparisons for scenarios within each taxon
-emmeans(model, pairwise ~ scenario | taxon)
-# rotifer biom for plus 10 is sig greater than in other scenarios
-   
+# Perform pairwise comparisons for scenario
+pairwise_scenario <- pairwise.wilcox.test(zoop_annual_biom$mean_biom, 
+                                          zoop_annual_biom$scenario, 
+                                          p.adjust.method = "bonferroni")
+# plus 1 is different than plus 10
+
+# get rank-transformed values given that ART identified sig differences among taxa
+zoop_annual_biom$ranked_mean_biom <- residuals(art_model)
+
+# pairwise comparisons for taxa - grr still not sig...
+dunn_taxon_art <- dunn.test(zoop_annual_biom$ranked_mean_biom, 
+                                zoop_annual_biom$taxon, 
+                                kw = TRUE, label = TRUE, wrap = TRUE)
+
+# does taxon biomass differ among scenarios? - only rotifers!
+kruskal_rot_scenario <- kruskal.test(zoop_annual_biom$mean_biom[zoop_annual_biom$taxon=="rotifer"] ~ 
+                                       zoop_annual_biom$scenario[zoop_annual_biom$taxon=="rotifer"])
+
+kruskal_clad_scenario <- kruskal.test(zoop_annual_biom$mean_biom[zoop_annual_biom$taxon=="cladoceran"] ~ 
+                                        zoop_annual_biom$scenario[zoop_annual_biom$taxon=="cladoceran"])
+
+kruskal_cope_scenario <- kruskal.test(zoop_annual_biom$mean_biom[zoop_annual_biom$taxon=="copepod"] ~ 
+                                        zoop_annual_biom$scenario[zoop_annual_biom$taxon=="copepod"])
+
+# Perform pairwise comparisons for scenario
+pairwise_scenario_rot <- pairwise.wilcox.test(zoop_annual_biom$mean_biom[zoop_annual_biom$taxon=="rotifer"], 
+                                              zoop_annual_biom$scenario[zoop_annual_biom$taxon=="rotifer"], 
+                                              p.adjust.method = "bonferroni")
+# plus 1 is different than plus 10
+
 #-------------------------------------------------------------------------#
 # playing around with some other visualizations
 ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
