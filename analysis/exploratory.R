@@ -449,6 +449,35 @@ ggplot(phyto_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
           fill = "white"))
 #ggsave("figures/phyto_annual_biom_timing.jpg", width=7, height=4) 
 
+# boxplots
+ggplot(phyto_mean_biom, aes(x=factor(
+  scenario,levels=c("baseline","plus1","plus5","plus10")), 
+  y = mean_biom, fill=taxon)) +
+  geom_boxplot() +
+  ylab("value") + xlab("") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold",hjust = 0),
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing = unit(0.5, "lines"))
+#ggsave("figures/phyto_scenario_boxplot.jpg", width=7, height=4) 
+
 zoop_mean_biom <-read.csv("analysis/data/zoop_scenarios.csv") |>
   group_by(taxon, year, scenario) |>
   summarise(mean_biom = mean(value)) |>

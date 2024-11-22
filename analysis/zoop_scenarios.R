@@ -1,7 +1,8 @@
 # Plankton air temp scenarios
 # 22 August 2024
 
-pacman::p_load(ggplot2,ggridges,dplyr, ART, FSA)
+devtools::install_github("eliocamp/tagger")
+pacman::p_load(ggplot2,ggridges,dplyr, ART, FSA, egg, tagger)
 
 scenario <- c("baseline","plus1", "plus5","plus10")
 
@@ -378,7 +379,7 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   mutate(diff = value - mean_biom)
 
 # relative zoop density for baseline vs. plus 10
-  ggplot(data = subset(zoop_scenarios, scenario %in% c("baseline","plus10")),
+area <-  ggplot(data = subset(zoop_scenarios, scenario %in% c("baseline","plus10")),
          aes(x=DateTime, y = value, color=taxon)) +
   geom_area(aes(fill = taxon, color=taxon),
             position = "fill", 
@@ -390,6 +391,7 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
                breaks = as.Date(c("2016-01-01", "2018-01-01", "2020-01-01", "2022-01-01")),
                date_labels = '%Y') +
   scale_y_continuous(expand = c(0,0))+
+  tag_facets(tag_pool = c("a","b")) +
   xlab("") + ylab("Relative biomass") +
   guides(color= "none",
          fill = guide_legend(ncol=3)) +
@@ -400,27 +402,59 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
         legend.background = element_blank(),
         legend.position = "top",
         legend.title = element_blank(),
-        text = element_text(size=10), 
-        axis.text.y = element_text(size = 10),
+        text = element_text(size=9), 
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_text(face = "bold",hjust = 0),
-        strip.background.x = element_blank(),
-        axis.title.y = element_text(size = 11),
+        strip.background = element_blank(),
+        axis.title.y = element_text(size = 10),
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
         legend.box.margin = margin(0,-10,-10,-10),
         legend.margin=margin(0,0,0,0),
-        panel.spacing.x = unit(0.2, "in"),
+        panel.spacing.x = unit(0.1, "in"),
         panel.background = element_rect(
           fill = "white"),
         panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/BVR_relative_zoop_scenarios.jpg", width=7, height=4) 
   
 # proportion boxplots for each scenario
 mean_proportions <- zoop_scenarios |>
     group_by(DateTime, scenario) |>
     mutate(proportion = value / sum(value)) |>
-    group_by(taxon, scenario) |>
+    group_by(taxon, scenario, DateTime) |>
     summarise(mean_proportion = mean(proportion)) 
+
+box <- ggplot(data = subset(mean_proportions, scenario %in% c("baseline","plus10")),
+              aes(x=taxon, y = mean_proportion, fill=scenario)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("#00603d","#680000"))+
+  scale_y_continuous(expand = c(0,0))+
+  xlab("") + ylab("Relative biomass") +
+  tag_facets(tag_pool = c("c")) +
+  guides(color= "none",
+         fill = guide_legend(ncol=3)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.title = element_blank(),
+        text = element_text(size=9), 
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold",hjust = 0),
+        strip.background = element_blank(),
+        axis.title.y = element_blank(),
+        plot.margin = unit(c(0, 0.1, 0, -0.8), "cm"),
+        legend.box.margin = margin(0,-10, 5,-10),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing = unit(0.5, "lines"))
+
+p <- egg::ggarrange(area,box, nrow=1, widths = c(2,1))
+ggsave("figures/BVR_relative_zoop_scenarios.jpg", p, width=5, height=3) 
   
 # biomass for each year + taxa
   ggplot(zoop_scenarios,
@@ -492,7 +526,6 @@ mean_proportions <- zoop_scenarios |>
     ggplot(aes(x = factor(month), y = monthly_biom, color = factor(
       scenario, levels = c("baseline", "plus1", "plus5", "plus10")),
       group = interaction(taxon, scenario))) +  # Add `group` aesthetic
-    geom_line() +
     geom_smooth(method = "loess") +
     facet_wrap(~taxon) +
     scale_x_discrete(labels = c("Jan","","Mar","","May","","Jul","","Sep","","Nov","")) +
@@ -911,6 +944,7 @@ zoop_timing <-  zoop_scenarios |>
  
    ggplot(zoop_mag, aes(x = max_biom, y = as.factor(scenario), 
               group = as.factor(scenario))) +
+   #  geom_point(aes(color=as.factor(year))) +
    geom_density_ridges(aes(fill = as.factor(scenario))) +
    scale_fill_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +

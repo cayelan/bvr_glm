@@ -4,6 +4,7 @@
 # install glmtools
 library(devtools)
 devtools::install_github("rqthomas/glmtools", force = TRUE)
+library(purrr)
 
 #list of scenarios
 scenario <- c("baseline","plus1","plus5","plus10")
@@ -75,7 +76,7 @@ ggplot(all_scenarios_output, aes(time, Surface.Temp, color=as.factor(scenario)))
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/surf_temp_scenarios.jpg", width=4, height=3)
+#ggsave("figures/surf_temp_scenarios.jpg", width=3, height=3)
 
 # numbers for results text
 mean(all_scenarios_output$Surface.Temp[
