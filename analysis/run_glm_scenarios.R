@@ -2,7 +2,6 @@
 # Note - run spin-up.R first!
 
 # install glmtools
-library(devtools)
 devtools::install_github("rqthomas/glmtools", force = TRUE)
 library(purrr)
 
