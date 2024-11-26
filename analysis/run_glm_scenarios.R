@@ -65,7 +65,7 @@ ggplot(all_scenarios_output, aes(time, Surface.Temp, color=as.factor(scenario)))
         legend.background = element_blank(),
         legend.position = "top",
         legend.direction = "horizontal",
-        text = element_text(size=10), 
+        text = element_text(size=9), 
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_blank(),
         strip.background.x = element_blank(),
@@ -75,7 +75,7 @@ ggplot(all_scenarios_output, aes(time, Surface.Temp, color=as.factor(scenario)))
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/surf_temp_scenarios.jpg", width=3, height=3)
+#ggsave("figures/surf_temp_scenarios.jpg", width=4, height=3)
 
 # numbers for results text
 mean(all_scenarios_output$Surface.Temp[

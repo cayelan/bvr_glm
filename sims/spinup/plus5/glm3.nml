@@ -44,7 +44,7 @@
 /
 &time
    timefmt = 2
-   start = '2015-07-08 00:00:00'
+   start = '2000-07-08 00:00:00'
    stop = '2022-05-03 00:00:00'
    dt = 3600
    num_days = 1
@@ -102,7 +102,7 @@
    strm_hf_angle = 55
    strmbd_slope = 0.05
    strmbd_drag = 0.03
-   inflow_factor = 0.9896
+   inflow_factor = 0.99
    inflow_fl = 'inputs/inflow_plus5.csv'
    inflow_varnum = 29
    inflow_vars = 'FLOW','TEMP','SALT','OXY_oxy','NIT_amm','NIT_nit','PHS_frp','OGM_doc','OGM_docr','OGM_poc','OGM_don','OGM_donr','OGM_pon','OGM_dop','OGM_dopr','OGM_pop','CAR_dic','CAR_pH','SIL_rsi','CAR_ch4','PHY_cyano','PHY_cyano_IN','PHY_cyano_IP','PHY_green','PHY_green_IN','PHY_green_IP','PHY_diatom','PHY_diatom_IN','PHY_diatom_IP'
@@ -114,7 +114,7 @@
    bsn_len_outl = 855.03
    bsn_wid_outl = 55.96
    outflow_fl = 'inputs/BVR_spillway_outflow_2015_2022_metInflow.csv'
-   outflow_factor = 0.993
+   outflow_factor = 0.9934
 /
 &snowice
    snow_albedo_factor = 1
@@ -128,7 +128,7 @@
    zone_heights = 3, 6, 9, 12
    sed_heat_Ksoil = 1.2, 1.2, 1.2, 1.2
    sed_temp_depth = 0.05, 0.5, 0.5, 0.5
-   sed_temp_mean = 9, 12, 15, 19
+   sed_temp_mean = 9, 12, 15, 20
    sed_temp_amplitude = 1.2, 2, 10, 10
    sed_temp_peak_doy = 300, 305, 220, 210
 /
