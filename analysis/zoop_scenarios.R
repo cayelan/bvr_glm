@@ -1110,67 +1110,7 @@ zoop_mag <-  zoop_scenarios |>
           panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/zoop_density_plots_biomass_mag.jpg", width=7, height=4)
 
-# numbers for results text
-  mean(zoop_timing$mean_doy[zoop_timing$scenario=="baseline" &
-                              zoop_timing$taxon=="cladoceran"]) - 
-  mean(zoop_timing$mean_doy[zoop_timing$scenario=="plus10" &
-                            zoop_timing$taxon=="cladoceran"])
-  
-  mean(zoop_timing$mean_doy[zoop_timing$scenario=="baseline" &
-                              zoop_timing$taxon=="copepod"]) - 
-    mean(zoop_timing$mean_doy[zoop_timing$scenario=="plus10" &
-                                zoop_timing$taxon=="copepod"])
-  
-  mean(zoop_timing$mean_doy[zoop_timing$scenario=="baseline" &
-                              zoop_timing$taxon=="rotifer"]) - 
-    mean(zoop_timing$mean_doy[zoop_timing$scenario=="plus10" &
-                                zoop_timing$taxon=="rotifer"])
-  
-# numbers for results text
-   mean(zoop_mag$max_biom[zoop_mag$scenario=="baseline" &
-                            zoop_mag$taxon=="cladoceran"]) - 
-     mean(zoop_mag$max_biom[zoop_mag$scenario=="plus10" &
-                              zoop_mag$taxon=="cladoceran"])
-   
-   mean(zoop_mag$max_biom[zoop_mag$scenario=="baseline" &
-                               zoop_mag$taxon=="copepod"]) - 
-     mean(zoop_mag$max_biom[zoop_mag$scenario=="plus10" &
-                                 zoop_mag$taxon=="copepod"])
-   
-   mean(zoop_mag$max_biom[zoop_mag$scenario=="baseline" &
-                            zoop_mag$taxon=="rotifer"]) - 
-     mean(zoop_mag$max_biom[zoop_mag$scenario=="plus10" &
-                              zoop_mag$taxon=="rotifer"])
-  
 #----------------------------------------------------------------#
-# KW tests for max biomass differences across scenarios for each taxa 
-kruskal.test(zoop_mag$max_biom[zoop_mag$taxon=="cladoceran"]~
-               zoop_mag$scenario[zoop_mag$taxon=="cladoceran"])
-
-kruskal.test(zoop_mag$max_biom[zoop_mag$taxon=="copepod"]~
-               zoop_mag$scenario[zoop_mag$taxon=="copepod"])
-
-kruskal.test(zoop_mag$max_biom[zoop_mag$taxon=="rotifer"]~
-               zoop_mag$scenario[zoop_mag$taxon=="rotifer"])
- # no significant differences in max biomass across scenarios for any of the taxa
- 
-# KW tests for timing of max biomass  across scenarios for each taxa 
-kruskal.test(zoop_timing$mean_doy[zoop_timing$taxon=="cladoceran"]~
-               zoop_timing$scenario[zoop_timing$taxon=="cladoceran"])
-
-kruskal.test(zoop_timing$mean_doy[zoop_timing$taxon=="copepod"]~
-               zoop_timing$scenario[zoop_timing$taxon=="copepod"])
-
-kruskal.test(zoop_timing$mean_doy[zoop_timing$taxon=="rotifer"]~
-               zoop_timing$scenario[zoop_timing$taxon=="rotifer"])
-# rotifer timing is sig different
-
-#perform Dunn's Test with Bonferroni correction for p-values
-dunnTest(zoop_timing$mean_doy[zoop_timing$taxon=="rotifer"]~
-           zoop_timing$scenario[zoop_timing$taxon=="rotifer"],
-         method="bonferroni")
-# rotifer plus 10 biomass peaks happen earlier than plus 1 or baseline
-
 
 # just visualize the mean doy for peak biomass across all years
   zoop_scenarios |>
@@ -1223,17 +1163,17 @@ zoop_timing <- zoop_scenarios |>
   
 # numbers for results text HERE
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="cladoceran" &
-                              zoop_timing$scenario=="baseline"])
+                              zoop_timing$scenario=="baseline"]) -
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="cladoceran" &
                               zoop_timing$scenario=="plus10"])
   
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="copepod" &
-                              zoop_timing$scenario=="baseline"])
+                              zoop_timing$scenario=="plus10"]) -
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="copepod" &
-                              zoop_timing$scenario=="plus10"])
-  
-    mean(zoop_timing$mean_doy[zoop_timing$taxon=="rotifer" &
                               zoop_timing$scenario=="baseline"])
+
+  mean(zoop_timing$mean_doy[zoop_timing$taxon=="rotifer" &
+                              zoop_timing$scenario=="baseline"]) -
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="rotifer" &
                               zoop_timing$scenario=="plus10"])
   
@@ -1320,7 +1260,7 @@ zoop_effect_size_magnitude <- zoop_scenarios_summary |>
   dplyr::group_by(taxon,scenario) |>
   dplyr::mutate(sd = sd(value)) 
 
-# plot median effect sizes for each scenario  
+# plot mean effect sizes for each scenario  
 zoop_effect_size_magnitude |> 
   dplyr::group_by(taxon, scenario, sd) |> 
   dplyr::summarise(mean = mean(value)) |> 
@@ -1407,7 +1347,6 @@ zoop_effect_size_timing <- zoop_scenarios_summary |>
 
 # plot median effect sizes for each scenario  
 zoop_effect_size_timing |> 
-  #filter(value >= -11.5) |>
   dplyr::group_by(taxon, scenario, sd) |> 
   dplyr::summarise(mean = mean(value)) |> 
   ggplot() + geom_point(aes(x=mean, y=factor(scenario,levels=c("plus1","plus5","plus10")), 
@@ -1435,7 +1374,7 @@ zoop_effect_size_timing |>
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/zoop_scenario_effect_size_sd_timing_points_no_outlier.jpg", width=7, height=4)
+#ggsave("figures/zoop_scenario_effect_size_sd_timing.jpg", width=7, height=4)
 
 
 # KW tests for effect size across scenarios for each taxa

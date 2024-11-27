@@ -319,12 +319,12 @@ mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" &
 
 
 #modeled vars from 2000-2022 for each scenario
-scenarios_df <- mget(c("mod_vars_final_baseline","mod_vars_final_plus1",
-                       "mod_vars_final_plus5", "mod_vars_final_plus10")) |>
-  setNames(paste0(scenario)) |>
-  bind_rows(.id = "scenario") |>
-  relocate(scenario, .after = last_col()) |>
-  select(-type)
+#scenarios_df <- mget(c("mod_vars_final_baseline","mod_vars_final_plus1",
+#                       "mod_vars_final_plus5", "mod_vars_final_plus10")) |>
+#  setNames(paste0(scenario)) |>
+#  bind_rows(.id = "scenario") |>
+#  relocate(scenario, .after = last_col()) |>
+#  select(-type)
 #write.csv(scenarios_df, "./analysis/data/modeled_vars_scenarios.csv", row.names = F)
 
   ggplot(subset(scenarios_df, Depth %in% 0.1),
@@ -357,6 +357,45 @@ scenarios_df <- mget(c("mod_vars_final_baseline","mod_vars_final_plus1",
           fill = "white"),
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/modeled_vars_scenarios_0.1.jpg", width=7, height=4)
+  
+  mod_vars_filtered <- mod_vars %>%
+    filter(Depth %in% 0.1) %>%
+    group_by(scenario, var) %>%
+    mutate(lower_bound = quantile(value, 0.25) - 1.5 * IQR(value),
+           upper_bound = quantile(value, 0.75) + 1.5 * IQR(value)) %>%
+    filter(value >= lower_bound & value <= upper_bound)
+  
+# boxplots
+  ggplot(subset(mod_vars, Depth %in% 0.1),
+         aes(x = scenario, y = value, 
+             fill = as.factor(scenario))) +
+    geom_boxplot() + xlab("") +
+    scale_fill_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+                       breaks = c("baseline","plus1","plus5","plus10")) +
+    scale_x_discrete(limits = c("baseline", "plus1", "plus5", "plus10")) +
+    facet_wrap(~var, ncol=3, scales = "free_y") + 
+    theme_bw() + guides(fill = "none") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text.y = element_text(size = 10),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 11),
+          plot.margin = unit(c(0, 1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/modeled_vars_scenarios_0.1_boxplots.jpg", width=7, height=4)
   
   ggplot(subset(scenarios_df, Depth %in% 9),
          aes(x = DateTime, y = value, 

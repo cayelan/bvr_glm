@@ -49,7 +49,8 @@ assign(paste0("mod2_", scenario[j]), mod2)
 #plot limiting phyto var for each scenario
 mod2_baseline |> 
   dplyr::filter(limit %in% c("fI","fPho","fSil","fNit","fT")) |> 
-  dplyr::filter(Depth == 1.0) |> 
+  dplyr::filter(Depth == 1.0 & 
+                  DateTime >= as.Date("2015-07-07")) |> 
   ggplot() + xlab("Baseline") +
   geom_line(aes(x = DateTime, y = value, color = limit)) +
   facet_wrap(~phyto, nrow = 3) +
@@ -57,7 +58,8 @@ mod2_baseline |>
 
 mod2_plus1 |> 
   dplyr::filter(limit %in% c("fI","fPho","fSil","fNit","fT")) |> 
-  dplyr::filter(Depth == 1.0) |> 
+  dplyr::filter(Depth == 1.0 & 
+                  DateTime >= as.Date("2015-07-07")) |> 
   ggplot() + xlab("Plus 1C") +
   geom_line(aes(x = DateTime, y = value, color = limit)) +
   facet_wrap(~phyto, nrow = 3) +
@@ -65,7 +67,8 @@ mod2_plus1 |>
 
 mod2_plus5 |> 
   dplyr::filter(limit %in% c("fI","fPho","fSil","fNit","fT")) |> 
-  dplyr::filter(Depth == 1.0) |> 
+  dplyr::filter(Depth == 1.0 & 
+                  DateTime >= as.Date("2015-07-07")) |> 
   ggplot() + xlab("Plus 5C") +
   geom_line(aes(x = DateTime, y = value, color = limit)) +
   facet_wrap(~phyto, nrow = 3) +
@@ -73,7 +76,8 @@ mod2_plus5 |>
 
 mod2_plus10 |> 
   dplyr::filter(limit %in% c("fI","fPho","fSil","fNit","fT")) |> 
-  dplyr::filter(Depth == 1.0) |> 
+  dplyr::filter(Depth == 1.0 & 
+                  DateTime >= as.Date("2015-07-07")) |>  
   ggplot() + xlab("Plus 10C") +
   geom_line(aes(x = DateTime, y = value, color = limit)) +
   facet_wrap(~phyto, nrow = 3) +
