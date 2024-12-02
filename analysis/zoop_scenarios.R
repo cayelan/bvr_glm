@@ -384,7 +384,8 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   group_by(taxon, scenario) |>
   mutate(mean_biom = mean(value)) |>
   ungroup() |>
-  mutate(diff = value - mean_biom)
+  mutate(diff = value - mean_biom) |>
+  mutate(value = value * 12.011) # convert from from mmol/m3 C to ug/L
 
 # relative zoop density for baseline vs. plus 10
 area <-  ggplot(data = subset(zoop_scenarios, scenario %in% c("baseline","plus10")),
@@ -493,7 +494,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
                        breaks = c("baseline","plus1","plus5","plus10")) +
     scale_x_date(expand = c(0,0), date_breaks = "1 year", 
                  date_labels = "%Y") +
-    ylab(expression("Biomass (mmol m"^{3}*")")) + xlab("") +
+    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
@@ -549,6 +550,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
     
 # smoothed monthly biomass for each scenario
   zoop_scenarios |>
+    filter(year %in% c(2016:2021)) |>
     mutate(month = lubridate::month(DateTime)) |>
     group_by(taxon, scenario, month) |>
     summarise(monthly_biom = mean(value), .groups = "drop") |>
@@ -558,7 +560,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
     geom_smooth(method = "loess") +
     facet_wrap(~taxon, nrow=1) +
     scale_x_discrete(labels = c("Jan","","Mar","","May","","Jul","","Sep","","Nov","")) +
-    labs(y = expression("Biomass (mmol m"^{3}*")"), x = "") +
+    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
     scale_color_manual("", values = c("#00603d", "#c6a000", "#c85b00", "#680000"),
                        breaks = c("baseline", "plus1", "plus5", "plus10")) +
     theme(panel.grid.major = element_blank(), 
@@ -595,7 +597,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
     geom_smooth(method = "loess") +
     facet_grid(taxon ~ year, scales = "free_y") +
     scale_x_discrete(labels = c("Jan","","","","May","","","","Sep","","","")) +
-    labs(y = expression("Biomass (mmol m"^{3}*")"), x = "") +
+    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
     scale_color_manual( "", 
       values = c("#00603d", "#c6a000", "#c85b00", "#680000"),
       breaks = c("baseline", "plus1", "plus5", "plus10") ) +
@@ -627,18 +629,19 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
 # scenario boxplots across taxa
 zoop_mean_biom <-  zoop_scenarios |>
     group_by(taxon, scenario, year) |>
-    summarise(mean_biom = mean(value)) 
+    summarise(mean_biom = mean(value))  |>
+  filter(year %in% 2016:2021)
 
   ggplot(zoop_mean_biom, aes(x=factor(
     scenario,levels=c("baseline","plus1","plus5","plus10")), 
              y = mean_biom, fill=taxon)) +
     geom_boxplot() +
     scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
-    labs(y = expression("Biomass (mmol m"^{3}*")"), x = "") +
+    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
     geom_text(data = subset(zoop_mean_biom, scenario == "plus10" & taxon == "rotifer"),
-              aes(x = c(1.24,NA,2.24,NA,3.24,NA,4.24,NA), 
-                  y = c(30,0,27,0,36,0,58,0), 
-                  label = c("ab","","a","","a","","b","")), 
+              aes(x = c(1.24,2.24,3.24,4.24,NA,NA), 
+                  y = c(360,324,432,696,0,0), 
+                  label = c("ab","a","a","b","","")), 
               size = 5, color = "black") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
@@ -758,6 +761,11 @@ zoop_annual_biom <-  zoop_scenarios |>
   mutate(taxon = as.factor(taxon),
          scenario = as.factor(scenario),
          year = as.factor(year))
+
+# first check that years are independent using Kendall’s Tau 
+cor.test(seq_along(zoop_annual_biom$mean_biom), 
+         zoop_annual_biom$mean_biom, method = "kendall")
+# p > 0.05 so independent
   
 art_model <- art(mean_biom ~ scenario * taxon + (1 | year), 
                  data = zoop_annual_biom)
@@ -774,8 +782,8 @@ kruskal_taxon <- kruskal.test(mean_biom ~ taxon, data = zoop_annual_biom)
 # Perform pairwise comparisons for scenario
 pairwise_scenario <- pairwise.wilcox.test(zoop_annual_biom$mean_biom, 
                                           zoop_annual_biom$scenario, 
-                                          p.adjust.method = "bonferroni")
-# plus 1 and baseline are different than plus 10
+                                          p.adjust.method = "holm")
+# baseline, plus1, and plus5 are different than plus 10
 
 # get rank-transformed values given that ART identified sig differences among taxa
 zoop_annual_biom$ranked_mean_biom <- residuals(art_model)
@@ -793,15 +801,15 @@ kruskal_cope_scenario <- kruskal.test(zoop_annual_biom$mean_biom[zoop_annual_bio
 # Perform pairwise comparisons for scenario
 pairwise_scenario_rot <- pairwise.wilcox.test(zoop_annual_biom$mean_biom[zoop_annual_biom$taxon=="rotifer"], 
                                               zoop_annual_biom$scenario[zoop_annual_biom$taxon=="rotifer"], 
-                                              p.adjust.method = "bonferroni")
-# plus 1 and 5 are different than plus 10 (not baseline)
+                                              p.adjust.method = "holm")
+# baseline, plus1, and plus5 are different than plus 10 (not baseline)
 
 #-------------------------------------------------------------------------#
 # playing around with some other visualizations
 ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
   geom_point(size=2) + geom_line(size=1) +
   facet_wrap(~taxon, scales="free_y") +
-  labs(y = expression("Biomass (mmol m"^{3}*")"), x = "") +
+  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
   scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
   theme_bw() +
@@ -832,7 +840,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
   geom_line() +
   facet_grid(taxon ~ factor(scenario,levels=c("baseline","plus1",
                                               "plus5","plus10"))) +
-  labs(y = expression("Biomass (mmol m"^{3}*")"), x = "") +
+  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
   theme_bw() +
   scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +

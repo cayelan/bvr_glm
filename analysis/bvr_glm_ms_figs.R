@@ -144,10 +144,22 @@ chla_compare<-merge(mod_chla, obs_chla, by=c("DateTime","Depth")) |>
 #merge all dfs
 all_vars <- reduce(list(watertemp, oxy_compare,
                         nh4_compare, no3_compare,
-                        po4_compare, chla_compare), full_join)
+                        po4_compare, chla_compare), full_join) |>
+  mutate(mod_oxy = mod_oxy * 32 / 1000) |> # convert to mg/L
+  mutate(obs_oxy = obs_oxy * 32 / 1000) |> # convert to mg/L
+  mutate(mod_nh4 = mod_nh4 * 18.04) |> # convert to ug/L
+  mutate(obs_nh4 = obs_nh4 * 18.04) |> # convert to ug/L
+  mutate(mod_no3 = mod_no3 * 62.00) |> # convert to ug/L
+  mutate(obs_no3 = obs_no3 * 62.00) |> # convert to ug/L
+  mutate(mod_po4 = mod_po4 * 94.9714) |> # convert to ug/L
+  mutate(obs_po4 = obs_po4 * 94.9714)  # convert to ug/L
 
 mod_vars <- reduce(list(modtemp, mod_oxy,
-                        mod_nh4, mod_no3, mod_po4, mod_chla), full_join)
+                        mod_nh4, mod_no3, mod_po4, mod_chla), full_join) |>
+  mutate(OXY_oxy = OXY_oxy * 32 / 1000) |> # convert to mg/L
+  mutate(NIT_amm = NIT_amm * 18.04) |> # convert to ug/L
+  mutate(NIT_nit = NIT_nit * 62.00) |> # convert to ug/L
+  mutate(PHS_frp = PHS_frp * 94.9714)  # convert to ug/L
 
 #add col for calib vs. valid period (2020-12-31)
 all_vars$period <- ifelse(all_vars$DateTime <= "2020-12-31",
@@ -193,12 +205,13 @@ assign(paste0("mod_vars_final_", scenario[i]), mod_vars_final)
 # Define the labels as expressions
 labels <- c(
   expression("Water Temp (" * degree * "C)"),
-  expression("DO (mmol m"^{3}*")"),
-  expression("NH"[4] * " (mmol m"^{3}*")"),
-  expression("NO"[3] * " (mmol m"^{3}*")"),
-  expression("DRP (mmol m"^{3}*")"),
+  expression("DO (mg L"^{-1}*")"),
+  expression("NH"[4] * "(" * mu * " g L"^{-1}*")"),
+  expression("NO"[3] * "(" * mu * " g L"^{-1}*")"),
+  expression("DRP (" * mu * " g L"^{-1}*")"),
   expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")")
 )
+expression("Biomass (" * mu * " g L"^{-1}*")")
 
 # Apply these labels as factor levels after defining them
 all_vars_final_baseline <- all_vars_final_baseline |>
@@ -292,30 +305,50 @@ mod_vars_final_baseline <- mod_vars_final_baseline |>
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "temp" & 
        mod_vars_final_baseline$Depth %in% "0.1" & 
        mod_vars_final_baseline$season %in%"summer"])
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "temp" & 
+                                   mod_vars_final_baseline$Depth %in% "0.1" & 
+                                   mod_vars_final_baseline$season %in%"summer"])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "temp" & 
                                      mod_vars_final_baseline$Depth %in% "0.1" & 
                                      mod_vars_final_baseline$season %in%"winter"])
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "temp" & 
+                                   mod_vars_final_baseline$Depth %in% "0.1" & 
+                                   mod_vars_final_baseline$season %in%"winter"])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" & 
                                      mod_vars_final_baseline$Depth %in% "0.1" & 
                                      mod_vars_final_baseline$season %in%"summer"])
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" & 
+                                   mod_vars_final_baseline$Depth %in% "0.1" & 
+                                   mod_vars_final_baseline$season %in%"summer"])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" & 
                                      mod_vars_final_baseline$Depth %in% "0.1" & 
                                      mod_vars_final_baseline$season %in%"winter"])
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" & 
+                                   mod_vars_final_baseline$Depth %in% "0.1" & 
+                                   mod_vars_final_baseline$season %in%"winter"])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="nh4" & 
                                      mod_vars_final_baseline$Depth==0.1 ])
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="nh4" & 
+                                   mod_vars_final_baseline$Depth==0.1 ])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
                                      mod_vars_final_baseline$Depth==0.1 ])
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
+                                   mod_vars_final_baseline$Depth==0.1 ])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
                                      mod_vars_final_baseline$Depth==0.1 ])
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
+                                   mod_vars_final_baseline$Depth==0.1 ])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
                                      mod_vars_final_baseline$Depth==0.1 ])
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
+                                   mod_vars_final_baseline$Depth==0.1 ])
 
 
 #modeled vars from 2000-2022 for each scenario
@@ -326,6 +359,8 @@ mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" &
 #  relocate(scenario, .after = last_col()) |>
 #  select(-type)
 #write.csv(scenarios_df, "./analysis/data/modeled_vars_scenarios.csv", row.names = F)
+
+scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv") 
 
   ggplot(subset(scenarios_df, Depth %in% 0.1),
          aes(x = DateTime, y = value, 
