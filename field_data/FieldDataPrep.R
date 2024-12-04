@@ -8,6 +8,7 @@
 library(tidyverse)
 library(lubridate)
 library(zoo)
+library(ggpubr)
 
 #focal depths we are trying to compare modeled data vs observations; for CTD/YSI casts
 #assumed the deepest point of BVR = 11 m
@@ -588,10 +589,11 @@ ggplot(all_zoops_final, aes(doy, ZOO_cladoceran, color=as.factor(year))) +
   geom_point() + theme_bw() + geom_line()
 
 # zoop size histogram for the three focal taxa (supplemental figure)
-ggplot(all_zoops, aes(Size_mm, fill=Taxon)) +
-  geom_density() + theme_bw() +
+s <- ggplot(all_zoops, aes(Size_mm, fill=Taxon)) +
+  geom_density() + theme_bw() + xlab("Size (mm)") +
   scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
                     breaks = c("Cladocera","Copepoda","Rotifera"))+
+  guides(fill="none") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -603,10 +605,51 @@ ggplot(all_zoops, aes(Size_mm, fill=Taxon)) +
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_blank(),
         strip.background.x = element_blank(),
-        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
-        legend.margin = margin(c(-10,-10,-10,-10)),
+        plot.margin = unit(c(0.2, 0.1, 0.45, 0.1), "cm"),
+        legend.margin = margin(c(5,-10,0,-10)),
         panel.spacing.x = unit(0.1, "in"),
         panel.background = element_rect(
           fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/taxa_size_density_plot.jpg", width=4, height=3)
+        panel.spacing.y = unit(0, "lines"),
+        axis.title.x = element_text(margin = margin(t = 10)))
+
+zoops_temp <- read.csv("field_data/field_zoops.csv") |>
+  rename("cladoceran" = "ZOO_cladoceran",
+         "copepod" = "ZOO_copepod",
+         "rotifer" = "ZOO_rotifer") |>
+  tidyr::pivot_longer(cols= -c(DateTime),
+                      names_to = c("Taxon"),
+                      values_to = "Biomass_ugL") |>
+  mutate(Biomass_ugL = Biomass_ugL * 12.011, #convert to ug/L from mmol/m3
+         biomass_log = log(Biomass_ugL))
+
+
+# zoop size histogram for the three focal taxa (supplemental figure)
+b <- ggplot(zoops_temp, aes(biomass_log, fill=Taxon)) +
+  geom_density(alpha = 0.7) + theme_bw() + ylab("") +
+  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
+                    breaks = c("cladoceran","copepod","rotifer"))+
+  xlab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_blank(),
+        strip.background.x = element_blank(),
+        plot.margin = unit(c(0.2, 0.1, 0.37, 0), "cm"),
+        legend.margin = margin(c(5,-10,0,-10)),
+        panel.spacing.x = unit(0.1, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing.y = unit(0, "lines"),
+        axis.title.x = element_text(margin = margin(t = 8)))
+
+ggpubr::ggarrange(s, b, ncol = 2, common.legend = TRUE, labels = c("a","b"))
+
+#ggsave("figures/density_plots_size_biom_taxa.jpg", width=4, height=3)
+
