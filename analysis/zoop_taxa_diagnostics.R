@@ -1,6 +1,6 @@
 # need to automate this and have the output save in separate folders instead of overwriting
 
-pacman::p_load(ggplot2, dplyr, scales, NatParksPalettes)
+pacman::p_load(ggplot2, dplyr, scales, NatParksPalettes, glmtools)
 
 # change output location "output/cladoceran/output.nc
 glm_nml_file <- file.path("./sims/spinup/baseline/glm3.nml")
@@ -93,6 +93,8 @@ rot <- rot_full_wc |>
 all_zoops <- purrr::reduce(list(clad, cope, rot), dplyr::full_join) 
 
 all_zoops_obs <- purrr::reduce(list(clad_obs, cope_obs, rot_obs), dplyr::full_join) |> 
+  dplyr::group_by(DateTime) |>
+  dplyr::mutate(ZOO_total = sum(ZOO_cladoceran, ZOO_copepod, ZOO_rotifer)) |>
   tidyr::pivot_longer(cols = -c(DateTime), 
                       names_pattern = "(...)_(...*)$",
                       names_to = c("mod", "taxon")) |> 
@@ -103,10 +105,11 @@ all_zoops_obs <- purrr::reduce(list(clad_obs, cope_obs, rot_obs), dplyr::full_jo
   
 #convert from wide to long for plotting
 all_zoops_final <- all_zoops |> 
+  dplyr::group_by(DateTime) |>
+  dplyr::mutate(ZOO_total = sum(ZOO_cladoceran, ZOO_copepod, ZOO_rotifer)) |>
   tidyr::pivot_longer(cols = -c(DateTime), 
                       names_pattern = "(...)_(...*)$",
                       names_to = c("mod", "taxon")) |> 
-  dplyr::group_by(DateTime) |>
   dplyr::mutate(daily_sum = sum(value),
                 year = lubridate::year(DateTime),
                 doy = lubridate::yday(DateTime)) |>
@@ -147,14 +150,48 @@ diag_long <- bind_cols(grz, resp[!colnames(resp) %in% "DateTime"],
 
 #assign("zoop_diag_rots_last", diag_long)
 
+# reorder the 'taxon' factor levels
+all_zoops_final$taxon <- factor(all_zoops_final$taxon, 
+                                levels = c("total", "cladoceran", "copepod", "rotifer"))
+all_zoops_obs$taxon <- factor(all_zoops_obs$taxon, 
+                              levels = c("total", "cladoceran", "copepod", "rotifer"))
+
+
 # plot zoops
 ggplot() +
   geom_line(data=subset(all_zoops_final,DateTime >= as.Date("2015-07-07")),
-            aes(DateTime, value)) +
+            aes(DateTime, value)) + 
   geom_point(data=all_zoops_obs,
             aes(DateTime, value, color=taxon)) +
   theme_bw() + xlab("") + guides(color = "none") +
-  facet_wrap(~taxon, scales = "free_y", nrow=3) +
+  facet_wrap(~taxon, scales = "free_y", nrow=2) +
+  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
+  scale_color_manual(values = c("black","#084c61","#db504a","#e3b505"),
+                     breaks = c("total","cladoceran","copepod","rotifer"))+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.background.x = element_blank(),
+        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+        legend.margin = margin(c(-10,-10,-10,-10)),
+        legend.key = element_rect(fill = "transparent"),
+        legend.direction = "horizontal",
+        panel.spacing.x = unit(0.1, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing.y = unit(0, "lines"))
+#ggsave("figures/zoop_mod_vs_obs_copes_last.jpg", width=6, height=6)
+
+ggplot() +
+  geom_line(data=subset(all_zoops_final,DateTime >= as.Date("2015-07-07") &
+                          !taxon %in% "total"),
+            aes(DateTime, value, color=taxon)) + 
+  theme_bw() + xlab("") + guides(color = "none") +
   ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"),
                      breaks = c("cladoceran","copepod","rotifer"))+
@@ -175,7 +212,7 @@ ggplot() +
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/zoop_dynamics_clads_last.jpg", width=6, height=6)
+#ggsave("figures/zoop_dynamics_copes_last.jpg", width=6, height=6)
 
 ggplot(zoop_diag_clads_last, aes(x = DateTime, y = value)) + 
   geom_area(aes(color = variable, fill = variable),
@@ -204,7 +241,7 @@ ggplot(zoop_diag_clads_last, aes(x = DateTime, y = value)) +
         axis.title.y = element_text(size = 9),
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
         panel.spacing = unit(0.5, "lines"))
-ggsave("figures/BVR_stacked_zoop_diag_rots_last.jpg", width=5, height=4) 
+ggsave("figures/BVR_stacked_zoop_diag_copes_last.jpg", width=5, height=4) 
 
 zoop_diags <- 
   purrr::reduce(list(zoop_diag_clads_last |> mutate(taxon = "cladoceran"), 

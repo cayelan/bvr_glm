@@ -37,8 +37,7 @@ plot_var(nc_file, var="temp")
 
 #get water level
 water_level<-get_surface_height(nc_file, ice.rm = TRUE, snow.rm = TRUE) |> 
-  filter(DateTime < as.POSIXct("2020-12-31") &
-           hour(DateTime) %in% 12)
+  filter(DateTime < as.POSIXct("2020-12-31"))
   
 
 # Read in and plot water level observations
