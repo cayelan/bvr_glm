@@ -116,7 +116,7 @@ aed_bio_temp_function <- function(numg, theta, T_std, T_opt, T_max, name) {
       x = "Temperature (°C)",
       y = "f(T)") + 
     annotate("text", x=c(2,5,8), y=1.5, label = topt_lab) +
-    scale_color_manual("", values = c("#006d77","#83c5be","#e29578")) +
+    scale_color_manual("", values = c("#084c61","#db504a","#e3b505")) +
     #scale_color_manual("", values = c("cyan","brown","darkgreen")) +
     theme_bw() +
     theme(panel.grid.major = element_blank(), 
@@ -125,22 +125,22 @@ aed_bio_temp_function <- function(numg, theta, T_std, T_opt, T_max, name) {
 
 # 3 phyto groups:
 numg <- 3
-theta <- c(1.05, 1.08, 1.02)
-T_std <- c(10, 10, 10)
-T_opt <- c(28, 28, 12)
-T_max <- c(35, 35, 30)
+theta <- c(1.08, 1.08, 1.05)
+T_std <- c(20, 20, 20)
+T_opt <- c(28, 25, 18)
+T_max <- c(35, 30, 28)
 name <- c("Cyano", "Green", "Diatom")
 topt_lab <- T_opt[c(2,3,1)]
 
 aed_bio_temp_function(numg, theta, T_std, T_opt, T_max, name)
 ggsave("figures/phyto_temp_curve.jpg", width=7, height=4)
 
-# 3 zoop groups - default topt
+# 3 zoop groups
 numg <- 3
-theta <- c(1.08, 1.06, 1.09)
+theta <- c(1.08, 1.08, 1.08)
 T_std <- c(20, 20, 20)
-T_opt <- c(24, 28, 28)
-T_max <- c(35, 35, 35)
+T_opt <- c(25, 28, 28)
+T_max <- c(30, 35, 35)
 name <- c("Rotifer", "Cladoceran", "Copepod")
 topt_lab <- T_opt[c(2,3,1)]
 

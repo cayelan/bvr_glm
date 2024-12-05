@@ -97,9 +97,10 @@ all_zoops_obs <- purrr::reduce(list(clad_obs, cope_obs, rot_obs), dplyr::full_jo
                       names_pattern = "(...)_(...*)$",
                       names_to = c("mod", "taxon")) |> 
   na.omit() |> 
-  #dplyr::filter(value < 500) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime))
-
+  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+  dplyr::mutate(value = value * 12.011) |> # convert to ug/L
+  dplyr::filter(value < 6000) # just to make the plot look better
+  
 #convert from wide to long for plotting
 all_zoops_final <- all_zoops |> 
   tidyr::pivot_longer(cols = -c(DateTime), 
@@ -114,10 +115,11 @@ all_zoops_final <- all_zoops |>
   dplyr::mutate(annual_sum = sum(value)) |>
   dplyr::ungroup() |>
   dplyr::mutate(annual_prop = (daily_sum / annual_sum) * 100) |>
-  na.omit()
+  na.omit() |>
+  dplyr::mutate(value = value * 12.011) # convert to ug/L
 
 #now create a dynamic df name
-assign("all_zoops_rots_last", all_zoops_final)
+#assign("all_zoops_rots_last", all_zoops_final)
 
 
 grz <- glmtools::get_var(file=nc_file,var_name = 'ZOO_grz',z_out=1,
@@ -143,13 +145,17 @@ diag_long <- bind_cols(grz, resp[!colnames(resp) %in% "DateTime"],
   tidyr::pivot_longer(cols = grz:mort,
                names_to = "variable")
 
-assign("zoop_diag_rots_last", diag_long)
+#assign("zoop_diag_rots_last", diag_long)
 
 # plot zoops
 ggplot() +
-  geom_line(data=subset(all_zoops_clads_last,DateTime >= as.Date("2015-07-07")),
+  geom_line(data=subset(all_zoops_final,DateTime >= as.Date("2015-07-07")),
+            aes(DateTime, value)) +
+  geom_point(data=all_zoops_obs,
             aes(DateTime, value, color=taxon)) +
-  theme_bw() + xlab("") + ylim(c(0,125)) +
+  theme_bw() + xlab("") + guides(color = "none") +
+  facet_wrap(~taxon, scales = "free_y", nrow=3) +
+  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"),
                      breaks = c("cladoceran","copepod","rotifer"))+
   theme(panel.grid.major = element_blank(), 
@@ -160,7 +166,6 @@ ggplot() +
         legend.title = element_blank(),
         text = element_text(size=10), 
         panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_blank(),
         strip.background.x = element_blank(),
         plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
         legend.margin = margin(c(-10,-10,-10,-10)),
