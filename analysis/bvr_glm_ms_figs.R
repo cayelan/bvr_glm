@@ -24,58 +24,40 @@ for(i in 1:length(scenario)){
 
 # temp
 obstemp<-read_csv('field_data/CleanedObsTemp.csv') |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
 
 modtemp <- get_temp(nc_file, reference="surface", z_out=depths) |> 
   pivot_longer(cols=starts_with("temp_"), names_to="Depth", names_prefix="temp_", values_to = "temp") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
 
 watertemp<-merge(modtemp, obstemp, by=c("DateTime","Depth")) |> 
   rename(mod_temp = temp.x, obs_temp = temp.y)
 
 # DO
 obs_oxy<-read.csv('field_data/CleanedObsOxy.csv') |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))|>
+  filter(DateTime >= "2015-07-07")
 
 mod_oxy <- get_var(nc_file, "OXY_oxy", reference='surface', z_out=depths) |> 
   pivot_longer(cols=starts_with("OXY_oxy_"), names_to="Depth", names_prefix="OXY_oxy_", values_to = "OXY_oxy")  |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
 
 oxy_compare <- merge(mod_oxy, obs_oxy, by=c("DateTime","Depth")) |> 
   rename(mod_oxy = OXY_oxy.x, obs_oxy = OXY_oxy.y)
 
-# DIC
-#obs_dic <-read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
-#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-#  select(DateTime, Depth, CAR_dic) 
-#
-#mod_dic <- get_var(nc_file, "CAR_dic", reference="surface", z_out=depths) |> 
-#  pivot_longer(cols=starts_with("CAR_dic_"), names_to="Depth", names_prefix="CAR_dic_", values_to = "CAR_dic")  |> 
-#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
-#
-#dic_compare<-merge(mod_dic, obs_dic, by=c("DateTime","Depth")) |> 
-#  rename(mod_dic = CAR_dic.x, obs_dic = CAR_dic.y)
-#
-## CH4
-#obs_ch4 <-read.csv('field_data/field_gases.csv', header=TRUE) |>  
-#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-#  select(DateTime, Depth, CAR_ch4) 
-#
-#mod_ch4 <- get_var(nc_file, "CAR_ch4", reference="surface", z_out=depths) |> 
-#  pivot_longer(cols=starts_with("CAR_ch4_"), names_to="Depth", names_prefix="CAR_ch4_", values_to = "CAR_ch4") |> 
-#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
-#
-#ch4_compare<-merge(mod_ch4, obs_ch4, by=c("DateTime","Depth")) |> 
-#  rename(mod_ch4 = CAR_ch4.x, obs_ch4 = CAR_ch4.y)
-
 # NH4
 obs_nh4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
   dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, NIT_amm) 
+  select(DateTime, Depth, NIT_amm) |>
+  filter(DateTime >= "2015-07-07")
 
 mod_nh4 <- get_var(nc_file, "NIT_amm", reference="surface", z_out=depths) |> 
   pivot_longer(cols=starts_with("NIT_amm_"), names_to="Depth", names_prefix="NIT_amm_", values_to = "NIT_amm") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))|>
+  filter(DateTime >= "2015-07-07") 
 
 nh4_compare<-merge(mod_nh4, obs_nh4, by=c("DateTime","Depth")) |> 
   rename(mod_nh4 = NIT_amm.x, obs_nh4 = NIT_amm.y)
@@ -83,67 +65,69 @@ nh4_compare<-merge(mod_nh4, obs_nh4, by=c("DateTime","Depth")) |>
 # NO3
 obs_no3 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
   dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, NIT_nit) 
+  select(DateTime, Depth, NIT_nit) |>
+  filter(DateTime >= "2015-07-07")
 
 mod_no3 <- get_var(nc_file, "NIT_nit", reference="surface", z_out=depths) |> 
   pivot_longer(cols=starts_with("NIT_nit_"), names_to="Depth", names_prefix="NIT_nit_", values_to = "NIT_nit") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
 
 no3_compare<-merge(mod_no3, obs_no3, by=c("DateTime","Depth")) |> 
   rename(mod_no3 = NIT_nit.x, obs_no3 = NIT_nit.y)
 
+#DIN
+obs_din <- obs_no3 |> 
+  dplyr::mutate(NIT_amm = obs_nh4$NIT_amm) |>
+  dplyr::group_by(DateTime, Depth) |>
+  dplyr::mutate(NIT_din = sum(NIT_nit, NIT_amm)) |>
+  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
+  select(DateTime, Depth, NIT_din) |>
+  filter(DateTime >= "2015-07-07")
+
+mod_din <- mod_no3 |> 
+  dplyr::mutate(NIT_amm = mod_nh4$NIT_amm) |>
+  dplyr::group_by(DateTime, Depth) |> 
+  dplyr::mutate(NIT_din = sum(NIT_amm, NIT_nit)) |>
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  dplyr::select(DateTime, Depth, NIT_din) |>
+  filter(DateTime >= "2015-07-07")
+
+din_compare<-merge(mod_din, obs_din, by=c("DateTime","Depth")) |> 
+  rename(mod_din = NIT_din.x, obs_din = NIT_din.y)
+
 # PO4
 obs_po4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
   dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, PHS_frp) 
+  select(DateTime, Depth, PHS_frp) |>
+  filter(DateTime >= "2015-07-07")
 
 mod_po4 <- get_var(nc_file, "PHS_frp", reference="surface", z_out=depths) |> 
   pivot_longer(cols=starts_with("PHS_frp_"), names_to="Depth", names_prefix="PHS_frp_", values_to = "PHS_frp") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
 
 po4_compare<-merge(mod_po4, obs_po4, by=c("DateTime","Depth")) |> 
   rename(mod_po4 = PHS_frp.x, obs_po4 = PHS_frp.y)
 
-# docr
-#obs_docr <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
-#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-#  select(DateTime, Depth, OGM_docr) 
-#
-#mod_docr <- get_var(nc_file, "OGM_docr", reference="surface", z_out=depths) |> 
-#  pivot_longer(cols=starts_with("OGM_docr_"), names_to="Depth", names_prefix="OGM_docr_", values_to = "OGM_docr") |> 
-#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
-
-#docr_compare<-merge(mod_docr, obs_docr, by=c("DateTime","Depth")) |> 
-#  rename(mod_docr = OGM_docr.x, obs_docr = OGM_docr.y)
-
-# doc labile
-#obs_doc <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
-#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-#  select(DateTime, Depth, OGM_doc) 
-#
-#mod_doc <- get_var(nc_file, "OGM_doc", reference="surface", z_out=depths) |> 
-#  pivot_longer(cols=starts_with("OGM_doc_"), names_to="Depth", names_prefix="OGM_doc_", values_to = "OGM_doc") |> 
-#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
-#
-#doc_compare<-merge(mod_doc, obs_doc, by=c("DateTime","Depth")) |> 
-#  rename(mod_doc = OGM_doc.x, obs_doc = OGM_doc.y)
-
 # chl a
 obs_chla <- read.csv('field_data/CleanedObsChla.csv', header=TRUE) |> 
   dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, PHY_tchla) 
+  select(DateTime, Depth, PHY_tchla) |>
+  filter(DateTime >= "2015-07-07")
 
 mod_chla <- get_var(nc_file, "PHY_tchla", reference="surface", z_out=depths) |> 
   pivot_longer(cols=starts_with("PHY_tchla_"), names_to="Depth", names_prefix="PHY_tchla_", values_to = "PHY_tchla") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
 
 chla_compare<-merge(mod_chla, obs_chla, by=c("DateTime","Depth")) |> 
   rename(mod_chla = PHY_tchla.x, obs_chla = PHY_tchla.y)
 
 #-------------------------------------------------------------#
 #merge all dfs
-all_vars <- reduce(list(watertemp, oxy_compare,
-                        nh4_compare, no3_compare,
+all_vars <- reduce(list(watertemp, oxy_compare, 
+                        nh4_compare, no3_compare, din_compare,
                         po4_compare, chla_compare), full_join) |>
   mutate(mod_oxy = mod_oxy * 32 / 1000) |> # convert to mg/L
   mutate(obs_oxy = obs_oxy * 32 / 1000) |> # convert to mg/L
@@ -155,7 +139,8 @@ all_vars <- reduce(list(watertemp, oxy_compare,
   mutate(obs_po4 = obs_po4 * 94.9714)  # convert to ug/L
 
 mod_vars <- reduce(list(modtemp, mod_oxy,
-                        mod_nh4, mod_no3, mod_po4, mod_chla), full_join) |>
+                        mod_nh4, mod_no3, mod_din, 
+                        mod_po4, mod_chla), full_join) |>
   mutate(OXY_oxy = OXY_oxy * 32 / 1000) |> # convert to mg/L
   mutate(NIT_amm = NIT_amm * 18.04) |> # convert to ug/L
   mutate(NIT_nit = NIT_nit * 62.00) |> # convert to ug/L
@@ -208,14 +193,14 @@ labels <- c(
   expression("DO (mg L"^{-1}*")"),
   expression("NH"[4] * "(" * mu * " g L"^{-1}*")"),
   expression("NO"[3] * "(" * mu * " g L"^{-1}*")"),
+  expression("DIN (mmol m" ^{3}*")"),
   expression("DRP (" * mu * " g L"^{-1}*")"),
   expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")")
 )
-expression("Biomass (" * mu * " g L"^{-1}*")")
 
 # Apply these labels as factor levels after defining them
 all_vars_final_baseline <- all_vars_final_baseline |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,6,3)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,6,7,3)],
                            labels = labels))
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
@@ -225,10 +210,10 @@ mod_vars_final_baseline <- mod_vars_final_baseline |>
 # reorder vars
 all_vars_final_baseline$var <- factor(all_vars_final_baseline$var, 
                                       levels = c("temp", "oxy", "nh4", 
-                                                 "no3", "po4", "chla"))
+                                                 "no3","din","po4" ,"chla"))
 mod_vars_final_baseline$var <- factor(mod_vars_final_baseline$var, 
                                       levels = c("temp", "oxy", "nh4", 
-                                                 "no3", "po4", "chla"))
+                                                 "no3","din" ,"po4", "chla"))
 
 # plot vars for 0.1m
 ggplot() +
@@ -243,7 +228,7 @@ ggplot() +
   scale_color_manual(
     name = "",
     values = c("modeled" = "black", "observed" = "red"),
-    labels = c("modeled" = "Modeled", "observed" = "Observed"),
+    labels = c("Modeled", "Observed"),
     guide = guide_legend(override.aes = list(
       linetype = c("solid", "blank"),
                        shape = c(NA, 16)))) +

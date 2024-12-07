@@ -108,8 +108,8 @@ map_to_obs_date <- function(sim_date, obs, hourly = TRUE) {
   
   # Adjust leap year dates (e.g., February 29th)
   if ((obs_year == 2016 || obs_year == 2020 || obs_year == 2024) && month_day == "02-29") {
-    # If the observation year is a leap year and it's February 29, change to March 1
-    month_day <- "03-01"
+    # If the observation year is a leap year and it's February 29, change to March 2
+    month_day <- "03-02"
   }
   
   # Construct observation date in POSIXct format
