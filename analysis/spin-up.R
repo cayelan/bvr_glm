@@ -71,7 +71,7 @@ for (i in 1:length(scenario_folder_names)){
 
 # Set start and end dates
 start_date <- as.POSIXct("2000-07-08 00:00:00", tz = "UTC")
-end_date <- as.POSIXct("2022-05-04 00:00:00", tz = "UTC")
+end_date <- as.POSIXct("2022-05-03 00:00:00", tz = "UTC")
 total_hours <- as.numeric(difftime(end_date, start_date, units = "hours")) + 1
 total_days <- ceiling(as.numeric(difftime(end_date, start_date, units = "days")) + 1)
 
@@ -82,38 +82,43 @@ obs_years <- seq(obs_start_year, obs_end_year)
 
 # Function to map simulation date to observation date
 map_to_obs_date <- function(sim_date, obs, hourly = TRUE) {
-  # Get simulation year, month, day, and time
+  # Ensure sim_date is in POSIXct format (adjust if needed)
+  sim_date <- as.POSIXct(sim_date)
+  
+  # Get simulation year and month/day
   sim_year <- as.numeric(format(sim_date, "%Y"))
   month_day <- format(sim_date, "%m-%d")
+  
+  # Set time to "00:00:00" if hourly is FALSE, otherwise use the actual time from sim_date
   time <- if (hourly) format(sim_date, "%H:%M:%S") else "00:00:00"
   
-  # Determine observation year within 2015-2022 range
-  if (sim_year < 2015) {
-    year_offset <- (sim_year - 2000) %% 8
-    obs_year <- 2015 + year_offset
+  # Initialize observation year variable
+  obs_year <- sim_year
+  
+  # Map simulation years (2000-2015) to observation years (2016-2021)
+  if (sim_date < as.POSIXct("2015-07-08")) {
+    if (sim_year >= 2000 && sim_year <= 2015) {
+      # Map 2000-2015 to 2016-2021 based on the modulo calculation
+      obs_year <- 2016 + ((sim_year - 2000) %% 6)  # Loop through 2016-2021 (6 years)
+    }
   } else {
+    # After July 7, 2015, use actual observation years
     obs_year <- sim_year
   }
   
-  # Adjust leap year dates
-  if ((obs_year == 2016 || obs_year == 2020) && month_day == "02-29") {
-    month_day <- "02-28"
+  # Adjust leap year dates (e.g., February 29th)
+  if ((obs_year == 2016 || obs_year == 2020 || obs_year == 2024) && month_day == "02-29") {
+    # If the observation year is a leap year and it's February 29, change to March 1
+    month_day <- "03-01"
   }
   
-  # Construct observation date
-  obs_date <- as.POSIXct(paste0(obs_year, "-", month_day, " ", time),
-                         format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+  # Construct observation date in POSIXct format
+  obs_date_string <- paste0(obs_year, "-", month_day, " ", time)
+  obs_date <- as.POSIXct(obs_date_string, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
   
-  # If obs_date exceeds the final obs date (2022-05-04), adjust it
-  if (!is.na(obs_date) && obs_date > as.POSIXct("2022-05-04 23:59:59", tz = "UTC")) {
-    days_offset <- as.numeric(difftime(obs_date, as.POSIXct("2022-05-04", tz = "UTC"), units = "days"))
-    obs_date <- as.POSIXct("2016-05-05", tz = "UTC") + days_offset * 86400
-  }
-  
-  # Apply correction for 2015 dates up to mid-2015
-  if (!is.na(obs_date) && obs_year == 2015 && obs_date >= as.POSIXct("2015-01-01", tz = "UTC") &&
-      obs_date <= as.POSIXct("2015-07-06 23:00:00", tz = "UTC")) {
-    obs_date <- as.POSIXct(paste0(2016, "-", month_day, " ", time), format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+  # For non-hourly data (just dates), reset time to 00:00:00
+  if (!hourly) {
+    obs_date <- as.POSIXct(format(obs_date, "%Y-%m-%d"), tz = "UTC")
   }
   
   # Check if obs_date is in obs data and return; if not, return NA
@@ -126,6 +131,7 @@ map_to_obs_date <- function(sim_date, obs, hourly = TRUE) {
     return(NA)
   }
 }
+
 
 # Iterate through each scenario
 for (i in 1:length(scenario)) {
@@ -158,9 +164,6 @@ for (i in 1:length(scenario)) {
   
   mapped_times <- as.POSIXct(mapped_times, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
   
-  # Replace NA values with the previous valid datetime
-  mapped_times <- na.locf(mapped_times, na.rm = FALSE)
-  
   # Create the expanded met data frame
   expanded_met <- data.frame(
     time = expanded_times,
@@ -170,8 +173,31 @@ for (i in 1:length(scenario)) {
   # Join with met based on obs_time to get corresponding observations
   expanded_met <- merge(expanded_met, met, by.x = "obs_time", 
                         by.y = "time", all.x = TRUE) |>
-    dplyr::select(-obs_time)|>
-    arrange(time)
+    dplyr::select(-obs_time) |>
+    arrange(time) %>%
+    mutate(
+      AirTemp = ifelse(as.Date(time) == "2008-02-29" & is.na(AirTemp),
+                       AirTemp[which(as.Date(time) == "2008-02-28")], 
+                       AirTemp),
+      ShortWave = ifelse(as.Date(time) == "2008-02-29" & is.na(ShortWave),
+                         ShortWave[which(as.Date(time) == "2008-02-28")], 
+                         ShortWave),
+      LongWave = ifelse(as.Date(time) == "2008-02-29" & is.na(LongWave),
+                        LongWave[which(as.Date(time) == "2008-02-28")], 
+                        LongWave),
+      RelHum = ifelse(as.Date(time) == "2008-02-29" & is.na(RelHum),
+                      RelHum[which(as.Date(time) == "2008-02-28")], 
+                      RelHum),
+      WindSpeed = ifelse(as.Date(time) == "2008-02-29" & is.na(WindSpeed),
+                         WindSpeed[which(as.Date(time) == "2008-02-28")], 
+                         WindSpeed),
+      Rain = ifelse(as.Date(time) == "2008-02-29" & is.na(Rain),
+                    Rain[which(as.Date(time) == "2008-02-28")], 
+                    Rain),
+      Snow = ifelse(as.Date(time) == "2008-02-29" & is.na(Snow),
+                    Snow[which(as.Date(time) == "2008-02-28")], 
+                    Snow)
+    )
   
   # Save met file
   if(scenario[i]=="baseline"){
@@ -204,9 +230,6 @@ for (i in 1:length(scenario)) {
   
   mapped_days_inflow <- as.POSIXct(mapped_days_inflow, format = "%Y-%m-%d", tz = "UTC")
   
-  # Replace NA values with the previous valid datetime
-  mapped_days_inflow <- na.locf(mapped_days_inflow, na.rm = FALSE)
-  
   # Create the expanded inflow data frame
   expanded_inflow <- data.frame(
     time = expanded_times,
@@ -217,7 +240,8 @@ for (i in 1:length(scenario)) {
   expanded_inflow <- merge(expanded_inflow, inflow, by.x = "obs_time", 
                         by.y = "time", all.x = TRUE) |>
     dplyr::select(-obs_time) |>
-    arrange(time)
+    arrange(time) |>
+    mutate(time = coalesce(time, lag(time)))
   
   # Save inflow file
   if(scenario[i]=="baseline"){
@@ -247,9 +271,6 @@ for (i in 1:length(scenario)) {
   mapped_days_outflow <- as.POSIXct(mapped_days_outflow,
                                     format = "%Y-%m-%d", tz = "UTC")
   
-  # Replace NA values with the previous valid datetime
-  mapped_days_outflow <- na.locf(mapped_days_outflow, na.rm = FALSE)
-  
   # Create the expanded met data frame
   expanded_outflow <- data.frame(
     time = expanded_times,
@@ -260,7 +281,8 @@ for (i in 1:length(scenario)) {
   expanded_outflow <- merge(expanded_outflow, outflow, by.x = "obs_time", 
                            by.y = "time", all.x = TRUE) |>
     dplyr::select(-obs_time) |>
-    arrange(time)
+    arrange(time)  |>
+    mutate(time = coalesce(time, lag(time)))
   
   # Save the file
   write.csv(expanded_outflow, paste0("sims/spinup/",scenario[i],"/inputs/BVR_spillway_outflow_2015_2022_metInflow.csv"),
