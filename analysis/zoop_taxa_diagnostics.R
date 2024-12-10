@@ -57,7 +57,8 @@ clad_full_wc <- get_zoops(depths, nc_file, var)
 clad <- clad_full_wc |> 
   dplyr::mutate(ZOO_cladoceran = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
   dplyr::select(DateTime, ZOO_cladoceran) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime)) 
+  dplyr::mutate(DateTime = as.Date(DateTime))  |>
+  dplyr::filter(DateTime >= "2015-07-08")
 
 var="ZOO_copepod"
 cope_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
@@ -71,7 +72,8 @@ cope_full_wc <- get_zoops(depths, nc_file, var)
 cope <- cope_full_wc |> 
   dplyr::mutate(ZOO_copepod = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
   dplyr::select(DateTime, ZOO_copepod) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime))
+  dplyr::mutate(DateTime = as.Date(DateTime))  |>
+  dplyr::filter(DateTime >= "2015-07-08")
 
 
 var="ZOO_rotifer"
@@ -86,7 +88,8 @@ rot_full_wc <- get_zoops(depths, nc_file, var)
 rot <- rot_full_wc |> 
   dplyr::mutate(ZOO_rotifer = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
   dplyr::select(DateTime, ZOO_rotifer) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime))
+  dplyr::mutate(DateTime = as.Date(DateTime))  |>
+  dplyr::filter(DateTime >= "2015-07-08")
 
 
 #combine into one df 
@@ -159,8 +162,7 @@ all_zoops_obs$taxon <- factor(all_zoops_obs$taxon,
 
 # plot zoops
 ggplot() +
-  geom_line(data=subset(all_zoops_final,DateTime >= as.Date("2015-07-07")),
-            aes(DateTime, value)) + 
+  geom_line(data=all_zoops_final, aes(DateTime, value)) + 
   geom_point(data=all_zoops_obs,
             aes(DateTime, value, color=taxon)) +
   theme_bw() + xlab("") + guides(color = "none") +
@@ -188,8 +190,7 @@ ggplot() +
 #ggsave("figures/zoop_mod_vs_obs_copes_last.jpg", width=6, height=6)
 
 ggplot() +
-  geom_line(data=subset(all_zoops_final,DateTime >= as.Date("2015-07-07") &
-                          !taxon %in% "total"),
+  geom_line(data=subset(all_zoops_final, !taxon %in% "total"),
             aes(DateTime, value, color=taxon)) + 
   theme_bw() + xlab("") + guides(color = "none") +
   ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +

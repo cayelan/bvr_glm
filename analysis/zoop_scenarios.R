@@ -96,7 +96,8 @@ all_zoops_final <- all_zoops |>
   dplyr::mutate(annual_sum = sum(value)) |>
   dplyr::ungroup() |>
   dplyr::mutate(annual_prop = (daily_sum / annual_sum) * 100) |>
-  na.omit()
+  na.omit() |>
+  dplyr::mutate(scenario = scenario[i])
 
 #now create a dynamic df name
 assign(paste0("all_zoops_", scenario[i]), all_zoops_final)
@@ -168,7 +169,8 @@ for (i in 1:length(scenario)){
     dplyr::mutate(annual_sum = sum(value)) |>
     dplyr::ungroup() |>
     dplyr::mutate(annual_prop = (daily_sum / annual_sum) * 100) |>
-    na.omit()
+    na.omit() |>
+    dplyr::mutate(scenario = scenario[i])
   
   #now create a dynamic df name
   assign(paste0("all_phytos_", scenario[i]), all_phytos_final)
@@ -191,7 +193,8 @@ chla_mod<- glmtools::get_var(nc_file, var, reference="surface", z_out=depths) |>
   tidyr::pivot_longer(cols=starts_with(paste0(var,"_")), names_to="Depth", names_prefix=paste0(var,"_"), values_to = var) |> 
   dplyr::mutate(DateTime = as.Date(DateTime)) |> 
   dplyr::mutate(Depth=as.numeric(Depth)) |> 
-  na.omit()
+  na.omit() |>
+  dplyr::mutate(scenario = scenario[i])
 
 #now create a dynamic df name
 assign(paste0("chla_", scenario[i]), chla_mod)

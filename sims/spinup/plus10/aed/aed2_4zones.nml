@@ -7,7 +7,7 @@
 &aed_sed_const2d
    n_zones = 4
    active_zones = 1, 2, 3, 4
-   Fsed_oxy = -90, -50, -15, -80
+   Fsed_oxy = -90, -50, -15, -10
    !Fsed_dic = 0.1, 0.1, 0.1, 0.1
    Fsed_ch4 = 60, 1, 1, 1
    Fsed_rsi = 1, 1, 60, 80

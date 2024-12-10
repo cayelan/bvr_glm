@@ -76,26 +76,6 @@ mod_no3 <- get_var(nc_file, "NIT_nit", reference="surface", z_out=depths) |>
 no3_compare<-merge(mod_no3, obs_no3, by=c("DateTime","Depth")) |> 
   rename(mod_no3 = NIT_nit.x, obs_no3 = NIT_nit.y)
 
-#DIN
-obs_din <- obs_no3 |> 
-  dplyr::mutate(NIT_amm = obs_nh4$NIT_amm) |>
-  dplyr::group_by(DateTime, Depth) |>
-  dplyr::mutate(NIT_din = sum(NIT_nit, NIT_amm)) |>
-  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, NIT_din) |>
-  filter(DateTime >= "2015-07-07")
-
-mod_din <- mod_no3 |> 
-  dplyr::mutate(NIT_amm = mod_nh4$NIT_amm) |>
-  dplyr::group_by(DateTime, Depth) |> 
-  dplyr::mutate(NIT_din = sum(NIT_amm, NIT_nit)) |>
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
-  dplyr::select(DateTime, Depth, NIT_din) |>
-  filter(DateTime >= "2015-07-07")
-
-din_compare<-merge(mod_din, obs_din, by=c("DateTime","Depth")) |> 
-  rename(mod_din = NIT_din.x, obs_din = NIT_din.y)
-
 # PO4
 obs_po4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
   dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
@@ -127,7 +107,7 @@ chla_compare<-merge(mod_chla, obs_chla, by=c("DateTime","Depth")) |>
 #-------------------------------------------------------------#
 #merge all dfs
 all_vars <- reduce(list(watertemp, oxy_compare, 
-                        nh4_compare, no3_compare, din_compare,
+                        nh4_compare, no3_compare,
                         po4_compare, chla_compare), full_join) |>
   mutate(mod_oxy = mod_oxy * 32 / 1000) |> # convert to mg/L
   mutate(obs_oxy = obs_oxy * 32 / 1000) |> # convert to mg/L
@@ -136,16 +116,21 @@ all_vars <- reduce(list(watertemp, oxy_compare,
   mutate(mod_no3 = mod_no3 * 62.00) |> # convert to ug/L
   mutate(obs_no3 = obs_no3 * 62.00) |> # convert to ug/L
   mutate(mod_po4 = mod_po4 * 94.9714) |> # convert to ug/L
-  mutate(obs_po4 = obs_po4 * 94.9714)  # convert to ug/L
-
+  mutate(obs_po4 = obs_po4 * 94.9714) |>  # convert to ug/L
+  group_by(DateTime, Depth) |>
+  mutate(obs_din = sum(obs_no3,obs_nh4)) |>
+  mutate(mod_din = sum(mod_no3,mod_nh4))
+  
 mod_vars <- reduce(list(modtemp, mod_oxy,
-                        mod_nh4, mod_no3, mod_din, 
+                        mod_nh4, mod_no3, 
                         mod_po4, mod_chla), full_join) |>
   mutate(OXY_oxy = OXY_oxy * 32 / 1000) |> # convert to mg/L
   mutate(NIT_amm = NIT_amm * 18.04) |> # convert to ug/L
   mutate(NIT_nit = NIT_nit * 62.00) |> # convert to ug/L
-  mutate(PHS_frp = PHS_frp * 94.9714)  # convert to ug/L
-
+  mutate(PHS_frp = PHS_frp * 94.9714) |> # convert to ug/L
+  group_by(DateTime, Depth) |>
+  mutate(NIT_din = sum(NIT_amm, NIT_nit))
+  
 #add col for calib vs. valid period (2020-12-31)
 all_vars$period <- ifelse(all_vars$DateTime <= "2020-12-31",
                           "calib", "valid")
@@ -156,7 +141,8 @@ all_vars_final <- all_vars |>
   pivot_longer(cols = -c(DateTime,Depth,period), 
                names_pattern = "(...)_(...*)$",
                names_to = c("type", "var")) |> 
-  na.omit()
+  na.omit()|>
+  mutate(scenario = scenario[i])
 
 assign(paste0("all_vars_final_", scenario[i]), all_vars_final)
 
@@ -171,7 +157,8 @@ mod_vars_final <- mod_vars |>
   pivot_longer(cols = -c(DateTime,Depth), 
                names_pattern = "(...)_(...*)$",
                names_to = c("type", "var")) |> 
-  na.omit()
+  na.omit() |>
+  mutate(scenario = scenario[i])
 assign(paste0("mod_vars_final_", scenario[i]), mod_vars_final)
 }
 
@@ -193,18 +180,21 @@ labels <- c(
   expression("DO (mg L"^{-1}*")"),
   expression("NH"[4] * "(" * mu * " g L"^{-1}*")"),
   expression("NO"[3] * "(" * mu * " g L"^{-1}*")"),
-  expression("DIN (mmol m" ^{3}*")"),
+  expression("DIN (" * mu * " g L"^{-1}*")"),
   expression("DRP (" * mu * " g L"^{-1}*")"),
   expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")")
 )
 
 # Apply these labels as factor levels after defining them
 all_vars_final_baseline <- all_vars_final_baseline |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,6,7,3)],
+  ungroup() |>
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,7,5,6)],
                            labels = labels))
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
-  mutate(variable = factor(var, levels = unique(var), labels = labels)) |>
+  ungroup() |>
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,7,5,6)],
+                           labels = labels)) |>
   na.omit()
 
 # reorder vars
@@ -347,10 +337,9 @@ sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" &
 
 scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv") 
 
-  ggplot(subset(scenarios_df, Depth %in% 0.1),
-         aes(x = DateTime, y = value, 
-             color = as.factor(scenario))) +
-  geom_line(alpha = 0.4) + xlab("") +
+  ggplot(data=subset(scenarios_df, Depth %in% 0.1)) +
+  geom_line(aes(x = as.POSIXct(DateTime), y = value, 
+                color = as.factor(scenario))) + xlab("") +
   scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                     breaks = c("baseline","plus1","plus5","plus10")) +
   facet_wrap(~var, ncol=3, scales = "free_y") + 
@@ -366,7 +355,6 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
         axis.text.y = element_text(size = 10),
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_text(face = "bold",hjust = 0),
-        axis.text.x = element_text(angle=90),
         strip.background.x = element_blank(),
         axis.title.y = element_text(size = 11),
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
@@ -418,9 +406,9 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   #ggsave("figures/modeled_vars_scenarios_0.1_boxplots.jpg", width=7, height=4)
   
   ggplot(subset(scenarios_df, Depth %in% 9),
-         aes(x = DateTime, y = value, 
+         aes(x = as.POSIXct(DateTime), y = value, 
              color = as.factor(scenario))) +
-    geom_line(alpha = 0.4) + xlab("") +
+    geom_line() + xlab("") +
     scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
     facet_wrap(~var, ncol=3, scales = "free_y") + 
@@ -436,7 +424,6 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
           axis.text.y = element_text(size = 10),
           panel.border = element_rect(colour = "black", fill = NA),
           strip.text.x = element_text(face = "bold",hjust = 0),
-          axis.text.x = element_text(angle=90),
           strip.background.x = element_blank(),
           axis.title.y = element_text(size = 11),
           plot.margin = unit(c(0, 1, 0, 0), "cm"),
@@ -460,12 +447,12 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
     group_by(var, year, scenario, Depth) |>
     summarise(mean_val = mean(yearly_mean)) |>
     ungroup() |>
-    mutate(variable = factor(var, levels = unique(var)[c(6,4,2,3,5,1)],
+    mutate(variable = factor(var, levels = unique(var)[c(7,5,3,4,2,6,1)],
                              labels = labels))
   
   mean_mod_vars$var <- factor(mean_mod_vars$var, 
                               levels = c("temp", "oxy", "nh4", 
-                                         "no3", "po4", "chla"))
+                                         "no3","din" ,"po4", "chla"))
   
   ggplot(data=subset(mean_mod_vars,Depth==0.1 & !year %in% c("2015","2022")),
          aes(x = year, y = mean_val,  color = scenario)) +

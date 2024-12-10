@@ -1,7 +1,7 @@
 # script to prep glm nml file and met/inflow files for 15-year spin-up
 
 #load packages
-pacman::p_load(glmtools, zoo)
+pacman::p_load(glmtools, zoo, dplyr)
 
 # create a folder for each scenarios and populate with sim files
 glm_files = list.files("./sims/baseline", full.names = TRUE)[1:3] 
@@ -70,15 +70,15 @@ for (i in 1:length(scenario_folder_names)){
 }
 
 # Set start and end dates
-start_date <- as.POSIXct("2000-07-08 00:00:00", tz = "UTC")
-end_date <- as.POSIXct("2022-05-03 00:00:00", tz = "UTC")
-total_hours <- as.numeric(difftime(end_date, start_date, units = "hours")) + 1
-total_days <- ceiling(as.numeric(difftime(end_date, start_date, units = "days")) + 1)
+#start_date <- as.POSIXct("2000-07-08 00:00:00", tz = "UTC")
+#end_date <- as.POSIXct("2022-05-04 00:00:00", tz = "UTC")
+#total_hours <- as.numeric(difftime(end_date, start_date, units = "hours")) + 1
+#total_days <- ceiling(as.numeric(difftime(end_date, start_date, units = "days")) + 1)
 
 # Define the observation period for cycling
-obs_start_year <- 2015
-obs_end_year <- 2022
-obs_years <- seq(obs_start_year, obs_end_year)
+#obs_start_year <- 2015
+#obs_end_year <- 2022
+#obs_years <- seq(obs_start_year, obs_end_year)
 
 # Function to map simulation date to observation date
 map_to_obs_date <- function(sim_date, obs, hourly = TRUE) {
@@ -95,21 +95,68 @@ map_to_obs_date <- function(sim_date, obs, hourly = TRUE) {
   # Initialize observation year variable
   obs_year <- sim_year
   
-  # Map simulation years (2000-2015) to observation years (2016-2021)
+  # Adjust mapping based on simulation year ranges
   if (sim_date < as.POSIXct("2015-07-08")) {
-    if (sim_year >= 2000 && sim_year <= 2015) {
-      # Map 2000-2015 to 2016-2021 based on the modulo calculation
-      obs_year <- 2016 + ((sim_year - 2000) %% 6)  # Loop through 2016-2021 (6 years)
+    # Mapping for 2000-2005: Only July 8 to December 31 corresponds to 2016-2021
+    if (sim_year == 2000) {
+      obs_year <- 2016
+    } else if (sim_year == 2001) {
+      obs_year <- 2017
+    } else if (sim_year == 2002) {
+      obs_year <- 2018
+    } else if (sim_year == 2003) {
+      obs_year <- 2019
+    } else if (sim_year == 2004) {
+      obs_year <- 2020
+    } else if (sim_year == 2005) {
+      obs_year <- 2021
+    }
+    # Mapping for 2006-2011: Full year Jan 1 to Dec 31 corresponds to 2016-2021
+    else if (sim_year >= 2006 && sim_year <= 2011) {
+      obs_year <- 2016 + ((sim_year - 2006) %% 6)  # Loop through 2016-2021
+    }
+    # Mapping for 2012-2015: Only Jan 1 to July 7 corresponds to 2016-2021
+    else if (sim_year >= 2012 && sim_year <= 2015) {
+      obs_year <- 2016 + ((sim_year - 2012) %% 6)  # Loop through 2016-2021
     }
   } else {
     # After July 7, 2015, use actual observation years
     obs_year <- sim_year
   }
   
-  # Adjust leap year dates (e.g., February 29th)
-  if ((obs_year == 2016 || obs_year == 2020 || obs_year == 2024) && month_day == "02-29") {
-    # If the observation year is a leap year and it's February 29, change to March 2
-    month_day <- "03-02"
+  # Handle leap year adjustments for February 29th
+  if (month_day == "02-29") {
+    if (!(obs_year %% 4 == 0 && (obs_year %% 100 != 0 || obs_year %% 400 == 0))) {
+      # If observation year is not a leap year, move to March 1st
+      month_day <- "03-01"
+    }
+  }
+  
+  # Special handling for 2006 and 2010: Restart the count after skipping March 1
+  if (sim_year == 2006 || sim_year == 2010) {
+    obs_year <- if (sim_year == 2006) 2016 else 2020
+    
+    # Skip March 1 by adjusting the day mapping
+    if (month_day == "02-29") {
+      month_day <- "03-01"
+    } else if (month_day > "03-01") {
+      # keep counting up after jan 1
+      shifted_date <- as.Date(paste0(obs_year, "-", month_day)) 
+      month_day <- format(shifted_date, "%m-%d")
+    }
+  }
+  
+  if (sim_year == 2007 || sim_year == 2011) {
+    obs_year <- if (sim_year == 2007) 2017 else 2021
+    
+    # revert back to jan 1 with the new year
+    if (month_day == "01-01") {
+      month_day <- "01-01"
+    } else if (month_day > "03-01") {
+      # For days after March 1, adjust mapping to skip over March 1
+      shifted_date <- as.Date(paste0(obs_year, "-", month_day)) - 1
+      month_day <- format(shifted_date, "%m-%d")
+    }
   }
   
   # Construct observation date in POSIXct format
@@ -121,16 +168,14 @@ map_to_obs_date <- function(sim_date, obs, hourly = TRUE) {
     obs_date <- as.POSIXct(format(obs_date, "%Y-%m-%d"), tz = "UTC")
   }
   
-  # Check if obs_date is in obs data and return; if not, return NA
-  if (!is.na(obs_date) && obs_date %in% obs$time) {
+  # Check if obs_date is in the observation data (obs) and return it, else default to the adjusted date
+  if (!is.na(obs_date) && any(obs$time == obs_date)) {
     return(obs_date)
   } else {
-    if (hourly) {
-      cat("No match for obs_date:", sim_date, "\n")
-    }
-    return(NA)
+    return(obs_date)  # Always return the adjusted date even if not in observation data
   }
 }
+
 
 
 # Iterate through each scenario
