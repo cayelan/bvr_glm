@@ -188,7 +188,7 @@ labels <- c(
 # Apply these labels as factor levels after defining them
 all_vars_final_baseline <- all_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,7,5,6)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,7,6,3)],
                            labels = labels))
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
