@@ -130,36 +130,45 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   cyano <- cyano_full_wc |> 
-    dplyr::mutate(PHY_cyano = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
-    dplyr::select(DateTime, PHY_cyano) |> 
-    dplyr::mutate(DateTime = as.Date(DateTime)) 
+    dplyr::select(DateTime, PHY_cyano_0.5, PHY_cyano_9) |>
+    #dplyr::mutate(PHY_cyano = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
+    #zdplyr::select(DateTime, PHY_cyano) |> 
+    dplyr::mutate(DateTime = as.Date(DateTime)) |>
+    dplyr::filter(DateTime >= "2015-07-08")
   
   var="PHY_green"
   green_full_wc <- get_zoops(depths, nc_file, var)
   
   #sum all depths
   green <- green_full_wc |> 
-    dplyr::mutate(PHY_green = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    dplyr::select(DateTime, PHY_green) |> 
-    dplyr::mutate(DateTime = as.Date(DateTime))
+    dplyr::select(DateTime, PHY_green_0.5, PHY_green_9) |>
+    #dplyr::mutate(PHY_green = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+    #dplyr::select(DateTime, PHY_green) |> 
+    dplyr::mutate(DateTime = as.Date(DateTime)) |>
+    dplyr::filter(DateTime >= "2015-07-08")
   
   var="PHY_diatom"
   diatom_full_wc <- get_zoops(depths, nc_file, var)
   
   #sum all depths
   diatom <- diatom_full_wc |> 
-    dplyr::mutate(PHY_diatom = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    dplyr::select(DateTime, PHY_diatom) |> 
-    dplyr::mutate(DateTime = as.Date(DateTime))
+    dplyr::select(DateTime, PHY_diatom_0.5, PHY_diatom_9) |>
+    #dplyr::mutate(PHY_diatom = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+    #dplyr::select(DateTime, PHY_diatom) |> 
+    dplyr::mutate(DateTime = as.Date(DateTime)) |>
+    dplyr::filter(DateTime >= "2015-07-08")
   
   #combine into one df 
   all_phytos <- purrr::reduce(list(cyano, green, diatom), dplyr::full_join) 
   
   #convert from wide to long for plotting
   all_phytos_final <- all_phytos |> 
+    #tidyr::pivot_longer(cols = -c(DateTime), 
+    #                    names_pattern = "(...)_(...*)$",
+    #                    names_to = c("mod", "taxon")) |> 
     tidyr::pivot_longer(cols = -c(DateTime), 
-                        names_pattern = "(...)_(...*)$",
-                        names_to = c("mod", "taxon")) |> 
+                        names_pattern = "(...)_(...*)_(..*)$",
+                        names_to = c("mod", "taxon","depth")) |> 
     dplyr::group_by(DateTime) |>
     dplyr::mutate(daily_sum = sum(value),
                   year = lubridate::year(DateTime),
@@ -170,11 +179,40 @@ for (i in 1:length(scenario)){
     dplyr::ungroup() |>
     dplyr::mutate(annual_prop = (daily_sum / annual_sum) * 100) |>
     na.omit() |>
-    dplyr::mutate(scenario = scenario[i])
+    dplyr::mutate(scenario = scenario[i]) |>
+    dplyr::mutate(value = value * 12.011) # convert to ug/L
   
   #now create a dynamic df name
   assign(paste0("all_phytos_", scenario[i]), all_phytos_final)
 }
+
+# quick fig for surface and deep phyto groups
+ggplot() +
+  geom_line(data=all_phytos_final,
+            aes(DateTime, value, color = taxon)) +
+  facet_wrap(~depth, scales="free_y", nrow=3, strip.position = "right") + 
+  theme_bw() + xlab("") +
+  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
+  scale_color_manual("", values = c("cyan","green","#680000"),
+                     breaks = c("cyano","green","diatom")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.background = element_blank(),
+        legend.position = c(0.28,0.98),
+        text = element_text(size=10), 
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_blank(),
+        strip.background.x = element_blank(),
+        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+        legend.key = element_rect(fill = "transparent"),
+        legend.direction = "horizontal",
+        panel.spacing.x = unit(0.1, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing.y = unit(0, "lines"))
+#ggsave("figures/phytos_0.5_9m_baseline.jpg", width=6, height=6)
+
 
 #-------------------------------------------------------------------------#
 # And lastly chla 

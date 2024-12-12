@@ -104,11 +104,27 @@ mod_chla <- get_var(nc_file, "PHY_tchla", reference="surface", z_out=depths) |>
 chla_compare<-merge(mod_chla, obs_chla, by=c("DateTime","Depth")) |> 
   rename(mod_chla = PHY_tchla.x, obs_chla = PHY_tchla.y)
 
+# DOC
+
+
+obs_doc <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
+  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
+  select(DateTime, Depth, CAR_dic) |>
+  filter(DateTime >= "2015-07-07")
+
+mod_doc <- get_var(nc_file, "CAR_dic", reference="surface", z_out=depths) |> 
+  pivot_longer(cols=starts_with("CAR_dic_"), names_to="Depth", names_prefix="CAR_dic_", values_to = "CAR_dic") |> 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
+
+doc_compare<-merge(mod_doc, obs_doc, by=c("DateTime","Depth")) |> 
+  rename(mod_doc = CAR_dic.x, obs_doc = CAR_dic.y)
+
 #-------------------------------------------------------------#
 #merge all dfs
 all_vars <- reduce(list(watertemp, oxy_compare, 
                         nh4_compare, no3_compare,
-                        po4_compare, chla_compare), full_join) |>
+                        po4_compare, chla_compare, doc_compare), full_join) |>
   mutate(mod_oxy = mod_oxy * 32 / 1000) |> # convert to mg/L
   mutate(obs_oxy = obs_oxy * 32 / 1000) |> # convert to mg/L
   mutate(mod_nh4 = mod_nh4 * 18.04) |> # convert to ug/L
@@ -123,7 +139,7 @@ all_vars <- reduce(list(watertemp, oxy_compare,
   
 mod_vars <- reduce(list(modtemp, mod_oxy,
                         mod_nh4, mod_no3, 
-                        mod_po4, mod_chla), full_join) |>
+                        mod_po4, mod_chla, mod_doc), full_join) |>
   mutate(OXY_oxy = OXY_oxy * 32 / 1000) |> # convert to mg/L
   mutate(NIT_amm = NIT_amm * 18.04) |> # convert to ug/L
   mutate(NIT_nit = NIT_nit * 62.00) |> # convert to ug/L
@@ -182,18 +198,19 @@ labels <- c(
   expression("NO"[3] * "(" * mu * " g L"^{-1}*")"),
   expression("DIN (" * mu * " g L"^{-1}*")"),
   expression("DRP (" * mu * " g L"^{-1}*")"),
-  expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")")
+  expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")"),
+  "DOC"
 )
 
 # Apply these labels as factor levels after defining them
 all_vars_final_baseline <- all_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,7,6,3)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,8,6,3,7)],
                            labels = labels))
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,7,5,6)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,8,5,6,7)],
                            labels = labels)) |>
   na.omit()
 

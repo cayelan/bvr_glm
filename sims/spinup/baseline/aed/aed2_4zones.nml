@@ -23,7 +23,7 @@
 &aed_noncohesive
    num_ss = 1
    ss_initial = 1, 1
-   Ke_ss = 0.001, 0.01 !0.006, 0.063
+   Ke_ss = 0.006, 0.063 
    settling = 1
    w_ss = -0.001, -0.001
    d_ss = 2e-06, 1e-05
@@ -171,7 +171,7 @@
    X_cpom_p = 0.001
    KeDOM = 0.005
    KePOM = 0.00096
-   KeDOMR = 0.01 !was 0.1
+   KeDOMR = 0.001 !was 0.1
    KeCPOM = 0.00096
    simphotolysis = .false.
    photo_c = 0.75
