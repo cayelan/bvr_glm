@@ -1360,9 +1360,11 @@ for(i in 1:length(depths)){
 secchi_obs <- read.csv("./field_data/field_secchi.csv")
 
 #plot Secchi depth & light extinction
-lec <- get_var(file=nc_file,var_name = 'extc',z_out=1,reference = 'surface')
-plot(lec$DateTime, 1.7/lec$extc_1)
-points(as.POSIXct(secchi_obs$DateTime), secchi_obs$Secchi_m, col="red", type="l")
+lec <- get_var(file=nc_file,var_name = 'extc',z_out=1,reference = 'surface') |>
+  filter(DateTime >= "2015-07-08")
+plot(lec$DateTime, 1.7/lec$extc_1, , ylim=c(0,5), type="l")
+points(as.POSIXct(secchi_obs$DateTime), secchi_obs$Secchi_m, 
+       col="red", type="p", pch=16)
 plot(lec$DateTime, lec$extc_1)
 
 #see what vars are available for diagnostics

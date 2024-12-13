@@ -111,13 +111,13 @@ aed_bio_temp_function <- function(numg, theta, T_std, T_opt, T_max, name) {
   }
   
   ggplot(plot_data, aes(x = Temperature, y = GrowthRate, color = Group)) +
-    geom_line() + ylim(0,1.5) + xlim(0,35) +
+    geom_line() + xlim(0,40) + #ylim(0,1.5) +
     labs(#title = "Growth Rate as a Function of Temperature",
       x = "Temperature (°C)",
       y = "f(T)") + 
     annotate("text", x=c(2,5,8), y=1.5, label = topt_lab) +
-    scale_color_manual("", values = c("#084c61","#db504a","#e3b505")) +
-    #scale_color_manual("", values = c("cyan","brown","darkgreen")) +
+    #scale_color_manual("", values = c("#084c61","#db504a","#e3b505")) +
+    scale_color_manual("", values = c("cyan","brown","darkgreen")) +
     theme_bw() +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank())
@@ -127,8 +127,8 @@ aed_bio_temp_function <- function(numg, theta, T_std, T_opt, T_max, name) {
 numg <- 3
 theta <- c(1.08, 1.08, 1.05)
 T_std <- c(20, 20, 20)
-T_opt <- c(28, 25, 18)
-T_max <- c(35, 30, 28)
+T_opt <- c(28, 25, 12)
+T_max <- c(37, 35, 30)
 name <- c("Cyano", "Green", "Diatom")
 topt_lab <- T_opt[c(2,3,1)]
 

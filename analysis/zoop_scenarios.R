@@ -130,9 +130,9 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   cyano <- cyano_full_wc |> 
-    dplyr::select(DateTime, PHY_cyano_0.5, PHY_cyano_9) |>
-    #dplyr::mutate(PHY_cyano = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
-    #zdplyr::select(DateTime, PHY_cyano) |> 
+    #dplyr::select(DateTime, PHY_cyano_0.5, PHY_cyano_9) |>
+    dplyr::mutate(PHY_cyano = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
+    dplyr::select(DateTime, PHY_cyano) |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
     dplyr::filter(DateTime >= "2015-07-08")
   
@@ -141,9 +141,9 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   green <- green_full_wc |> 
-    dplyr::select(DateTime, PHY_green_0.5, PHY_green_9) |>
-    #dplyr::mutate(PHY_green = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    #dplyr::select(DateTime, PHY_green) |> 
+    #dplyr::select(DateTime, PHY_green_0.5, PHY_green_9) |>
+    dplyr::mutate(PHY_green = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+    dplyr::select(DateTime, PHY_green) |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
     dplyr::filter(DateTime >= "2015-07-08")
   
@@ -152,9 +152,9 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   diatom <- diatom_full_wc |> 
-    dplyr::select(DateTime, PHY_diatom_0.5, PHY_diatom_9) |>
-    #dplyr::mutate(PHY_diatom = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    #dplyr::select(DateTime, PHY_diatom) |> 
+    #dplyr::select(DateTime, PHY_diatom_0.5, PHY_diatom_9) |>
+    dplyr::mutate(PHY_diatom = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+    dplyr::select(DateTime, PHY_diatom) |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
     dplyr::filter(DateTime >= "2015-07-08")
   
@@ -163,12 +163,12 @@ for (i in 1:length(scenario)){
   
   #convert from wide to long for plotting
   all_phytos_final <- all_phytos |> 
-    #tidyr::pivot_longer(cols = -c(DateTime), 
-    #                    names_pattern = "(...)_(...*)$",
-    #                    names_to = c("mod", "taxon")) |> 
     tidyr::pivot_longer(cols = -c(DateTime), 
-                        names_pattern = "(...)_(...*)_(..*)$",
-                        names_to = c("mod", "taxon","depth")) |> 
+                        names_pattern = "(...)_(...*)$",
+                        names_to = c("mod", "taxon")) |> 
+    #tidyr::pivot_longer(cols = -c(DateTime), 
+    #                    names_pattern = "(...)_(...*)_(..*)$",
+    #                    names_to = c("mod", "taxon","depth")) |> 
     dplyr::group_by(DateTime) |>
     dplyr::mutate(daily_sum = sum(value),
                   year = lubridate::year(DateTime),
@@ -190,7 +190,7 @@ for (i in 1:length(scenario)){
 ggplot() +
   geom_line(data=all_phytos_final,
             aes(DateTime, value, color = taxon)) +
-  facet_wrap(~depth, scales="free_y", nrow=3, strip.position = "right") + 
+  #facet_wrap(~depth, scales="free_y", nrow=3, strip.position = "right") + 
   theme_bw() + xlab("") +
   ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
   scale_color_manual("", values = c("cyan","green","#680000"),
@@ -211,6 +211,7 @@ ggplot() +
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
+#ggsave("figures/phytos_fullwc_baseline.jpg", width=6, height=6)
 #ggsave("figures/phytos_0.5_9m_baseline.jpg", width=6, height=6)
 
 

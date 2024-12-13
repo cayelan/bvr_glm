@@ -105,26 +105,39 @@ chla_compare<-merge(mod_chla, obs_chla, by=c("DateTime","Depth")) |>
   rename(mod_chla = PHY_tchla.x, obs_chla = PHY_tchla.y)
 
 # DOC
-
-
 obs_doc <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
   dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, CAR_dic) |>
+  select(DateTime, Depth, OGM_doc) |>
   filter(DateTime >= "2015-07-07")
 
-mod_doc <- get_var(nc_file, "CAR_dic", reference="surface", z_out=depths) |> 
-  pivot_longer(cols=starts_with("CAR_dic_"), names_to="Depth", names_prefix="CAR_dic_", values_to = "CAR_dic") |> 
+mod_doc <- get_var(nc_file, "OGM_doc", reference="surface", z_out=depths) |> 
+  pivot_longer(cols=starts_with("OGM_doc_"), names_to="Depth", names_prefix="OGM_doc_", values_to = "OGM_doc") |> 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
   filter(DateTime >= "2015-07-07")
 
 doc_compare<-merge(mod_doc, obs_doc, by=c("DateTime","Depth")) |> 
-  rename(mod_doc = CAR_dic.x, obs_doc = CAR_dic.y)
+  rename(mod_doc = OGM_doc.x, obs_doc = OGM_doc.y)
+
+# DOCr
+obs_docr <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
+  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
+  select(DateTime, Depth, OGM_docr) |>
+  filter(DateTime >= "2015-07-07")
+
+mod_docr <- get_var(nc_file, "OGM_docr", reference="surface", z_out=depths) |> 
+  pivot_longer(cols=starts_with("OGM_docr_"), names_to="Depth", names_prefix="OGM_docr_", values_to = "OGM_docr") |> 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
+
+docr_compare<-merge(mod_docr, obs_docr, by=c("DateTime","Depth")) |> 
+  rename(mod_docr = OGM_docr.x, obs_docr = OGM_docr.y)
 
 #-------------------------------------------------------------#
 #merge all dfs
 all_vars <- reduce(list(watertemp, oxy_compare, 
                         nh4_compare, no3_compare,
-                        po4_compare, chla_compare, doc_compare), full_join) |>
+                        po4_compare, chla_compare, 
+                        doc_compare, docr_compare), full_join) |>
   mutate(mod_oxy = mod_oxy * 32 / 1000) |> # convert to mg/L
   mutate(obs_oxy = obs_oxy * 32 / 1000) |> # convert to mg/L
   mutate(mod_nh4 = mod_nh4 * 18.04) |> # convert to ug/L
@@ -139,7 +152,8 @@ all_vars <- reduce(list(watertemp, oxy_compare,
   
 mod_vars <- reduce(list(modtemp, mod_oxy,
                         mod_nh4, mod_no3, 
-                        mod_po4, mod_chla, mod_doc), full_join) |>
+                        mod_po4, mod_chla, 
+                        mod_doc, mod_docr), full_join) |>
   mutate(OXY_oxy = OXY_oxy * 32 / 1000) |> # convert to mg/L
   mutate(NIT_amm = NIT_amm * 18.04) |> # convert to ug/L
   mutate(NIT_nit = NIT_nit * 62.00) |> # convert to ug/L
@@ -199,28 +213,30 @@ labels <- c(
   expression("DIN (" * mu * " g L"^{-1}*")"),
   expression("DRP (" * mu * " g L"^{-1}*")"),
   expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")"),
-  "DOC"
+  "DOC", "DOCr"
 )
 
 # Apply these labels as factor levels after defining them
 all_vars_final_baseline <- all_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,8,6,3,7)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,9,6,3,7,8)],
                            labels = labels))
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,8,5,6,7)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,9,5,6,7,8)],
                            labels = labels)) |>
   na.omit()
 
 # reorder vars
 all_vars_final_baseline$var <- factor(all_vars_final_baseline$var, 
                                       levels = c("temp", "oxy", "nh4", 
-                                                 "no3","din","po4" ,"chla"))
+                                                 "no3","din","po4" ,
+                                                 "chla", "doc", "docr"))
 mod_vars_final_baseline$var <- factor(mod_vars_final_baseline$var, 
                                       levels = c("temp", "oxy", "nh4", 
-                                                 "no3","din" ,"po4", "chla"))
+                                                 "no3","din" ,"po4", 
+                                                 "chla", "doc","docr"))
 
 # plot vars for 0.1m
 ggplot() +

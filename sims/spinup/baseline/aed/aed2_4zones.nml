@@ -169,9 +169,9 @@
    Rcpom_bdown = 0.001
    X_cpom_n = 0.005
    X_cpom_p = 0.001
-   KeDOM = 0.005
+   KeDOM =  0.005
    KePOM = 0.00096
-   KeDOMR = 0.001 !was 0.1
+   KeDOMR = 0.01 !was 0.1
    KeCPOM = 0.00096
    simphotolysis = .false.
    photo_c = 0.75
