@@ -17,6 +17,7 @@ for (i in 1:length(scenario)){
   
   # set nml file
   nc_file <- file.path(paste0("sims/spinup/",scenario[i],"/output/output.nc")) 
+  #nc_file <- file.path(paste0("sims/",scenario[i],"/output/output.nc")) 
   
   # access and plot temperature
   current_temp <- glmtools::get_var(nc_file, var_name = "temp")
