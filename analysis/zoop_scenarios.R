@@ -179,7 +179,7 @@ for (i in 1:length(scenario)){
     dplyr::ungroup() |>
     dplyr::mutate(annual_prop = (daily_sum / annual_sum) * 100) |>
     na.omit() |>
-    dplyr::mutate(scenario = scenario[i]) |>
+    dplyr::mutate(scenario = scenario[i]) |> # in mg C / m3 here
     dplyr::mutate(value = value * 12.011) # convert to ug/L
   
   #now create a dynamic df name
@@ -225,19 +225,70 @@ for (i in 1:length(scenario)){
 var="PHY_tchla"
 chla_obs <- read.csv('field_data/CleanedObsChla.csv', header=TRUE) |> 
   dplyr::mutate(DateTime = as.Date(DateTime))  |> 
+  dplyr::filter(Depth %in% 0.1) |>
   na.omit()
 
-#read mod chla
-chla_mod<- glmtools::get_var(nc_file, var, reference="surface", z_out=depths) |> 
-  tidyr::pivot_longer(cols=starts_with(paste0(var,"_")), names_to="Depth", names_prefix=paste0(var,"_"), values_to = var) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-  dplyr::mutate(Depth=as.numeric(Depth)) |> 
-  na.omit() |>
-  dplyr::mutate(scenario = scenario[i])
+#read mod chla - calculating this by hand bc something is wrong with the glm aed calc
+cyano<- glmtools::get_var(file = nc_file, var_name = "PHY_cyano", z_out = 0.1) |>
+  rename('PHY_cyano' = 'PHY_cyano.elv_0.1') |>
+  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+  dplyr::filter(DateTime >= "2015-07-08")
+
+green<- glmtools::get_var(file = nc_file, var_name = "PHY_green", z_out = 0.1) |>
+  rename('PHY_green' = 'PHY_green.elv_0.1') |>
+  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+  dplyr::filter(DateTime >= "2015-07-08")
+
+diatom<- glmtools::get_var(file = nc_file, var_name = "PHY_diatom", z_out = 0.1) |>
+  rename('PHY_diatom' = 'PHY_diatom.elv_0.1') |>
+  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+  dplyr::filter(DateTime >= "2015-07-08")
+
+#combine into one df 
+surf_phytos <- purrr::reduce(list(cyano, green, diatom), dplyr::full_join) 
+
+#convert from wide to long for plotting
+chla_mod <- surf_phytos |> 
+  tidyr::pivot_longer(cols = -c(DateTime), 
+                      names_pattern = "(...)_(...*)$",
+                      names_to = c("mod", "taxon")) |> 
+  group_by(DateTime) |>
+  mutate(group_chl = ifelse(taxon=="cyano", (value * 12) / 80,
+                            ifelse(taxon=="green", (value * 12) / 30,
+                                   (value * 12) / 40)),
+         chla = sum(group_chl)) |>
+  select(DateTime, chla)
 
 #now create a dynamic df name
 assign(paste0("chla_", scenario[i]), chla_mod)
 }
+
+# quick chla plot
+ggplot() +
+  geom_line(data=chla_mod,
+            aes(DateTime, chla)) +
+  geom_point(data=chla_obs, aes(DateTime,PHY_tchla), col="red") +
+  theme_bw() + xlab("") +
+  ylab(expression("Chlorophyll " * italic(a) * " (" * mu * "g/L" * ")")) +
+  scale_color_manual("", values = c("cyan","green","#680000"),
+                     breaks = c("cyano","green","diatom")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.background = element_blank(),
+        legend.position = c(0.28,0.98),
+        text = element_text(size=10), 
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_blank(),
+        strip.background.x = element_blank(),
+        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+        legend.key = element_rect(fill = "transparent"),
+        legend.direction = "horizontal",
+        panel.spacing.x = unit(0.1, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing.y = unit(0, "lines"))
+#ggsave("figures/chla_0.1m_baseline.jpg", width=6, height=6)
 
 #------------------------------------------------------------------#
 # plot zoops

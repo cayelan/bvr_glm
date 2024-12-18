@@ -96,27 +96,61 @@ obs_chla <- read.csv('field_data/CleanedObsChla.csv', header=TRUE) |>
   select(DateTime, Depth, PHY_tchla) |>
   filter(DateTime >= "2015-07-07")
 
-mod_chla <- get_var(nc_file, "PHY_tchla", reference="surface", z_out=depths) |> 
-  pivot_longer(cols=starts_with("PHY_tchla_"), names_to="Depth", names_prefix="PHY_tchla_", values_to = "PHY_tchla") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
-  filter(DateTime >= "2015-07-07")
+#read mod chla - calculating this by hand bc something is wrong with the glm aed calc
+cyano <- glmtools::get_var(file = nc_file, var_name = "PHY_cyano", z_out = depths) |>
+  tidyr::pivot_longer(cols = starts_with("PHY_cyano"), 
+                      names_to = "Depth",names_prefix = "PHY_cyano.elv_", 
+                      values_to = "PHY_cyano") |>
+  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+  dplyr::filter(DateTime >= "2015-07-08") |>
+  select(DateTime, Depth, PHY_cyano)
 
-chla_compare<-merge(mod_chla, obs_chla, by=c("DateTime","Depth")) |> 
-  rename(mod_chla = PHY_tchla.x, obs_chla = PHY_tchla.y)
+green <- glmtools::get_var(file = nc_file, var_name = "PHY_green", z_out = depths) |>
+  tidyr::pivot_longer(cols = starts_with("PHY_green"), 
+                      names_to = "Depth",names_prefix = "PHY_green.elv_", 
+                      values_to = "PHY_green") |>
+  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+  dplyr::filter(DateTime >= "2015-07-08") |>
+  select(DateTime, Depth, PHY_green)
+
+diatom <- glmtools::get_var(file = nc_file, var_name = "PHY_diatom", z_out = depths) |>
+  tidyr::pivot_longer(cols = starts_with("PHY_diatom"), 
+   names_to = "Depth",names_prefix = "PHY_diatom.elv_", values_to = "PHY_diatom") |>
+  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+  dplyr::filter(DateTime >= "2015-07-08") |>
+  select(DateTime, Depth, PHY_diatom)
+
+#combine into one df 
+phytos <- purrr::reduce(list(cyano, green, diatom), dplyr::full_join) 
+
+#convert from wide to long for plotting
+mod_chla <- phytos |> 
+  tidyr::pivot_longer(cols = -c(DateTime,Depth), 
+                      names_pattern = "(...)_(...*)$",
+                      names_to = c("mod", "taxon")) |> 
+  group_by(DateTime,Depth) |>
+  mutate(group_chl = ifelse(taxon=="cyano", (value * 12) / 80,
+                            ifelse(taxon=="green", (value * 12) / 30,
+                                   (value * 12) / 40))) |>
+  summarise(PHY_tchla = sum(group_chl)) |>
+  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
+
+chla_compare <- merge(mod_chla, obs_chla, by = c("DateTime","Depth")) |> 
+  rename(mod_chla = PHY_tchla.x, obs_chla = PHY_tchla.y) 
 
 # DOC
-obs_doc <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
+obs_docl <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
   dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
   select(DateTime, Depth, OGM_doc) |>
   filter(DateTime >= "2015-07-07")
 
-mod_doc <- get_var(nc_file, "OGM_doc", reference="surface", z_out=depths) |> 
+mod_docl <- get_var(nc_file, "OGM_doc", reference="surface", z_out=depths) |> 
   pivot_longer(cols=starts_with("OGM_doc_"), names_to="Depth", names_prefix="OGM_doc_", values_to = "OGM_doc") |> 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
   filter(DateTime >= "2015-07-07")
 
-doc_compare<-merge(mod_doc, obs_doc, by=c("DateTime","Depth")) |> 
-  rename(mod_doc = OGM_doc.x, obs_doc = OGM_doc.y)
+docl_compare<-merge(mod_docl, obs_docl, by=c("DateTime","Depth")) |> 
+  rename(mod_docl = OGM_doc.x, obs_docl = OGM_doc.y)
 
 # DOCr
 obs_docr <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
@@ -137,7 +171,7 @@ docr_compare<-merge(mod_docr, obs_docr, by=c("DateTime","Depth")) |>
 all_vars <- reduce(list(watertemp, oxy_compare, 
                         nh4_compare, no3_compare,
                         po4_compare, chla_compare, 
-                        doc_compare, docr_compare), full_join) |>
+                        docl_compare, docr_compare), full_join) |>
   mutate(mod_oxy = mod_oxy * 32 / 1000) |> # convert to mg/L
   mutate(obs_oxy = obs_oxy * 32 / 1000) |> # convert to mg/L
   mutate(mod_nh4 = mod_nh4 * 18.04) |> # convert to ug/L
@@ -147,19 +181,23 @@ all_vars <- reduce(list(watertemp, oxy_compare,
   mutate(mod_po4 = mod_po4 * 94.9714) |> # convert to ug/L
   mutate(obs_po4 = obs_po4 * 94.9714) |>  # convert to ug/L
   group_by(DateTime, Depth) |>
-  mutate(obs_din = sum(obs_no3,obs_nh4)) |>
-  mutate(mod_din = sum(mod_no3,mod_nh4))
+  mutate(obs_din = sum(obs_no3,obs_nh4),
+         mod_din = sum(mod_no3,mod_nh4),
+         obs_doc = sum(obs_docl,obs_docr),
+         mod_doc = sum(mod_docl,mod_docr))
   
 mod_vars <- reduce(list(modtemp, mod_oxy,
                         mod_nh4, mod_no3, 
                         mod_po4, mod_chla, 
-                        mod_doc, mod_docr), full_join) |>
+                        mod_docl, mod_docr), full_join) |>
   mutate(OXY_oxy = OXY_oxy * 32 / 1000) |> # convert to mg/L
   mutate(NIT_amm = NIT_amm * 18.04) |> # convert to ug/L
   mutate(NIT_nit = NIT_nit * 62.00) |> # convert to ug/L
   mutate(PHS_frp = PHS_frp * 94.9714) |> # convert to ug/L
   group_by(DateTime, Depth) |>
-  mutate(NIT_din = sum(NIT_amm, NIT_nit))
+  rename('OGM_docl' = 'OGM_doc') |>
+  mutate(NIT_din = sum(NIT_amm, NIT_nit),
+         OGM_doc = sum(OGM_docl,OGM_docr))
   
 #add col for calib vs. valid period (2020-12-31)
 all_vars$period <- ifelse(all_vars$DateTime <= "2020-12-31",
@@ -172,6 +210,7 @@ all_vars_final <- all_vars |>
                names_pattern = "(...)_(...*)$",
                names_to = c("type", "var")) |> 
   na.omit()|>
+  distinct() |>
   mutate(scenario = scenario[i])
 
 assign(paste0("all_vars_final_", scenario[i]), all_vars_final)
@@ -213,18 +252,18 @@ labels <- c(
   expression("DIN (" * mu * " g L"^{-1}*")"),
   expression("DRP (" * mu * " g L"^{-1}*")"),
   expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")"),
-  "DOC", "DOCr"
+  "DOCl", "DOCr", "DOC"
 )
 
 # Apply these labels as factor levels after defining them
 all_vars_final_baseline <- all_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,9,6,3,7,8)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,9,6,3,7,8,10)], #check
                            labels = labels))
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,9,5,6,7,8)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,9,5,6,7,8,10)],
                            labels = labels)) |>
   na.omit()
 
@@ -232,11 +271,11 @@ mod_vars_final_baseline <- mod_vars_final_baseline |>
 all_vars_final_baseline$var <- factor(all_vars_final_baseline$var, 
                                       levels = c("temp", "oxy", "nh4", 
                                                  "no3","din","po4" ,
-                                                 "chla", "doc", "docr"))
+                                                 "chla", "docl", "docr","doc"))
 mod_vars_final_baseline$var <- factor(mod_vars_final_baseline$var, 
                                       levels = c("temp", "oxy", "nh4", 
                                                  "no3","din" ,"po4", 
-                                                 "chla", "doc","docr"))
+                                                 "chla", "docl","docr","doc"))
 
 # plot vars for 0.1m
 ggplot() +
@@ -244,7 +283,7 @@ ggplot() +
             aes(DateTime, value, color = "modeled")) +
   geom_point(data = subset(all_vars_final_baseline, type %in% "obs" & Depth %in% 0.1), 
              aes(DateTime, value, color = "observed")) + 
-  facet_wrap(~ variable, scales = "free_y", nrow = 3,
+  facet_wrap(~ variable, scales = "free_y", nrow = 3 ,
              labeller = label_parsed) + 
   geom_vline(xintercept = as.POSIXct("2020-12-31"), linetype = "dashed") +
   theme_bw() + xlab("") +
@@ -269,7 +308,7 @@ ggplot() +
         panel.background = element_rect(fill = "white"),
         panel.spacing.y = unit(0, "lines"),  
         strip.background = element_blank())
-#ggsave("figures/allvars_mod_vs_obs_0.1m.jpg", width=6, height=6)
+#ggsave("figures/allvars_mod_vs_obs_01m.jpg", width=8, height=6)
 
 # plot vars for 9m
 ggplot() +
