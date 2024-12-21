@@ -258,12 +258,12 @@ labels <- c(
 # Apply these labels as factor levels after defining them
 all_vars_final_baseline <- all_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,9,6,3,7,8,10)], #check
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,9,6,3,7,8,10)],
                            labels = labels))
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,9,5,6,7,8,10)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,8,5,10,6,7,9)],
                            labels = labels)) |>
   na.omit()
 
@@ -308,7 +308,7 @@ ggplot() +
         panel.background = element_rect(fill = "white"),
         panel.spacing.y = unit(0, "lines"),  
         strip.background = element_blank())
-#ggsave("figures/allvars_mod_vs_obs_01m.jpg", width=8, height=6)
+#ggsave("figures/allvars_mod_vs_obs_0.1m_spinup.jpg", width=8, height=6)
 
 # plot vars for 9m
 ggplot() +
@@ -342,7 +342,7 @@ ggplot() +
         panel.background = element_rect(fill = "white"),
         panel.spacing.y = unit(0, "lines"),
         strip.background = element_blank())
-#ggsave("figures/allvars_mod_vs_obs_9m.jpg", width=6, height=6)
+#ggsave("figures/allvars_mod_vs_obs_9m.jpg", width=8, height=6)
 
 # numbers for results text
 mod_vars_final_baseline <- mod_vars_final_baseline |>

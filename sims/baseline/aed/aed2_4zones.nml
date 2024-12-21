@@ -146,7 +146,7 @@
    donr_initial = 9
    dopr_initial = 0.15
    cpom_initial = 0
-   Rdom_minerl = 0.001 !0.02 !0.1
+   Rdom_minerl = 0.02 !0.1
    Rpom_hydrol = 1e-04
    Rpoc_hydrol = 0.001
    Rpon_hydrol = 0.001
