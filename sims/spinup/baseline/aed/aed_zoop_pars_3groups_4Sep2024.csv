@@ -1,15 +1,15 @@
  'zoop_name', 'rotifer', 'cladoceran', 'copepod'
  'zoop_initial', 1, 1, 1
  'min_zoo', 0.03, 0.03, 0.03
- 'Rgrz_zoo', 0.7, 1.2, 0.9
+ 'Rgrz_zoo', 0.8, 1.3, 1.5
  'fassim_zoo', 0.9, 0.9, 0.9
  'Kgrz_zoo', 1, 1, 1
  'theta_grz_zoo', 1.08, 1.08, 1.08
- 'Rresp_zoo', 0.08, 0.1, 0.2
- 'Rmort_zoo', 0.01, 0.01, 0.01
- 'ffecal_zoo', 0.03, 0.04, 0.02
- 'fexcr_zoo', 0.25, 0.05, 0.04
- 'ffecal_sed', 0.1, 0.1, 0.8
+ 'Rresp_zoo', 0.1, 0.3, 0.2
+ 'Rmort_zoo', 0.06, 0.08, 0.01
+ 'ffecal_zoo', 0.05, 0.04, 0.02
+ 'fexcr_zoo', 0.2, 0.03, 0.03
+ 'ffecal_sed', 0.2, 0.3, 0.8
  'theta_resp_zoo', 1.08, 1.08, 1.08
  'Tstd_zoo', 20, 20, 20
  'Topt_zoo', 25, 28, 28
