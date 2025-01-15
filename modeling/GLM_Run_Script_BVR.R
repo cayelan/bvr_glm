@@ -37,9 +37,9 @@ plot_var(nc_file, var="temp")
 
 #get water level
 water_level<-get_surface_height(nc_file, ice.rm = TRUE, snow.rm = TRUE) |> 
-  filter(DateTime < as.POSIXct("2020-12-31"))
+  filter(DateTime < as.POSIXct("2020-12-31") &
+           DateTime >= as.POSIXct("2015-07-08"))
   
-
 # Read in and plot water level observations
 wlevel <- read_csv("./inputs/BVR_Daily_WaterLevel_Vol_2015_2022_interp.csv")
   

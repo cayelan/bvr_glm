@@ -215,7 +215,7 @@ ggplot() +
         panel.spacing.y = unit(0, "lines"))
 #ggsave("figures/zoop_dynamics_copes_last.jpg", width=6, height=6)
 
-ggplot(zoop_diag_clads_last, aes(x = DateTime, y = value)) + 
+ggplot(diag_long, aes(x = DateTime, y = value)) + 
   geom_area(aes(color = variable, fill = variable),
             position = "stack", stat="identity",
             linewidth=1) +
@@ -226,7 +226,7 @@ ggplot(zoop_diag_clads_last, aes(x = DateTime, y = value)) +
   ylab("diagnostics (mmolC/m3/day)")+ xlab("") +
   scale_x_datetime(expand = c(0,0),labels = 
                      date_format("%Y",tz="EST5EDT")) +
-  scale_y_continuous(expand = c(0,0), limits = c(-5,10))+
+  #scale_y_continuous(expand = c(0,0), limits = c(-5,10))+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),

@@ -183,7 +183,7 @@ for (i in 1:length(scenario)){
     dplyr::mutate(value = value * 12.011) # convert to ug/L
   
   #now create a dynamic df name
- # assign(paste0("all_phytos_", scenario[i]), all_phytos_final)
+  assign(paste0("all_phytos_", scenario[i]), all_phytos_final)
 }
 
 # quick fig for surface and deep phyto groups

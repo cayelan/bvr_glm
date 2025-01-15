@@ -95,3 +95,7 @@ mean(all_scenarios_output$Surface.Temp[
   all_scenarios_output$scenario=="plus10"]) -
   mean(all_scenarios_output$Surface.Temp[
     all_scenarios_output$scenario=="baseline"])
+
+#plot pH
+pH <- get_var(file=nc_file,var_name = 'CAR_pH',z_out=0.1,reference = 'surface') 
+plot(pH$DateTime, pH$CAR_pH_0.1)

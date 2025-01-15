@@ -33,7 +33,7 @@ plot(inflow$time, inflow$FLOW)
 # Download FCR inflow data from EDI
 inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/9/c065ff822e73c747f378efe47f5af12b" 
 infile1 <- tempfile()
-try(download.file(inUrl1,infile1,method="curl"))
+try(download.file(inUrl1,infile1))
 if (is.na(file.size(infile1))) download.file(inUrl1,infile1,method="auto")
 
 temp <- read.csv(infile1)
@@ -171,11 +171,11 @@ ghg <- read.csv("./inputs/BVR_GHG_Inflow_20200619.csv", header=T) %>%
   rename(time = DateTime, CAR_ch4 = ch4_umolL)
 
 #read in lab dataset of pH 
-#inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/198/10/b3bd353312f9e37ca392e2a5315cc9da" 
-#infile1 <- paste0(getwd(),"/YSI_PAR_profiles_2013-2021.csv")
-#download.file(inUrl1,infile1,method="curl", extra='-k')
+inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/198/10/b3bd353312f9e37ca392e2a5315cc9da" 
+infile1 <- tempfile()
+try(download.file(inUrl1,infile1))
 
-pH <- read.csv("YSI_PAR_profiles_2013-2021.csv", header=T) %>%
+pH <- read.csv(infile1) %>%
   dplyr::filter(Reservoir == "BVR") %>% 
   dplyr::filter(Site == 50) %>% #don't have inflow ph so just going to use median deephole ph
   select(DateTime, Depth_m, pH) %>%
@@ -254,7 +254,7 @@ total_inflow <- total_inflow %>%
   mutate(SIL_rsi = SIL_rsi*1000*(1/60.08) * 0.65) %>% #setting the Silica concentration to the median 2014 inflow concentration for consistency
   #note scaling silica down bc too high!!
   mutate(NIT_nit = NIT_nit * 0.2) %>% #scaling nitrate inflow by 0.2 bc too high
-  mutate(NIT_amm = NIT_amm * 0.4) %>% #scaling ammonium inflow by 0.4 bc too high
+  mutate(NIT_amm = NIT_amm * 0.3) %>% #scaling ammonium inflow by 0.3 bc too high
   mutate(OGM_docr = OGM_docr * 1.9) %>% #docr too low
   mutate(OGM_doc = OGM_doc * 1.7) %>% #bc docr:doc needs to be 10:1
   mutate_if(is.numeric, round, 4) #round to 4 digits 
@@ -274,7 +274,7 @@ total_inflow$time <- total_inflow$time +  hours(12) + minutes(00) + seconds(00)
 plot(total_inflow$time, total_inflow$FLOW, type="l")
 
 #save scaled file
-write.csv(total_inflow, "./inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv", row.names = F)
+write.csv(total_inflow, "./inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.3X_ammonium_1.9X_docr_1.7Xdoc.csv", row.names = F)
 
 
 ##############################################################
