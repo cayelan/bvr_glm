@@ -518,19 +518,20 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   mean_mod_vars <-  mod_vars |>
     group_by(var, year, scenario, Depth) |>
     summarise(mean_val = mean(yearly_mean)) |>
-    ungroup() #|>
-    #mutate(variable = factor(var, levels = unique(var)[c(7,5,3,4,2,6,1)],
-     #                        labels = labels))
+    ungroup() |>
+    mutate(variable = factor(var, levels = unique(var)[c(10,8,6,7,2,9,1,4,5,3)],
+                            labels = labels))
   
   mean_mod_vars$var <- factor(mean_mod_vars$var, 
                               levels = c("temp", "oxy", "nh4", 
-                                         "no3","din" ,"po4", "chla"))
+                                         "no3","din" ,"po4","chla",
+                                         "docl", "docr", "doc"))
   
   ggplot(data=subset(mean_mod_vars,Depth==0.1 & !year %in% c("2015","2022")),
          aes(x = year, y = mean_val,  color = scenario)) +
     geom_line(size=1) + geom_point(size=2) +
-    facet_wrap(~var, scales = "free") +
-               #labeller = label_parsed) +
+    facet_wrap(~variable, scales = "free",
+               labeller = label_parsed) +
     xlab("") + theme_bw() +
     scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
@@ -559,8 +560,8 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   ggplot(data=subset(mean_mod_vars,Depth==9 & !year %in% c("2015","2022")),
          aes(x = year, y = mean_val,  color = scenario)) +
     geom_line(size=1) + geom_point(size=2) +
-    facet_wrap(~var, scales = "free") +
-               #labeller = label_parsed) +
+    facet_wrap(~variable, scales = "free",
+               labeller = label_parsed) +
     xlab("") + theme_bw() +
     scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
