@@ -206,6 +206,8 @@ all_vars$period <- ifelse(all_vars$DateTime <= "2020-12-31",
 #convert from wide to long for plotting
 all_vars_final <- all_vars |> 
   filter(Depth %in% c(0.1,9)) |> 
+  select(-c(mod_nh4, obs_nh4, mod_no3, obs_no3, mod_docl, 
+            obs_docl, mod_docr, obs_docr)) |>
   pivot_longer(cols = -c(DateTime,Depth,period), 
                names_pattern = "(...)_(...*)$",
                names_to = c("type", "var")) |> 
@@ -223,6 +225,7 @@ mod_vars_final <- mod_vars |>
          "NIT_no3" = "NIT_nit",
          "PHS_po4" = "PHS_frp",
          "PHY_chla" = "PHY_tchla") |>
+  select(-c(NIT_nh4, NIT_no3, OGM_docl, OGM_docr)) |>
   pivot_longer(cols = -c(DateTime,Depth), 
                names_pattern = "(...)_(...*)$",
                names_to = c("type", "var")) |> 
@@ -247,35 +250,32 @@ assign(paste0("mod_vars_final_", scenario[i]), mod_vars_final)
 labels <- c(
   expression("Water Temp (" * degree * "C)"),
   expression("DO (mg L"^{-1}*")"),
-  expression("NH"[4] * "(" * mu * " g L"^{-1}*")"),
-  expression("NO"[3] * "(" * mu * " g L"^{-1}*")"),
   expression("DIN (" * mu * " g L"^{-1}*")"),
   expression("DRP (" * mu * " g L"^{-1}*")"),
-  expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")"),
-  "DOCl", "DOCr", "DOC"
+  expression("DOC (" * mu * " g L"^{-1}*")"),
+  expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")")
+ 
 )
 
 # Apply these labels as factor levels after defining them
 all_vars_final_baseline <- all_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,5,9,6,3,7,8,10)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,5,4,6,3) ],
                            labels = labels))
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,3,4,8,5,10,6,7,9)],
+  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,3,5,6)],
                            labels = labels)) |>
   na.omit()
 
 # reorder vars
 all_vars_final_baseline$var <- factor(all_vars_final_baseline$var, 
-                                      levels = c("temp", "oxy", "nh4", 
-                                                 "no3","din","po4" ,
-                                                 "chla", "docl", "docr","doc"))
+                                      levels = c("temp", "oxy","din",
+                                                 "po4", "doc", "chla"))
 mod_vars_final_baseline$var <- factor(mod_vars_final_baseline$var, 
-                                      levels = c("temp", "oxy", "nh4", 
-                                                 "no3","din" ,"po4", 
-                                                 "chla", "docl","docr","doc"))
+                                      levels = c("temp", "oxy", "din" ,
+                                                 "po4", "doc", "chla"))
 
 # plot vars for 0.1m
 ggplot() +
@@ -377,19 +377,19 @@ sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" &
                                    mod_vars_final_baseline$Depth %in% "0.1" & 
                                    mod_vars_final_baseline$season %in%"winter"])
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="nh4" & 
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="din" & 
                                      mod_vars_final_baseline$Depth==0.1 ])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="nh4" & 
-                                   mod_vars_final_baseline$Depth==0.1 ])
-
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
-                                     mod_vars_final_baseline$Depth==0.1 ])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="din" & 
                                    mod_vars_final_baseline$Depth==0.1 ])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
                                      mod_vars_final_baseline$Depth==0.1 ])
 sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
+                                   mod_vars_final_baseline$Depth==0.1 ])
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="doc" & 
+                                     mod_vars_final_baseline$Depth==0.1 ])
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="doc" & 
                                    mod_vars_final_baseline$Depth==0.1 ])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
@@ -519,13 +519,12 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
     group_by(var, year, scenario, Depth) |>
     summarise(mean_val = mean(yearly_mean)) |>
     ungroup() |>
-    mutate(variable = factor(var, levels = unique(var)[c(10,8,6,7,2,9,1,4,5,3)],
+    mutate(variable = factor(var, levels = unique(var)[c(6,4,2,5,3,1)],
                             labels = labels))
   
   mean_mod_vars$var <- factor(mean_mod_vars$var, 
-                              levels = c("temp", "oxy", "nh4", 
-                                         "no3","din" ,"po4","chla",
-                                         "docl", "docr", "doc"))
+                              levels = c("temp", "oxy", "din" ,
+                                         "po4","doc", "chla"))
   
   ggplot(data=subset(mean_mod_vars,Depth==0.1 & !year %in% c("2015","2022")),
          aes(x = year, y = mean_val,  color = scenario)) +
@@ -591,34 +590,110 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
                                 mean_mod_vars$scenario=="baseline" &
                                 mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                              mean_mod_vars$scenario=="baseline" &
+                              mean_mod_vars$Depth==0.1])
+  
+  diff(range(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                                 mean_mod_vars$scenario=="baseline" &
+                                 mean_mod_vars$Depth==0.1]))
+  
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                                mean_mod_vars$scenario=="plus1" &
+                                mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                              mean_mod_vars$scenario=="plus1" &
+                              mean_mod_vars$Depth==0.1])
+  
+  diff(range(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                               mean_mod_vars$scenario=="plus1" &
+                               mean_mod_vars$Depth==0.1]))
+  
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                                mean_mod_vars$scenario=="plus5" &
+                                mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                              mean_mod_vars$scenario=="plus5" &
+                              mean_mod_vars$Depth==0.1])
+  
+  diff(range(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                               mean_mod_vars$scenario=="plus5" &
+                               mean_mod_vars$Depth==0.1]))
   
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
                                 mean_mod_vars$scenario=="plus10" &
                                 mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
   
+  diff(range(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                            mean_mod_vars$scenario=="plus10" &
+                            mean_mod_vars$Depth==0.1]))
+  
+  #mean temp difff
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                                mean_mod_vars$scenario=="plus10" &
+                                mean_mod_vars$Depth==0.1]) - 
+    mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
+                                  mean_mod_vars$scenario=="baseline" &
+                                  mean_mod_vars$Depth==0.1])
+  
+
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
                                 mean_mod_vars$scenario=="baseline" &
                                 mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
+                              mean_mod_vars$scenario=="baseline" &
+                              mean_mod_vars$Depth==0.1])
+
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
+                                mean_mod_vars$scenario=="plus1" &
+                                mean_mod_vars$Depth==0.1])
   
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
+                                mean_mod_vars$scenario=="plus5" &
+                                mean_mod_vars$Depth==0.1])
+    
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
                                 mean_mod_vars$scenario=="plus10" &
                                 mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
+                                    mean_mod_vars$scenario=="plus10" &
+                                    mean_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="nh4" &
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                mean_mod_vars$scenario=="baseline" &
+                                mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                    mean_mod_vars$scenario=="baseline" &
+                                    mean_mod_vars$Depth==0.1])
+  
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                mean_mod_vars$scenario=="plus1" &
+                                mean_mod_vars$Depth==0.1])
+  
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                mean_mod_vars$scenario=="plus5" &
+                                mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
                                 mean_mod_vars$scenario=="plus5" &
                                 mean_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="nh4" &
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
                                 mean_mod_vars$scenario=="plus10" &
                                 mean_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
-                                mean_mod_vars$scenario=="plus5" &
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
+                                mean_mod_vars$scenario=="baseline" &
                                 mean_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
-                                mean_mod_vars$scenario=="plus10" &
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
+                                mean_mod_vars$scenario=="plus1" &
                                 mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
+                              mean_mod_vars$scenario=="plus1" &
+                              mean_mod_vars$Depth==0.1])
   
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
                                 mean_mod_vars$scenario=="plus5" &
@@ -627,14 +702,44 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
                                 mean_mod_vars$scenario=="plus10" &
                                 mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
+  
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="doc" &
+                                mean_mod_vars$scenario=="baseline" &
+                                mean_mod_vars$Depth==0.1])
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="doc" &
+                                mean_mod_vars$scenario=="plus1" &
+                                mean_mod_vars$Depth==0.1])
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="doc" &
+                                mean_mod_vars$scenario=="plus5" &
+                                mean_mod_vars$Depth==0.1])
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="doc" &
+                                mean_mod_vars$scenario=="plus10" &
+                                mean_mod_vars$Depth==0.1])
+
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
+                                mean_mod_vars$scenario=="baseline" &
+                                mean_mod_vars$Depth==0.1])
+  
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
+                                mean_mod_vars$scenario=="plus1" &
+                                mean_mod_vars$Depth==0.1])
   
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
                                 mean_mod_vars$scenario=="plus5" &
                                 mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
+                              mean_mod_vars$scenario=="plus5" &
+                              mean_mod_vars$Depth==0.1])
   
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
                                 mean_mod_vars$scenario=="plus10" &
                                 mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
 
 #-----------------------------------------------------------------------#
 # GOF table for calib vs. valid periods

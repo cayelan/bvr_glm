@@ -23,17 +23,20 @@ aed_nml <- glmtools::set_nml(aed_nml,
   glmtools::write_nml(aed_nml, file = aed_nml_file)
 
   # run the model
-  sim_folder = "./sims/spinup/baseline"
-  GLM3r::run_glm(sim_folder)
+  #sim_folder = "./sims/spinup/baseline"
+  #GLM3r::run_glm(sim_folder)
   
-  nc_file = paste0("sims/spinup/baseline/output/output.nc")      
+  
+for (i in 1:length(scenario)){
+    
+    nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
                       
 #save zoop output
 var="ZOO_cladoceran"
 clad_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
   dplyr::mutate(DateTime = as.Date(DateTime)) |> 
   dplyr::select(DateTime, var) |> 
-  na.omit() 
+  na.omit()  
 
 # Function to get zoop data for varying depths
 get_zoops <- function(depths, nc_file, var) {
@@ -122,7 +125,13 @@ all_zoops_final <- all_zoops |>
   dplyr::ungroup() |>
   dplyr::mutate(annual_prop = (daily_sum / annual_sum) * 100) |>
   na.omit() |>
-  dplyr::mutate(value = value * 12.011) # convert to ug/L
+  dplyr::mutate(value = value * 12.011) # convert to ug/L |>
+  dplyr::mutate(scenario = sceanrio[i])
+  
+  #now create a dynamic df name
+  assign(paste0("all_zoops_", scenario[i]), all_zoops_final)
+  
+  }
 
 #now create a dynamic df name
 #assign("all_zoops_rots_last", all_zoops_final)
@@ -187,7 +196,7 @@ ggplot() +
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/zoop_mod_vs_obs_copes_last.jpg", width=6, height=6)
+#ggsave("figures/zoop_mod_vs_obs_copes_last.jpg", width=6, height=4)
 
 ggplot() +
   geom_line(data=subset(all_zoops_final, !taxon %in% "total"),
@@ -213,7 +222,21 @@ ggplot() +
         panel.background = element_rect(
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/zoop_dynamics_copes_last.jpg", width=6, height=6)
+#ggsave("figures/zoop_dynamics_copes_last.jpg", width=6, height=4)
+
+# numbers for results text
+mean(all_zoops_final$value)
+sd(all_zoops_final$value)
+
+mean(all_zoops_final$value[all_zoops_final$taxon=="cladoceran"])
+sd(all_zoops_final$value[all_zoops_final$taxon=="cladoceran"])
+
+mean(all_zoops_final$value[all_zoops_final$taxon=="copepod"])
+sd(all_zoops_final$value[all_zoops_final$taxon=="copepod"])
+
+mean(all_zoops_final$value[all_zoops_final$taxon=="rotifer"])
+sd(all_zoops_final$value[all_zoops_final$taxon=="rotifer"])
+
 
 ggplot(diag_long, aes(x = DateTime, y = value)) + 
   geom_area(aes(color = variable, fill = variable),
@@ -320,4 +343,77 @@ ggplot(zoop_diags_summary, aes(x = year, y = mean_rate, color = taxon)) +
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/annual_zoop_diag.jpg", width=6, height=6)
+
+#---------------------------------------------------------------------#
+# GOF table for zoops
+
+# Full water column, full period (2015-2022)
+zoop_gof <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","clad"))
+zoop_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
+                        "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
+                        "NSE_all","mNSE_all","rNSE_all","wNSE_all",
+                        "wsNSE_all","d_all","dr_all","md_all","rd_all",
+                        "cp_all","r_all","R2_all","bR2_all","VE_all",
+                        "KGE_all","KGElf_all","KGEnp_all","KGEkm_all", 
+                        "r.Spearman","nonparamR2") 
+
+#combine obs and mod for each group
+clad_final <- inner_join(clad, clad_obs, by = "DateTime") |>
+  rename(clad_mod = ZOO_cladoceran.x, clad_obs = ZOO_cladoceran.y)
+cope_final <- inner_join(cope, cope_obs, by = "DateTime") |>
+  rename(cope_mod = ZOO_copepod.x, cope_obs = ZOO_copepod.y)
+rot_final <- inner_join(rot, rot_obs, by = "DateTime") |>
+  rename(rot_mod = ZOO_rotifer.x, rot_obs = ZOO_rotifer.y)
+
+
+# calculate all gof metrics for full period + each zoop
+zoop_gof$clad <- c(gof(clad_final$clad_mod, clad_final$clad_obs,do.spearman = TRUE), NA)
+zoop_gof$cope <- c(gof(cope_final$cope_mod,cope_final$cope_obs,do.spearman = TRUE), NA)
+zoop_gof$rot <- c(gof(rot_final$rot_mod,rot_final$rot_obs,do.spearman = TRUE), NA)
+
+#create ranked dfs for nonparametric R2 calcs
+comb_clad_rank <- clad_final |> 
+  mutate(rank_obs = rank(clad_obs),
+         rank_mod = rank(clad_mod)) 
+comb_cope_rank <- cope_final |> 
+  mutate(rank_obs = rank(cope_obs),
+         rank_mod = rank(cope_mod)) 
+comb_rot_rank <- rot_final |> 
+  mutate(rank_obs = rank(rot_obs),
+         rank_mod = rank(rot_mod)) 
+
+# calculate non-parametric (ranked) R2, following Brett et al. 2016
+zoop_gof$clad[29] <- summary(lm(comb_clad_rank$rank_obs ~ comb_clad_rank$rank_mod))$r.squared
+zoop_gof$cope[29] <- summary(lm(comb_cope_rank$rank_obs ~ comb_cope_rank$rank_mod))$r.squared
+zoop_gof$rot[29] <- summary(lm(comb_rot_rank$rank_obs ~ comb_rot_rank$rank_mod))$r.squared
+
+####Cleaning up table ####
+## Add NMAE calculation for all parameters
+zoop_gof[nrow(zoop_gof)+1,] <- NA
+zoop_gof[30,1] <- "NMAE_all"
+zoop_gof$Parameter[28] <- "r.Spearman_all"
+zoop_gof$clad[30] <- round(zoop_gof$clad[2]/mean(clad_final$clad_obs, 
+                                                 na.rm=T),digits = 2)
+zoop_gof$cope[30] <- round(zoop_gof$cope[2]/mean(cope_final$cope_obs, 
+                                                 na.rm=T),digits = 2)
+zoop_gof$rot[30] <- round(zoop_gof$rot[2]/mean(rot_final$rot_obs, 
+                                               na.rm=T),digits = 2)
+
+# Select GOF variables
+full_n_all <- c("n_all",length(na.omit(clad_final$clad_obs)), 
+                length(na.omit(cope_final$cope_obs)),
+                length(na.omit(rot_final$rot_obs)))
+
+
+zoop_gof_all_table <- zoop_gof %>% 
+  filter(Parameter == "r.Spearman_all" | Parameter == "R2_all" | Parameter == "RMSE_all" | Parameter == "PBIAS%_all" | Parameter == "NMAE_all")
+
+zoop_gof_table <- rbind(full_n_all,zoop_gof_all_table)
+
+write_csv(zoop_gof_table,'figures/table_gof_bvr_zoops_2015-2022.csv')
+
+# calculate total RMSE for all zoop groups for ms result text
+sqrt(as.numeric(zoop_gof_table$clad[zoop_gof_table$Parameter=="RMSE_all"])^2 +
+as.numeric(zoop_gof_table$cope[zoop_gof_table$Parameter=="RMSE_all"])^2 +
+as.numeric(zoop_gof_table$rot[zoop_gof_table$Parameter=="RMSE_all"])^2 )* 12.011 #to convert to ug/L
 
