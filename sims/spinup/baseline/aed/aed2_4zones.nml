@@ -7,12 +7,11 @@
 &aed_sed_const2d
    n_zones = 4
    active_zones = 1, 2, 3, 4
-   Fsed_oxy = -100, -10, -10, -10 
-   !Fsed_dic = 0.1, 0.1, 0.1, 0.1
+   Fsed_oxy = -100, -10, -10, -10
    Fsed_ch4 = 60, 1, 1, 1
    Fsed_rsi = 1, 1, 60, 80
-   Fsed_amm = 7, 0.1, 0.01, 0.001 
-   Fsed_nit = -0.0001,-0.0001,-0.0001,-0.0001
+   Fsed_amm = 7, 0.1, 0.01, 0.001
+   Fsed_nit = -1e-04, -1e-04, -1e-04, -1e-04
    Fsed_frp = 0.01, 0.001, 0.05, 0.001
    Fsed_doc = 0.1, 0.1, 0.5, 0.5
 /
@@ -23,7 +22,7 @@
 &aed_noncohesive
    num_ss = 1
    ss_initial = 1, 1
-   Ke_ss = 0.006, 0.063 
+   Ke_ss = 0.006, 0.063
    settling = 1
    w_ss = -0.001, -0.001
    d_ss = 2e-06, 1e-05
@@ -35,7 +34,6 @@
 /
 &aed_oxygen
    oxy_initial = 225
-   !Fsed_oxy = -10
    Ksed_oxy = 25
    theta_sed_oxy = 1.08
    Fsed_oxy_variable = 'SDF_Fsed_oxy'
@@ -44,9 +42,9 @@
 /
 &aed_carbon
    dic_initial = 40
-   Fsed_dic = 2 !0.001 !0.03982841
-   Ksed_dic = 10 !98.9
-   theta_sed_dic = 1.08 !1.15
+   Fsed_dic = 2
+   Ksed_dic = 10
+   theta_sed_dic = 1.08
    pH_initial = 6.2
    atm_co2 = 0.00041
    co2_model = 1
@@ -54,17 +52,16 @@
    ionic = 0.1
    co2_piston_model = 1
    ch4_initial = 5
-   Rch4ox = 0.1 !0.9469993 
-   Kch4ox = 0.2 !0.9 !0.7298476
-   vTch4ox = 1.2 !0.91
-   Ksed_ch4 = 0.5 !3.4 !1.547945
-   theta_sed_ch4 = 1.11 !1.08
+   Rch4ox = 0.1
+   Kch4ox = 0.2
+   vTch4ox = 1.2
+   Ksed_ch4 = 0.5
+   theta_sed_ch4 = 1.11
    methane_reactant_variable = 'OXY_oxy'
    atm_ch4 = 1.76e-06
    ch4_piston_model = 2
    Fsed_ch4_variable = 'SDF_Fsed_ch4'
-   !Fsed_dic_variable = 'SDF_Fsed_dic'
-   ebb_model =  0 !doesn't work...
+   ebb_model = 0
    Fsed_ch4_ebb = 0
    ch4_bub_aLL = 4.8
    ch4_bub_cLL = 0.634
@@ -75,9 +72,8 @@
 /
 &aed_silica
    rsi_initial = 80
-   !Fsed_rsi = 3 !1.01 !16
    Ksed_rsi = 40
-   theta_sed_rsi = 1.1 !1.11
+   theta_sed_rsi = 1.1
    silica_reactant_variable = 'OXY_oxy'
    Fsed_rsi_variable = 'SDF_Fsed_rsi'
 /
@@ -85,9 +81,9 @@
    amm_initial = 1
    nit_initial = 0.05
    n2o_initial = 0.1
-   Rnitrif = 0.0008 !0.3 !0.05 !0.1 !0.005 !0.08628998 
-   Knitrif = 4 !80 !74 !22 !50 !75 !34.73152
-   theta_nitrif = 1.08 !1.079923
+   Rnitrif = 8e-04
+   Knitrif = 4
+   theta_nitrif = 1.08
    nitrif_reactant_variable = 'OXY_oxy'
    nitrif_ph_variable = ''
    simNitrfpH = .false.
@@ -100,30 +96,28 @@
    atm_n2o = 3.2e-07
    n2o_piston_model = 4
    Rnh4no2 = 0.001
-   kanammox = 2 
-   Kanmx_nit = 1.3 
-   Kanmx_amm = 0.9 !0.4 !0.8 !1 !1.5 !0.87 !2  !2.064857 
-   Rdenit = 1.5 !0.02 !2 !1 !0.7 !0.07 !0.1 
-   Kdenit = 30 !50 !29.86566 !10 
-   theta_denit = 1.062862 !1.08 
-   Rdnra = 0.0001 !0.7 !0.05 !0.001 !0.1 !0.0001
-   Kdnra_oxy = 1 !0.4 !0.4 !5 !0.360534 !0.8 !0.4 !0.01 !2.120867 
-   Ksed_amm =  40 
-   Ksed_nit = 10 
+   kanammox = 2
+   Kanmx_nit = 1.3
+   Kanmx_amm = 0.9
+   Rdenit = 1.5
+   Kdenit = 30
+   theta_denit = 1.062862
+   Rdnra = 1e-04
+   Kdnra_oxy = 1
+   Ksed_amm = 40
+   Ksed_nit = 10
    Fsed_n2o = 0
    Ksed_n2o = 100
-   theta_sed_amm = 1.07 
-   theta_sed_nit = 1.07 
-   !Fsed_amm = 1
-   !Fsed_nit = -0.05
+   theta_sed_amm = 1.07
+   theta_sed_nit = 1.07
    Fsed_amm_variable = 'SDF_Fsed_amm'
    Fsed_nit_variable = 'SDF_Fsed_nit'
    Fsed_nit_model = 0
 /
 &aed_phosphorus
    frp_initial = 0.05
-   Ksed_frp = 6.9 !15 !3.686197
-   theta_sed_frp = 1.07 !1.09! 1.13 
+   Ksed_frp = 6.9
+   theta_sed_frp = 1.07
    phosphorus_reactant_variable = 'OXY_oxy'
    Fsed_frp_variable = 'SDF_Fsed_frp'
    simPO4Adsorption = .false.
@@ -147,7 +141,7 @@
    donr_initial = 9
    dopr_initial = 0.15
    cpom_initial = 0
-   Rdom_minerl = 0.02 !0.1
+   Rdom_minerl = 0.02
    Rpom_hydrol = 1e-04
    Rpoc_hydrol = 0.001
    Rpon_hydrol = 0.001
@@ -155,7 +149,7 @@
    theta_hydrol = 1.07
    theta_minerl = 1.07
    Kpom_hydrol = 15
-   Kdom_minerl = 32 !12
+   Kdom_minerl = 32
    simDenitrification = 1
    Fsed_doc_variable = 'SDF_Fsed_doc'
    dom_miner_oxy_reactant_var = 'OXY_oxy'
@@ -166,13 +160,13 @@
    f_an = 0.2063885
    K_nit = 10
    simRPools = .true.
-   Rdomr_minerl = 0.01 !0.0001 would be better but results in error in approx
+   Rdomr_minerl = 0.01
    Rcpom_bdown = 0.001
    X_cpom_n = 0.005
    X_cpom_p = 0.001
-   KeDOM =  0.005
+   KeDOM = 0.005
    KePOM = 0.00096
-   KeDOMR = 0.01 !was 0.1
+   KeDOMR = 0.01
    KeCPOM = 0.00096
    simphotolysis = .false.
    photo_c = 0.75
@@ -189,7 +183,6 @@
    Xsc = 0.5
    Xsn = 0.05
    Xsp = 0.005
-   !Fsed_doc = 0.5
    Fsed_don = 0
    Fsed_dop = 0
    Ksed_dom = 93.12891
@@ -244,6 +237,6 @@
    pp_target_variable = 'OGM_pop'
    dc_target_variable = 'OGM_doc'
    pc_target_variable = 'OGM_poc'
-   dbase = 'aed/aed_zoop_pars_3groups_4Sep2024.csv'
+   dbase = 'aed/aed_zoop_pars_3groups_4Sep2024_clads.csv'
    simZoopFeedback = .true.
 /

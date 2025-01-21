@@ -37,6 +37,7 @@ watertemp<-merge(modtemp, obstemp, by=c("DateTime","Depth")) |>
 
 # DO
 obs_oxy<-read.csv('field_data/CleanedObsOxy.csv') |> 
+  select(-OXY_sat) |>
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))|>
   filter(DateTime >= "2015-07-07")
 
@@ -47,6 +48,7 @@ mod_oxy <- get_var(nc_file, "OXY_oxy", reference='surface', z_out=depths) |>
 
 oxy_compare <- merge(mod_oxy, obs_oxy, by=c("DateTime","Depth")) |> 
   rename(mod_oxy = OXY_oxy.x, obs_oxy = OXY_oxy.y)
+
 
 # NH4
 obs_nh4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
@@ -226,6 +228,7 @@ mod_vars_final <- mod_vars |>
          "PHS_po4" = "PHS_frp",
          "PHY_chla" = "PHY_tchla") |>
   select(-c(NIT_nh4, NIT_no3, OGM_docl, OGM_docr)) |>
+  filter(OXY_oxysat >1) |>
   pivot_longer(cols = -c(DateTime,Depth), 
                names_pattern = "(...)_(...*)$",
                names_to = c("type", "var")) |> 
@@ -412,7 +415,7 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   ggplot(data=subset(scenarios_df, Depth %in% 0.1)) +
   geom_line(aes(x = as.POSIXct(DateTime), y = value, 
                 color = as.factor(scenario))) + xlab("") +
-  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+  scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                     breaks = c("baseline","plus1","plus5","plus10")) +
   facet_wrap(~var, ncol=3, scales = "free_y") + 
   theme_bw() + guides(fill = "none") +
@@ -450,7 +453,7 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
          aes(x = scenario, y = value, 
              fill = as.factor(scenario))) +
     geom_boxplot() + xlab("") +
-    scale_fill_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+    scale_fill_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
     scale_x_discrete(limits = c("baseline", "plus1", "plus5", "plus10")) +
     facet_wrap(~var, ncol=3, scales = "free_y") + 
@@ -481,7 +484,7 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
          aes(x = as.POSIXct(DateTime), y = value, 
              color = as.factor(scenario))) +
     geom_line() + xlab("") +
-    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+    scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
     facet_wrap(~var, ncol=3, scales = "free_y") + 
     theme_bw() + guides(fill = "none") +
@@ -532,7 +535,7 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
     facet_wrap(~variable, scales = "free",
                labeller = label_parsed) +
     xlab("") + theme_bw() +
-    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+    scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
@@ -562,7 +565,7 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
     facet_wrap(~variable, scales = "free",
                labeller = label_parsed) +
     xlab("") + theme_bw() +
-    scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+    scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
@@ -672,7 +675,7 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
                                 mean_mod_vars$scenario=="plus1" &
                                 mean_mod_vars$Depth==0.1])
-  
+    
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
                                 mean_mod_vars$scenario=="plus5" &
                                 mean_mod_vars$Depth==0.1])
@@ -683,6 +686,27 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
                                 mean_mod_vars$scenario=="plus10" &
                                 mean_mod_vars$Depth==0.1])
+  
+  
+ ( mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                mean_mod_vars$scenario=="plus10" &
+                                mean_mod_vars$Depth==0.1]) -
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                mean_mod_vars$scenario=="plus1" &
+                                mean_mod_vars$Depth==0.1])) /
+    mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                  mean_mod_vars$scenario=="plus1" &
+                                  mean_mod_vars$Depth==0.1]) *100
+  
+  ( mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                  mean_mod_vars$scenario=="plus10" &
+                                  mean_mod_vars$Depth==0.1]) -
+      mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                    mean_mod_vars$scenario=="plus5" &
+                                    mean_mod_vars$Depth==0.1])) /
+    mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+                                  mean_mod_vars$scenario=="plus5" &
+                                  mean_mod_vars$Depth==0.1]) *100
   
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
                                 mean_mod_vars$scenario=="baseline" &

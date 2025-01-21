@@ -183,3 +183,58 @@ mean(thermo_depth$value[lubridate::year(thermo_depth$DateTime) %in% "2016" &
 mean(thermo_depth$value[lubridate::year(thermo_depth$DateTime) %in% "2016" &
                           thermo_depth$scenario=="plus10"])
 
+# quick plot at % sat for all scenarios
+
+for(i in 1:length(scenario)){
+  
+  nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
+  
+psat <- get_var(nc_file, "OXY_sat", reference="surface", z_out=depths) |> 
+  pivot_longer(cols=starts_with("OXY_sat_"), names_to="Depth", names_prefix="OXY_sat_", values_to = "OXY_sat") |> 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07") |>
+  mutate(scenario = scenario[i]) |>
+  filter(Depth %in% c(0.1,9))
+
+assign(paste0("mod_psat_", scenario[i]), psat)
+
+}
+
+psat_scenarios <- mget(c("mod_psat_baseline","mod_psat_plus1",
+                       "mod_psat_plus5", "mod_psat_plus10")) |>
+                         setNames(paste0(scenario)) |>
+                         bind_rows(.id = "scenario") |>
+                         relocate(scenario, .after = last_col()) |>
+                         filter(OXY_sat > 1)
+                        
+
+
+ggplot(data=subset(psat_scenarios, Depth %in% 0.1)) +
+  geom_line(aes(x = as.POSIXct(DateTime), y = OXY_sat, 
+                color = as.factor(scenario))) + xlab("") +
+  scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+  theme_bw() + guides(fill = "none") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold",hjust = 0),
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing = unit(0.5, "lines"))
+#ggsave("figures/modeled_psat_scenarios_0.1.jpg", width=7, height=4)
+
+

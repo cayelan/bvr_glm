@@ -51,7 +51,7 @@
    timezone = -5
 /
 &output
-   out_dir = 'output'
+   out_dir = 'output/clads'
    out_fn = 'output'
    nsave = 24
    csv_lake_fname = 'lake'
@@ -114,7 +114,7 @@
    bsn_len_outl = 855.03
    bsn_wid_outl = 55.96
    outflow_fl = 'inputs/BVR_spillway_outflow_2015_2022_metInflow.csv'
-   outflow_factor = 0.9928 !0.9934
+   outflow_factor = 0.9928
 /
 &snowice
    snow_albedo_factor = 1

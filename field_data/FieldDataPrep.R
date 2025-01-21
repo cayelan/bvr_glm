@@ -25,12 +25,12 @@ depths<- c(0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 
 
 #read in CTD temp file from EDI to create field file, but first need to subset CTD data per each day to depths
-ctd<-read.csv(file.path(getwd(),'field_data/CTD_final_2013_2022.csv')) %>% #read in observed CTD data, which has multiple casts on the same day (problematic for comparison)
+ctd<-read.csv(file.path(getwd(),'field_data/CTD_final_2013_2022.csv')) |> #read in observed CTD data, which has multiple casts on the same day (problematic for comparison)
   filter(Reservoir=="BVR") |>
   filter(Site==50) |>
-  rename(time=DateTime, depth=Depth_m, temp=Temp_C, DO=DO_mgL, chla = Chla_ugL) |>
+  rename(time=DateTime, depth=Depth_m, temp=Temp_C, DO=DO_mgL, chla = Chla_ugL, DO_sat = DOsat_percent) |>
   mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d", tz="EST"))) |>
-  select(time, depth, temp, DO, chla) |>
+  select(time, depth, temp, DO, DO_sat, chla) |>
   filter(time <= as.Date("2022-05-04")) |>
   na.omit() 
 
@@ -77,7 +77,7 @@ detach(package:plyr)#to prevent issues with dplyr vs plyr not playing well toget
 
 #now need to clean up the data frame and make all factors numeric
 super_final1 <- super_final |>
-  select(time, new_depth, temp, DO, chla) |>
+  select(time, new_depth, temp, DO, DO_sat, chla) |>
   rename(depth = new_depth) |>
   mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d", tz="EST"))) |>
   filter(time > as.Date("2015-07-07")) #need to make sure that the CTD data only start after first day of sim
@@ -90,13 +90,13 @@ super_final1 <- super_final |>
 #try(download.file(inUrl2,infile2,method="curl"))
 #if (is.na(file.size(infile2))) download.file(inUrl2,infile2,method="auto")
 
-ysi <- read_csv('field_data/YSI_PAR_profiles_2013-2022.csv') %>% 
-  filter(Reservoir=="BVR") %>% 
-  filter(Site==50) %>% 
-  rename(time=DateTime,depth=Depth_m,temp=Temp_C,DO=DO_mgL) %>% 
-  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d",tz='EST'))) %>% 
-  select(time,depth,temp,DO) %>% 
-  filter(time <= as.Date("2022-05-04")) %>%
+ysi <- read_csv('./field_data/YSI_PAR_profiles_2013-2022.csv') |>
+  filter(Reservoir=="BVR") |>
+  filter(Site==50) |> 
+  rename(time=DateTime,depth=Depth_m,temp=Temp_C,DO=DO_mgL, DO_sat=DOsat_percent) |>
+  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d",tz='EST'))) |>
+  select(time,depth,temp,DO,DO_sat) |>
+  filter(time <= as.Date("2022-05-04")) |>
   na.omit()
 
 #Initialize an empty matrix with the correct number of rows and columns 
@@ -135,12 +135,12 @@ for (i in 1:length(dates)){
 detach(package:plyr)#to prevent issues with dplyr vs plyr not playing well together!
 
 #now need to clean up the data frame and make all factors numeric
-super_final_ysi1 <- super_final_ysi %>%
-  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d", tz="EST"))) %>%
-  dplyr::filter(time > "2015-07-07") %>% #need to make sure that the ysi data only start after first day of sim
-  mutate(diff = new_depth - depth) %>% 
-  dplyr::filter(abs(diff)<0.4)%>%
-  select(time, new_depth, temp, DO) %>%
+super_final_ysi1 <- super_final_ysi |>
+  mutate(time = as.POSIXct(strptime(time, "%Y-%m-%d", tz="EST"))) |>
+  dplyr::filter(time > "2015-07-07") |> #need to make sure that the ysi data only start after first day of sim
+  mutate(diff = new_depth - depth) |> 
+  dplyr::filter(abs(diff)<0.4) |>
+  select(time, new_depth, temp, DO, DO_sat) |>
   rename(depth = new_depth) 
 
 more2 <- merge(super_final1, super_final_ysi1, all.x=T, all.y=T, by=c("time", "depth"))
@@ -210,11 +210,20 @@ for(i in 1:length(more$time)){
   if(is.na(more$DO.x[i])==T & is.na(more$DO.y[i])==T){
     more$DO_new[i]=NA
   }
+  if(is.na(more$DO_sat.x[i])==F){
+    more$DO_sat_new[i]=more$DO_sat.x[i]
+  }
+  if(is.na(more$DO_sat.x[i])==T & is.na(more$DO_sat.y[i])==F){
+    more$DO_sat_new[i]=more$DO_sat.y[i]
+  }
+  if(is.na(more$DO_sat.x[i])==T & is.na(more$DO_sat.y[i])==T){
+    more$DO_sat_new[i]=NA
+  }
 }     
 
 more1 <- more %>% 
-  select(time, depth,temp_new,DO_new, chla) %>% 
-  rename(temp = temp_new, DO = DO_new) 
+  select(time, depth,temp_new,DO_new, DO_sat_new, chla) %>% 
+  rename(temp = temp_new, DO = DO_new, DO_sat = DO_sat_new) 
 
 #visualize the DO data
 for(i in 1:length(unique(more1$depth))){
@@ -222,6 +231,14 @@ for(i in 1:length(unique(more1$depth))){
   plot(tempdf$time,tempdf$DO, type='p', col='red',
        ylab='Oxygen mg/L', xlab='time',
        main = paste0("Combined CTD & YSI data,Depth=",depths[i]),ylim=c(0,15))
+}
+
+#visualize the DO sat data
+for(i in 1:length(unique(more1$depth))){
+  tempdf<-subset(more1, more1$depth==depths[i])
+  plot(tempdf$time,tempdf$DO_sat, type='p', col='red',
+       ylab='Oxygen %', xlab='time',
+       main = paste0("Combined CTD & YSI data,Depth=",depths[i]))
 }
 
 #visualize the temp data
@@ -261,11 +278,11 @@ temp <- more1 %>%
   drop_na() %>% 
   write.csv("field_data/CleanedObsTemp.csv", row.names = F)
 
-oxygen <- more1 %>%
-  select(time, depth, DO) %>%
-  rename(DateTime = time, Depth = depth, OXY_oxy=DO) %>%
-  mutate(OXY_oxy = OXY_oxy*1000/32) %>% #to convert mg/L to molar units
-  drop_na() %>% 
+oxygen <- more1 |>
+  select(time, depth, DO, DO_sat) |>
+  rename(DateTime = time, Depth = depth, OXY_oxy=DO, OXY_sat = DO_sat) |>
+  mutate(OXY_oxy = OXY_oxy*1000/32) |> #to convert mg/L to molar units
+  drop_na() 
   write.csv("field_data/CleanedObsOxy.csv", row.names = F)
 
 chla <- more1 %>%
