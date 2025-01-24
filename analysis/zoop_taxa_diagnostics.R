@@ -243,6 +243,9 @@ library(dplyr)
 
 # Specify the zip file path
 zip_file <- "./sims/spinup/baseline/output/baseline_taxa.zip"
+zip_file <- "./sims/spinup/plus1/output/plus1_taxa.zip"
+zip_file <- "./sims/spinup/plus5/output/plus5_taxa.zip"
+zip_file <- "./sims/spinup/plus10/output/plus10_taxa.zip"
 
 # Create a temporary directory to extract the files
 temp_dir <- tempdir()
@@ -316,13 +319,14 @@ for (file in nc_files) {
 }
 
 # Combine all taxa data frames into one
-baseline_diags <- bind_rows(clads, copes, rots)|>
+plus5_diags <- bind_rows(clads, copes, rots)|>
   mutate(mort = mort * -1,
          resp = resp * -1) |>
   pivot_longer(cols = c(grz, resp, mort),  
                names_to = "diag",         
                values_to = "value") |>
-  select(-file) 
+  select(-file) |>
+  mutate(scenario = "baseline")
 
 ggplot(baseline_diags, aes(x = time, y = value)) + 
   geom_area(aes(color = diag, fill = diag),
@@ -333,10 +337,10 @@ ggplot(baseline_diags, aes(x = time, y = value)) +
                        natparks.pals("Volcanoes", 5,  direction = -1))+
   scale_fill_manual(values = NatParksPalettes::
                       natparks.pals("Volcanoes", 5, direction = -1))+
-  ylab("diagnostics (mmolC/m3/day)")+ xlab("") +
+  ylab("Diagnostics (mmolC/m3/day)")+ xlab("") +
   scale_x_datetime(expand = c(0,0),labels = 
                      date_format("%Y",tz="EST5EDT")) +
-  #scale_y_continuous(expand = c(0,0), limits = c(-5,10))+
+  scale_y_continuous(expand = c(0,0), limits = c(-2,12))+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -354,62 +358,35 @@ ggplot(baseline_diags, aes(x = time, y = value)) +
         panel.spacing = unit(0.5, "lines"))
 ggsave("figures/BVR_stacked_zoop_diags_baseline.jpg", width=5, height=4) 
 
-zoop_diags <- 
-  purrr::reduce(list(zoop_diag_clads_last |> mutate(taxon = "cladoceran"), 
-                     zoop_diag_copes_last |> mutate(taxon = "copepod"), 
-                     zoop_diag_rots_last |> mutate(taxon = "rotifer")), 
-                     dplyr::full_join) |>
-  mutate(variable = case_when(
-      variable == "grz" ~ "grazing rate",
-      variable == "mort" ~ "mortality rate",
-      variable == "resp" ~ "respiration rate"),
-      year = lubridate::year(DateTime),
-      season = case_when(
-        lubridate::month(DateTime) %in% c(12,1,2) ~ "winter",
-        lubridate::month(DateTime) %in% c(3,4,5) ~ "spring",
-        lubridate::month(DateTime) %in% c(6,7,8) ~ "summer",
-        lubridate::month(DateTime) %in% c(9,10,11) ~ "fall")) |>
-  filter(year %in% c(2016:2021))
+#----------------------------------------------------------------------#
+# write modeled vars to file
+#taxa_diags_scenarios <-  mget(c("baseline_diags","plus1_diags",
+#                 "plus5_diags", "plus10_diags")) |>
+#                   setNames(paste0(scenario)) |>
+#                   bind_rows(.id = "scenario") |>
+#                   relocate(scenario, .after = last_col()) |>
+#             filter(time >= as.POSIXct("2015-07-07")) 
+#write.csv(taxa_diags_scenarios, "./analysis/data/taxa_diags_scenarios.csv", row.names = F)
 
-ggplot(zoop_diags, 
-              aes(x = as.factor(year), y = value, fill = taxon)) + 
-  geom_boxplot() + theme_bw() +
-  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
-                     breaks = c("cladoceran","copepod","rotifer"))+
-  ylab("rate (mmolC/m3/day)")+ xlab("") +
-  facet_wrap(~ paste(variable, season, sep = " - "), scales = "free_y", nrow=3) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.key = element_blank(),
-        legend.background = element_blank(),
-        legend.position = "top",
-        legend.direction = "horizontal",
-        legend.title = element_blank(),
-        text = element_text(size=8), 
-        axis.text.y = element_text(size = 8),
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_text(face = "bold",hjust = 0),
-        axis.text.x = element_text(angle=0),
-        strip.background.x = element_blank(),
-        axis.title.y = element_text(size = 9),
-        legend.margin = margin(c(-0,-10,-15,-10)),
-        plot.margin = unit(c(0, 1, 0, 0), "cm"),
-        panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/taxa_diag_yearly_boxplots_seasons.jpg", width=6, height=6)
-
-zoop_diags_summary <- zoop_diags |>
-  group_by(year = lubridate::year(DateTime), taxon, variable) |>
-  summarize(mean_rate = mean(value, na.rm = TRUE), .groups = "drop")
+zoop_diags_summary <- taxa_diags_scenarios |>
+  mutate(DateTime = time,
+         diag = case_when(diag == "grz" ~ "Grazing", 
+                          diag == "mort" ~ "Mortality",
+                          diag == "resp" ~ "Respiration"),
+         scenario = factor(str_to_title(scenario), levels = c("Baseline", "Plus1", "Plus5", "Plus10"))) |>
+  group_by(year = lubridate::year(DateTime), taxon, diag, scenario) |>
+  summarize(mean_rate = mean(value, na.rm = TRUE), .groups = "drop") |>
+  mutate(combined_label = paste0(scenario, " ", diag)) 
 
 ggplot(zoop_diags_summary, aes(x = year, y = mean_rate, color = taxon)) +
   geom_line(size = 1) +
   geom_point() +
-  facet_wrap(~variable, scales = "free_y", nrow = 3) +
+  facet_grid(rows = vars(diag), cols = vars(scenario), scales = "free_y") +
   scale_color_manual(values = c("#084c61", "#db504a", "#e3b505"),
-                     breaks = c("cladoceran", "copepod", "rotifer")) +
+                     breaks = c("clads", "copes", "rots"),
+                     labels = c("Cladoceran","Copepod","Rotifer")) +
   theme_bw() +
-  ylab("Mean Rate (mmolC/m3/day)") +
+  ylab("Mean rate (mmolC/m3/day)") +
   xlab("") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -425,8 +402,51 @@ ggplot(zoop_diags_summary, aes(x = year, y = mean_rate, color = taxon)) +
         strip.text.x = element_text(face = "bold",hjust = 0),
         axis.text.x = element_text(angle=0),
         strip.background.x = element_blank(),
+        strip.background.y = element_blank(), 
         axis.title.y = element_text(size = 9),
         legend.margin = margin(c(-0,-10,-15,-10)),
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
         panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/annual_zoop_diag.jpg", width=6, height=6)
+#ggsave("figures/annual_zoop_diag.jpg", width=6, height=4)
+
+# numbers for manuscript
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &
+                                    zoop_diags_summary$scenario=="Baseline" & #highest grz
+                                    zoop_diags_summary$diag=="Grazing"])
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &
+                                    zoop_diags_summary$scenario=="Plus1" &
+                                    zoop_diags_summary$diag=="Grazing"])
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &
+                                    zoop_diags_summary$scenario=="Plus5" &
+                                    zoop_diags_summary$diag=="Grazing"]) #lowest grz
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &
+                                    zoop_diags_summary$scenario=="Plus10" &
+                                    zoop_diags_summary$diag=="Grazing"]) #lowest mort + resp
+
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="copes" &
+                                    zoop_diags_summary$scenario=="Baseline" &
+                                    zoop_diags_summary$diag=="Grazing"])
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="copes" &
+                                    zoop_diags_summary$scenario=="Plus1" & #highest grz
+                                    zoop_diags_summary$diag=="Grazing"])
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="copes" &
+                                    zoop_diags_summary$scenario=="Plus5" &
+                                    zoop_diags_summary$diag=="Grazing"]) 
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="copes" &
+                                    zoop_diags_summary$scenario=="Plus10" &
+                                    zoop_diags_summary$diag=="Grazing"]) #lowest grz, resp, mort
+
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="rots" &
+                                    zoop_diags_summary$scenario=="Baseline" &
+                                    zoop_diags_summary$diag=="Grazing"])
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="rots" &
+                                    zoop_diags_summary$scenario=="Plus1" & #lowest grz, mort, resp
+                                    zoop_diags_summary$diag=="Grazing"])
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="rots" &
+                                    zoop_diags_summary$scenario=="Plus5" &
+                                    zoop_diags_summary$diag=="Grazing"]) 
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="rots" &
+                                    zoop_diags_summary$scenario=="Plus10" &
+                                    zoop_diags_summary$diag=="Grazing"]) #highest grz
+
+
