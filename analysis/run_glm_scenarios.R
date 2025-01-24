@@ -57,8 +57,8 @@ all_scenarios_output <- reduce(list(baseline, plus1C, plus5C,plus10C),
 #plot surf temp
 ggplot(all_scenarios_output, aes(time, Surface.Temp, color=as.factor(scenario))) +
   geom_line() + theme_bw() + xlab("") + 
-  ylab(expression("Surface Temperature ("*degree*C*")")) +
-  scale_color_manual("", values = c("#00603d","#c6a000","#c85b00","#680000"),
+  ylab(expression("Surface temperature ("*degree*C*")")) +
+  scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),

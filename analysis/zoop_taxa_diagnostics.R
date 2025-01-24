@@ -77,14 +77,14 @@ all_zoops <- purrr::reduce(list(clad, cope, rot), dplyr::full_join)
 
 all_zoops_obs <- purrr::reduce(list(clad_obs, cope_obs, rot_obs), dplyr::full_join) |> 
   dplyr::group_by(DateTime) |>
-  dplyr::mutate(ZOO_total = sum(ZOO_cladoceran, ZOO_copepod, ZOO_rotifer)) |>
+  dplyr::mutate(ZOO_total = sum(ZOO_cladoceran, ZOO_copepod, ZOO_rotifer, na.rm=T)) |>
   tidyr::pivot_longer(cols = -c(DateTime), 
                       names_pattern = "(...)_(...*)$",
                       names_to = c("mod", "taxon")) |> 
   na.omit() |> 
   dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::mutate(value = value * 12.011) |> # convert to ug/L
-  dplyr::filter(value < 6000) # just to make the plot look better
+  dplyr::mutate(value = value * 12.011 / 1000) |> # convert to mg/L
+  dplyr::filter(value < 6) # just to make the plot look better
   
 #convert from wide to long for plotting
 all_zoops_final <- all_zoops |> 
@@ -97,39 +97,41 @@ all_zoops_final <- all_zoops |>
                 year = lubridate::year(DateTime),
                 doy = lubridate::yday(DateTime)) |>
   dplyr::ungroup() |>
-  dplyr::group_by(year) |>
-  dplyr::mutate(annual_sum = sum(value)) |>
-  dplyr::ungroup() |>
-  dplyr::mutate(annual_prop = (daily_sum / annual_sum) * 100) |>
   na.omit() |>
-  dplyr::mutate(value = value * 12.011) # convert to ug/L |>
-  dplyr::mutate(scenario = sceanrio[i])
+  dplyr::mutate(value = value * 12.011 / 1000) |># convert to mg/L 
+  dplyr::mutate(scenario = scenario[i])
   
   #now create a dynamic df name
   assign(paste0("all_zoops_", scenario[i]), all_zoops_final)
   
   }
 
-#now create a dynamic df name
-#assign("all_zoops_rots_last", all_zoops_final)
+#create a combined zoop df with all scenarios
+#zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
+#                 "all_zoops_plus5", "all_zoops_plus10")) |>
+#                   setNames(paste0(scenario)) |>
+#                   bind_rows(.id = "scenario") |>
+#                   relocate(scenario, .after = last_col()) |>
+#  filter(DateTime >= as.Date("2015-07-07"))
+#  write.csv(zoop_scenarios, "./analysis/data/zoop_scenarios.csv", row.names = F)
+
 
 # reorder the 'taxon' factor levels
-all_zoops_final$taxon <- factor(all_zoops_final$taxon, 
-                                levels = c("total", "cladoceran", "copepod", "rotifer"))
-all_zoops_obs$taxon <- factor(all_zoops_obs$taxon, 
-                              levels = c("total", "cladoceran", "copepod", "rotifer"))
-
+facet_labels <- c("Cladoceran", "Copepod", "Rotifer", "Total biomass")
+names(facet_labels) <- c("cladoceran", "copepod", "rotifer","total")
 
 # plot zoops
-ggplot() +
-  geom_line(data=all_zoops_final, aes(DateTime, value)) + 
+plot2 <- ggplot() +
+  geom_line(data=all_zoops_baseline, aes(DateTime, value)) + 
   geom_point(data=all_zoops_obs,
             aes(DateTime, value, color=taxon)) +
   theme_bw() + xlab("") + guides(color = "none") +
-  facet_wrap(~taxon, scales = "free_y", nrow=2) +
-  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
-  scale_color_manual(values = c("black","#084c61","#db504a","#e3b505"),
-                     breaks = c("total","cladoceran","copepod","rotifer"))+
+  facet_wrap(~taxon, scales = "free_y", nrow=2,
+             labeller = labeller(taxon = facet_labels)) +
+  ylab(expression("Biomass (mg L"^{-1}*")")) +
+  scale_color_manual(values = c("#084c61","#db504a","#e3b505","red"),
+                     breaks = c("cladoceran","copepod","rotifer", "total"))+
+  tag_facets(tag_pool = letters[7:10] ) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -139,28 +141,30 @@ ggplot() +
         text = element_text(size=10), 
         panel.border = element_rect(colour = "black", fill = NA),
         strip.background.x = element_blank(),
-        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
-        legend.margin = margin(c(-10,-10,-10,-10)),
+        plot.margin = unit(c(1, 0.1, 0, 0), "cm"),
         legend.key = element_rect(fill = "transparent"),
         legend.direction = "horizontal",
         panel.spacing.x = unit(0.1, "in"),
-        panel.background = element_rect(
-          fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
+        panel.spacing.y = unit(0, "lines"),
+        strip.background = element_blank(),
+        panel.background = element_rect(fill = "transparent", colour = NA), 
+        plot.background = element_rect(fill = "transparent", colour = NA))
 #ggsave("figures/zoop_mod_vs_obs_copes_last.jpg", width=6, height=4)
 
 ggplot() +
-  geom_line(data=subset(all_zoops_final, !taxon %in% "total"),
+  geom_line(data=subset(all_zoops_baseline, !taxon %in% "total"),
             aes(DateTime, value, color=taxon)) + 
-  theme_bw() + xlab("") + guides(color = "none") +
-  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
+  theme_bw() + xlab("") +
+  ylab(expression("Biomass (mg L"^{-1}*")")) +
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"),
-                     breaks = c("cladoceran","copepod","rotifer"))+
+                     breaks = c("cladoceran","copepod","rotifer"),
+                     labels = c("Cladoceran","Copepod","Rotifer"))+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
         legend.background = element_blank(),
-        legend.position = "top",
+        legend.position = c(0.75,0.95),
+        legend.direction = "horizontal",
         legend.title = element_blank(),
         text = element_text(size=10), 
         panel.border = element_rect(colour = "black", fill = NA),
@@ -168,7 +172,6 @@ ggplot() +
         plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
         legend.margin = margin(c(-10,-10,-10,-10)),
         legend.key = element_rect(fill = "transparent"),
-        legend.direction = "horizontal",
         panel.spacing.x = unit(0.1, "in"),
         panel.background = element_rect(
           fill = "white"),
@@ -187,6 +190,19 @@ sd(all_zoops_final$value[all_zoops_final$taxon=="copepod"])
 
 mean(all_zoops_final$value[all_zoops_final$taxon=="rotifer"])
 sd(all_zoops_final$value[all_zoops_final$taxon=="rotifer"])
+
+#add months to zoop df
+all_zoops_final <- all_zoops_final |>
+  mutate(month = lubridate::month(DateTime)) 
+  
+(mean(all_zoops_final$value[all_zoops_final$taxon=="total" & 
+                              all_zoops_final$month %in% c(12,1,2)]) -
+    mean(all_zoops_final$value[all_zoops_final$taxon=="total" & 
+                                 all_zoops_final$month %in% c(6,7,8)])) /
+  (mean(all_zoops_final$value[all_zoops_final$taxon=="total" & 
+                                all_zoops_final$month %in% c(12,1,2)]) +
+     mean(all_zoops_final$value[all_zoops_final$taxon=="total" & 
+                                  all_zoops_final$month %in% c(6,7,8)])) /2
 
 #------------------------------------------------------------------------#
 # zoop diags for all taxa and scenarios
@@ -414,77 +430,3 @@ ggplot(zoop_diags_summary, aes(x = year, y = mean_rate, color = taxon)) +
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/annual_zoop_diag.jpg", width=6, height=6)
-
-#---------------------------------------------------------------------#
-# GOF table for zoops
-
-# Full water column, full period (2015-2022)
-zoop_gof <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","clad"))
-zoop_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
-                        "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
-                        "NSE_all","mNSE_all","rNSE_all","wNSE_all",
-                        "wsNSE_all","d_all","dr_all","md_all","rd_all",
-                        "cp_all","r_all","R2_all","bR2_all","VE_all",
-                        "KGE_all","KGElf_all","KGEnp_all","KGEkm_all", 
-                        "r.Spearman","nonparamR2") 
-
-#combine obs and mod for each group
-clad_final <- inner_join(clad, clad_obs, by = "DateTime") |>
-  rename(clad_mod = ZOO_cladoceran.x, clad_obs = ZOO_cladoceran.y)
-cope_final <- inner_join(cope, cope_obs, by = "DateTime") |>
-  rename(cope_mod = ZOO_copepod.x, cope_obs = ZOO_copepod.y)
-rot_final <- inner_join(rot, rot_obs, by = "DateTime") |>
-  rename(rot_mod = ZOO_rotifer.x, rot_obs = ZOO_rotifer.y)
-
-
-# calculate all gof metrics for full period + each zoop
-zoop_gof$clad <- c(gof(clad_final$clad_mod, clad_final$clad_obs,do.spearman = TRUE), NA)
-zoop_gof$cope <- c(gof(cope_final$cope_mod,cope_final$cope_obs,do.spearman = TRUE), NA)
-zoop_gof$rot <- c(gof(rot_final$rot_mod,rot_final$rot_obs,do.spearman = TRUE), NA)
-
-#create ranked dfs for nonparametric R2 calcs
-comb_clad_rank <- clad_final |> 
-  mutate(rank_obs = rank(clad_obs),
-         rank_mod = rank(clad_mod)) 
-comb_cope_rank <- cope_final |> 
-  mutate(rank_obs = rank(cope_obs),
-         rank_mod = rank(cope_mod)) 
-comb_rot_rank <- rot_final |> 
-  mutate(rank_obs = rank(rot_obs),
-         rank_mod = rank(rot_mod)) 
-
-# calculate non-parametric (ranked) R2, following Brett et al. 2016
-zoop_gof$clad[29] <- summary(lm(comb_clad_rank$rank_obs ~ comb_clad_rank$rank_mod))$r.squared
-zoop_gof$cope[29] <- summary(lm(comb_cope_rank$rank_obs ~ comb_cope_rank$rank_mod))$r.squared
-zoop_gof$rot[29] <- summary(lm(comb_rot_rank$rank_obs ~ comb_rot_rank$rank_mod))$r.squared
-
-####Cleaning up table ####
-## Add NMAE calculation for all parameters
-zoop_gof[nrow(zoop_gof)+1,] <- NA
-zoop_gof[30,1] <- "NMAE_all"
-zoop_gof$Parameter[28] <- "r.Spearman_all"
-zoop_gof$clad[30] <- round(zoop_gof$clad[2]/mean(clad_final$clad_obs, 
-                                                 na.rm=T),digits = 2)
-zoop_gof$cope[30] <- round(zoop_gof$cope[2]/mean(cope_final$cope_obs, 
-                                                 na.rm=T),digits = 2)
-zoop_gof$rot[30] <- round(zoop_gof$rot[2]/mean(rot_final$rot_obs, 
-                                               na.rm=T),digits = 2)
-
-# Select GOF variables
-full_n_all <- c("n_all",length(na.omit(clad_final$clad_obs)), 
-                length(na.omit(cope_final$cope_obs)),
-                length(na.omit(rot_final$rot_obs)))
-
-
-zoop_gof_all_table <- zoop_gof %>% 
-  filter(Parameter == "r.Spearman_all" | Parameter == "R2_all" | Parameter == "RMSE_all" | Parameter == "PBIAS%_all" | Parameter == "NMAE_all")
-
-zoop_gof_table <- rbind(full_n_all,zoop_gof_all_table)
-
-write_csv(zoop_gof_table,'figures/table_gof_bvr_zoops_2015-2022.csv')
-
-# calculate total RMSE for all zoop groups for ms result text
-sqrt(as.numeric(zoop_gof_table$clad[zoop_gof_table$Parameter=="RMSE_all"])^2 +
-as.numeric(zoop_gof_table$cope[zoop_gof_table$Parameter=="RMSE_all"])^2 +
-as.numeric(zoop_gof_table$rot[zoop_gof_table$Parameter=="RMSE_all"])^2 )* 12.011 #to convert to ug/L
-

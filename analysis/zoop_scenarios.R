@@ -4,113 +4,8 @@
 devtools::install_github("eliocamp/tagger")
 pacman::p_load(ggplot2,ggridges,dplyr, ARTool, FSA, egg, tagger)
 
-scenario <- c("baseline","plus1", "plus5","plus10")
 
-for (i in 1:length(scenario)){
-
-nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
-  
-#save zoop output
-var="ZOO_cladoceran"
-clad_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
-  dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-  dplyr::select(DateTime, var) |> 
-  na.omit() 
-
-# Function to get zoop data for varying depths
-get_zoops <- function(depths, nc_file, var) {
-  lapply(depths, function(z) {
-    if (z == 0) {
-      glmtools::get_var(file = nc_file, var_name = var, z_out = z, reference = 'surface')
-    } else {
-      glmtools::get_var(file = nc_file, var_name = var, z_out = z, reference = 'surface') |>
-        dplyr::select(-DateTime)
-    }
-  }) |> 
-    dplyr::bind_cols()
-  
-}
-
-# Define depth range and call the function
-depths <- seq(0, 11, by = 0.5)
-clad_full_wc <- get_zoops(depths, nc_file, var)
-
-#sum all depths
-clad <- clad_full_wc |> 
-  dplyr::mutate(ZOO_cladoceran = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
-  dplyr::select(DateTime, ZOO_cladoceran) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::filter(DateTime >= "2015-07-08")
-
-var="ZOO_copepod"
-cope_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
-  dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-  dplyr::select(DateTime, var) |> 
-  na.omit() 
-
-cope_full_wc <- get_zoops(depths, nc_file, var)
-
-#sum all depths
-cope <- cope_full_wc |> 
-  dplyr::mutate(ZOO_copepod = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-  dplyr::select(DateTime, ZOO_copepod) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::filter(DateTime >= "2015-07-08")
-
-var="ZOO_rotifer"
-rot_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
-  dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-  dplyr::select(DateTime, var) |> 
-  na.omit() 
-
-rot_full_wc <- get_zoops(depths, nc_file, var)
-
-#sum all depths
-rot <- rot_full_wc |> 
-  dplyr::mutate(ZOO_rotifer = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-  dplyr::select(DateTime, ZOO_rotifer) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::filter(DateTime >= "2015-07-08")
-
-
-#combine into one df 
-all_zoops <- purrr::reduce(list(clad, cope, rot), dplyr::full_join)  |> 
-  dplyr::group_by(DateTime) |>
-  dplyr::mutate(ZOO_total = sum(ZOO_cladoceran, ZOO_copepod, ZOO_rotifer)) 
-
-all_zoops_obs <- purrr::reduce(list(clad_obs, cope_obs, rot_obs), dplyr::full_join) |> 
-  tidyr::pivot_longer(cols = -c(DateTime), 
-               names_pattern = "(...)_(...*)$",
-               names_to = c("mod", "taxon")) |> 
-  na.omit() |> 
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::mutate(value = value * 12.011) |> # convert to ug/L
-  dplyr::filter(value < 6000) # just to make the plot look better
-
-#convert from wide to long for plotting
-all_zoops_final <- all_zoops |> 
-  tidyr::pivot_longer(cols = -c(DateTime), 
-               names_pattern = "(...)_(...*)$",
-               names_to = c("mod", "taxon")) |> 
-  dplyr::group_by(DateTime) |>
-  dplyr::mutate(daily_sum = sum(value),
-                year = lubridate::year(DateTime),
-                doy = lubridate::yday(DateTime)) |>
-  dplyr::ungroup() |>
-  dplyr::group_by(year) |>
-  dplyr::mutate(annual_sum = sum(value)) |>
-  dplyr::ungroup() |>
-  dplyr::mutate(annual_prop = (daily_sum / annual_sum) * 100) |>
-  na.omit() |>
-  dplyr::mutate(value = value * 12.011) |> # convert to ug/L 
-  dplyr::mutate(scenario = scenario[i])
-
-#now create a dynamic df name
-assign(paste0("all_zoops_", scenario[i]), all_zoops_final)
-}
-
-#------------------------------------------------------------------#
-# same for phytos
+# phytos
 for (i in 1:length(scenario)){
   
   nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
@@ -219,82 +114,6 @@ ggplot() +
         panel.spacing.y = unit(0, "lines"))
 #ggsave("figures/phytos_fullwc_baseline.jpg", width=6, height=6)
 #ggsave("figures/phytos_0.5_9m_baseline.jpg", width=6, height=6)
-
-
-#-------------------------------------------------------------------------#
-# And lastly chla 
-
-for (i in 1:length(scenario)){
-  
-  nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
-  
-var="PHY_tchla"
-chla_obs <- read.csv('field_data/CleanedObsChla.csv', header=TRUE) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime))  |> 
-  dplyr::filter(Depth %in% 0.1) |>
-  na.omit()
-
-#read mod chla - calculating this by hand bc something is wrong with the glm aed calc
-cyano<- glmtools::get_var(file = nc_file, var_name = "PHY_cyano", z_out = 0.1) |>
-  rename('PHY_cyano' = 'PHY_cyano.elv_0.1') |>
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::filter(DateTime >= "2015-07-08")
-
-green<- glmtools::get_var(file = nc_file, var_name = "PHY_green", z_out = 0.1) |>
-  rename('PHY_green' = 'PHY_green.elv_0.1') |>
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::filter(DateTime >= "2015-07-08")
-
-diatom<- glmtools::get_var(file = nc_file, var_name = "PHY_diatom", z_out = 0.1) |>
-  rename('PHY_diatom' = 'PHY_diatom.elv_0.1') |>
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::filter(DateTime >= "2015-07-08")
-
-#combine into one df 
-surf_phytos <- purrr::reduce(list(cyano, green, diatom), dplyr::full_join) 
-
-#convert from wide to long for plotting
-chla_mod <- surf_phytos |> 
-  tidyr::pivot_longer(cols = -c(DateTime), 
-                      names_pattern = "(...)_(...*)$",
-                      names_to = c("mod", "taxon")) |> 
-  group_by(DateTime) |>
-  mutate(group_chl = ifelse(taxon=="cyano", (value * 12) / 80,
-                            ifelse(taxon=="green", (value * 12) / 30,
-                                   (value * 12) / 40)),
-         chla = sum(group_chl)) |>
-  select(DateTime, chla)
-
-#now create a dynamic df name
-assign(paste0("chla_", scenario[i]), chla_mod)
-}
-
-# quick chla plot
-ggplot() +
-  geom_line(data=chla_mod,
-            aes(DateTime, chla)) +
-  geom_point(data=chla_obs, aes(DateTime,PHY_tchla), col="red") +
-  theme_bw() + xlab("") +
-  ylab(expression("Chlorophyll " * italic(a) * " (" * mu * "g/L" * ")")) +
-  scale_color_manual("", values = c("cyan","green","#680000"),
-                     breaks = c("cyano","green","diatom")) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.background = element_blank(),
-        legend.position = c(0.28,0.98),
-        text = element_text(size=10), 
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_blank(),
-        strip.background.x = element_blank(),
-        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
-        legend.key = element_rect(fill = "transparent"),
-        legend.direction = "horizontal",
-        panel.spacing.x = unit(0.1, "in"),
-        panel.background = element_rect(
-          fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/chla_0.1m_baseline.jpg", width=6, height=6)
 
 #------------------------------------------------------------------#
 # plot zoops
@@ -427,55 +246,8 @@ ggplot() +
         panel.spacing.y = unit(0, "lines"))
 #ggsave("figures/proportional_phyto_scenario_airtemp_1_5_10.jpg", width=6, height=6)
 
-# plot chla
-ggplot() +
-  geom_line(data=subset(chla_baseline, Depth %in% 0 & 
-                          DateTime >= as.Date("2015-07-07")),
-            aes(DateTime, PHY_tchla, color = "+0C")) +
-  geom_line(data=subset(chla_plus1, Depth %in% 0 & 
-                          DateTime >= as.Date("2015-07-07")),
-            aes(DateTime, PHY_tchla, color = "+1C")) +
-  geom_line(data=subset(chla_plus5, Depth %in% 0 & 
-                          DateTime >= as.Date("2015-07-07")),
-            aes(DateTime, PHY_tchla, color = "+5C")) +
-  geom_line(data=subset(chla_plus10, Depth %in% 0 & 
-                          DateTime >= as.Date("2015-07-07")),
-            aes(DateTime, PHY_tchla, color = "+10C")) +
-  geom_point(data=subset(chla_obs, Depth %in% 0.1 & 
-                           DateTime >= as.Date("2015-07-07")),
-             aes(DateTime, PHY_tchla, color = "observed")) +
-  theme_bw() + xlab("") +
-  scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000","red"),
-                     breaks = c("+0C","+1C","+5C","+10C","observed")) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.background = element_blank(),
-        legend.position = c(0.32,0.98),
-        text = element_text(size=10), 
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_blank(),
-        strip.background.x = element_blank(),
-        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
-        legend.key = element_rect(fill = "transparent"),
-        legend.direction = "horizontal",
-        panel.spacing.x = unit(0.1, "in"),
-        panel.background = element_rect(
-          fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/chla_0.1m_scenario_airtemp.jpg", width=6, height=6)
-
 #------------------------------------------------------------------------#
 # proportional plankton figs for each scenario
-
-#create a combined zoop df with all scenarios
-#zoop_scenarios <-  mget(c("all_zoops_baseline","all_zoops_plus1",
-#                 "all_zoops_plus5", "all_zoops_plus10")) |>
-#                   setNames(paste0(scenario)) |>
-#                   bind_rows(.id = "scenario") |>
-#                   relocate(scenario, .after = last_col()) |>
-#  filter(DateTime >= as.Date("2015-07-07"))
-#  write.csv(zoop_scenarios, "./analysis/data/zoop_scenarios.csv", row.names = F)
 
 zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   mutate(DateTime = as.Date(DateTime)) |>
@@ -483,8 +255,7 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   group_by(taxon, scenario) |>
   mutate(mean_biom = mean(value)) |>
   ungroup() |>
-  mutate(diff = value - mean_biom) |>
-  mutate(value = value * 12.011) # convert from from mmol/m3 C to ug/L
+  mutate(diff = value - mean_biom) 
 
 # relative zoop density for baseline vs. plus 10
 area <-  ggplot(data = subset(zoop_scenarios, 
@@ -598,6 +369,9 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="copepod" &
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="copepod" &
                                         mean_proportions$scenario=="baseline"])
 
+mean(mean_proportions$mean_proportion[mean_proportions$taxon=="copepod" &
+                                        mean_proportions$scenario=="plus5"])
+
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
                                         mean_proportions$scenario=="plus10"]) -
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
@@ -613,7 +387,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
                        breaks = c("baseline","plus1","plus5","plus10")) +
     scale_x_date(expand = c(0,0), date_breaks = "1 year", 
                  date_labels = "%Y") +
-    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
+    ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
@@ -645,7 +419,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
     scenario,levels=c("baseline","plus1","plus5","plus10")),
     y = value, fill = taxon)) +
     geom_boxplot() + facet_wrap(~year, scales = "free_y") +
-    labs(y = expression("Biomass (mmol m"^{3}*")"), x = "") +
+    labs(y = expression("Biomass (mg L"^{-1}*")"), x = "") +
     theme_bw() + scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
@@ -680,12 +454,9 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
       group = interaction(taxon, scenario))) + 
     geom_smooth(method = "loess") +
     facet_wrap(~taxon, nrow=1)+ 
-    #scale_x_discrete(labels = c("January","February","March","April",
-    #                            "May","June","July","August","September",
-    #                            "October","November","December")) +
     scale_x_discrete(labels = c("Jan","","Mar","", "May", "", "Jul",
                                 "","Sep", "","Nov","")) +
-    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
+    ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
     scale_color_manual("", values = c("#147582", "#c6a000", "#c85b00", "#680000"),
                        breaks = c("baseline", "plus1", "plus5", "plus10")) +
     theme(panel.grid.major = element_blank(), 
@@ -723,7 +494,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
     geom_smooth(method = "loess") +
     facet_grid(taxon ~ year, scales = "free_y") +
     scale_x_discrete(labels = c("Jan","","","","May","","","","Sep","","","")) +
-    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
+    ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
     scale_color_manual( "", 
       values = c("#147582", "#c6a000", "#c85b00", "#680000"),
       breaks = c("baseline", "plus1", "plus5", "plus10") ) +
@@ -762,12 +533,12 @@ zoop_mean_biom <-  zoop_scenarios |>
   ggplot(data=zoop_mean_biom, aes(x=factor(
     scenario,levels=c("baseline","plus1","plus5","plus10")), 
              y = mean_biom, fill=taxon)) +
-    geom_boxplot() + ylim(0,15100) +
+    geom_boxplot() + ylim(0,1.3) +
     scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
-    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
+    ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
     geom_text(data = subset(zoop_mean_biom, scenario == "plus10" & taxon == "rotifer"),
               aes(x = c(1.24,2.24,3.24,4.24,NA,NA), 
-                  y = c(7600,8600,10700,12200,0,0), 
+                  y = c(0.7,0.8,1,1,0,0), 
                   label = c("a","a","b","b","","")), 
               size = 5, color = "black") +
     theme(panel.grid.major = element_blank(), 
@@ -795,7 +566,7 @@ zoop_mean_biom <-  zoop_scenarios |>
   #KW tests - does mean biomass differ across scenarios for each taxa?
   kruskal.test(mean_biom ~ scenario, data = 
                  zoop_mean_biom[zoop_mean_biom$taxon=="cladoceran",])
-  # no p  ~= 0.05
+  # no p > 0.05
   kruskal.test(mean_biom ~ scenario, data = 
                  zoop_mean_biom[zoop_mean_biom$taxon=="copepod",])
   # no p > 0.05
@@ -821,90 +592,72 @@ zoop_mean_biom <-  zoop_scenarios |>
                                   zoop_mean_biom$taxon=="rotifer"]) - 
     mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                     zoop_mean_biom$taxon=="rotifer"])) /
-   ((mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus10" &
-                                    zoop_mean_biom$taxon=="rotifer"]) + 
     mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
-                                    zoop_mean_biom$taxon=="rotifer"])) / 2) *100
+                                    zoop_mean_biom$taxon=="rotifer"])  *100
   
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus1" &
                                    zoop_mean_biom$taxon=="rotifer"]) - 
       mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                       zoop_mean_biom$taxon=="rotifer"])) /
-    ((mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus1" &
-                                      zoop_mean_biom$taxon=="rotifer"]) + 
         mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
-                                        zoop_mean_biom$taxon=="rotifer"])) / 2) *100
+                                        zoop_mean_biom$taxon=="rotifer"]) *100
   
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus5" &
                                    zoop_mean_biom$taxon=="rotifer"]) - 
       mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                       zoop_mean_biom$taxon=="rotifer"])) /
-    ((mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus5" &
-                                      zoop_mean_biom$taxon=="rotifer"]) + 
         mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
-                                        zoop_mean_biom$taxon=="rotifer"])) / 2) *100
+                                        zoop_mean_biom$taxon=="rotifer"]) *100
   
   #clads
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus10" &
                                    zoop_mean_biom$taxon=="cladoceran"]) - 
       mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                       zoop_mean_biom$taxon=="cladoceran"])) /
-    ((mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus10" &
-                                      zoop_mean_biom$taxon=="cladoceran"]) + 
         mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
-                                        zoop_mean_biom$taxon=="cladoceran"])) / 2) *100
+                                        zoop_mean_biom$taxon=="cladoceran"]) *100
   
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus1" &
                                    zoop_mean_biom$taxon=="cladoceran"]) - 
       mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                       zoop_mean_biom$taxon=="cladoceran"])) /
-    ((mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus1" &
-                                      zoop_mean_biom$taxon=="cladoceran"]) + 
         mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
-                                        zoop_mean_biom$taxon=="cladoceran"])) / 2) *100
+                                        zoop_mean_biom$taxon=="cladoceran"]) *100
   
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus5" &
                                    zoop_mean_biom$taxon=="cladoceran"]) - 
       mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                       zoop_mean_biom$taxon=="cladoceran"])) /
-    ((mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus5" &
-                                      zoop_mean_biom$taxon=="cladoceran"]) + 
         mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
-                                        zoop_mean_biom$taxon=="cladoceran"])) / 2) *100 
+                                        zoop_mean_biom$taxon=="cladoceran"]) *100 
   #copes
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus10" &
                                    zoop_mean_biom$taxon=="copepod"]) - 
       mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                       zoop_mean_biom$taxon=="copepod"])) /
-    ((mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus10" &
-                                      zoop_mean_biom$taxon=="copepod"]) + 
         mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
-                                        zoop_mean_biom$taxon=="copepod"])) / 2) *100
+                                        zoop_mean_biom$taxon=="copepod"]) *100
   
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus1" &
                                    zoop_mean_biom$taxon=="copepod"]) - 
       mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                       zoop_mean_biom$taxon=="copepod"])) /
-    ((mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus1" &
-                                      zoop_mean_biom$taxon=="copepod"]) + 
         mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
-                                        zoop_mean_biom$taxon=="copepod"])) / 2) *100
+                                        zoop_mean_biom$taxon=="copepod"]) *100
   
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus5" &
                                    zoop_mean_biom$taxon=="copepod"]) - 
       mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                       zoop_mean_biom$taxon=="copepod"])) /
-    ((mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus5" &
-                                      zoop_mean_biom$taxon=="copepod"]) + 
         mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
-                                        zoop_mean_biom$taxon=="copepod"])) / 2) *100 
+                                        zoop_mean_biom$taxon=="copepod"]) *100 
   
 #-------------------------------------------------------------------------#
 # playing around with some other visualizations
 ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
   geom_point(size=2) + geom_line(size=1) +
   facet_wrap(~taxon, scales="free_y") +
-  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
+  ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
   scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
   theme_bw() +
@@ -935,7 +688,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
   geom_line() +
   facet_grid(taxon ~ factor(scenario,levels=c("baseline","plus1",
                                               "plus5","plus10"))) +
-  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
+  ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
   theme_bw() +
   scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                      breaks = c("baseline","plus1","plus5","plus10")) +
@@ -1097,8 +850,8 @@ area <- ggplot(data = subset(phyto_scenarios, scenario %in% c("baseline","plus10
     facet_grid(taxon ~ factor(scenario,levels=c("baseline","plus1",
                                                 "plus5","plus10")),
                scales = "free_y") +
-    labs(y = expression("Biomass (mmol m"^{3}*")"), x = "") +
-    theme_bw() +
+    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
+    theme_bw() + guides(color="none") + xlab("") +
     scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
     theme(panel.grid.major = element_blank(), 
@@ -1127,10 +880,10 @@ area <- ggplot(data = subset(phyto_scenarios, scenario %in% c("baseline","plus10
          aes(x = year, y = mean_biom, color = scenario)) +
     geom_point(size=2) + geom_line(size=1) +
     facet_wrap(~taxon, scales="free_y") +
-    labs(y = expression("Biomass (mmol m"^{3}*")"), x = "") +
+    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
     scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
-    theme_bw() +
+    theme_bw() + xlab("") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
@@ -1206,15 +959,15 @@ area <- ggplot(data = subset(phyto_scenarios, scenario %in% c("baseline","plus10
                   max_value = max(value)) |>
     dplyr::filter(DateTime >= "2016-01-01" &
                     DateTime < "2022-01-01") #filtering out the 2 partial years
-  
 
-# just visualize the mean doy for peak biomass across all years
+# visualize the mean doy for peak biomass across all years
   zoop_scenarios |>
     dplyr::mutate(scenario = factor(scenario, 
                                     levels = c("baseline", "plus1",
-                                               "plus5", "plus10"))) |>
+                                               "plus5", "plus10")),
+                  taxon = stringr::str_to_title(taxon)) |>
   ggplot(aes(x = max_doy, y = as.factor(scenario), 
-             fill = as.factor(scenario))) +
+             fill = as.factor(scenario))) + xlab("Max DOY") +
     geom_boxplot(aes(fill = as.factor(scenario))) +
     scale_fill_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                       breaks = c("baseline","plus1","plus5","plus10")) +
@@ -1258,7 +1011,7 @@ zoop_timing <- zoop_scenarios |>
   kruskal.test(zoop_timing$mean_doy[zoop_timing$taxon=="copepod"]~
                  zoop_timing$scenario[zoop_timing$taxon=="copepod"])
   
-# numbers for results text HERE
+# numbers for results text
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="cladoceran" &
                               zoop_timing$scenario=="baseline"]) -
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="cladoceran" &

@@ -51,7 +51,7 @@
    timezone = -5
 /
 &output
-   out_dir = 'output/clads'
+   out_dir = 'output'
    out_fn = 'output'
    nsave = 24
    csv_lake_fname = 'lake'
@@ -102,7 +102,7 @@
    strm_hf_angle = 55
    strmbd_slope = 0.05
    strmbd_drag = 0.03
-   inflow_factor = 0.990002
+   inflow_factor = 0.99003
    inflow_fl = 'inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv'
    inflow_varnum = 29
    inflow_vars = 'FLOW','TEMP','SALT','OXY_oxy','NIT_amm','NIT_nit','PHS_frp','OGM_doc','OGM_docr','OGM_poc','OGM_don','OGM_donr','OGM_pon','OGM_dop','OGM_dopr','OGM_pop','CAR_dic','CAR_pH','SIL_rsi','CAR_ch4','PHY_cyano','PHY_cyano_IN','PHY_cyano_IP','PHY_green','PHY_green_IN','PHY_green_IP','PHY_diatom','PHY_diatom_IN','PHY_diatom_IP'

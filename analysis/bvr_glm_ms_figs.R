@@ -11,7 +11,8 @@ install_github("hzambran/hydroGOF")
 devtools::install_github("eliocamp/tagger")
 
 #load packages
-pacman::p_load(tidyverse,lubridate, hydroGOF, glmtools, ggtext, tagger)
+pacman::p_load(tidyverse,lubridate, 
+               glmtools, ggtext, tagger, cowplot)
 
 # create modeled vs. observed df for each variable
 #focal depths
@@ -22,6 +23,24 @@ for(i in 1:length(scenario)){
   
   nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
 
+# water level
+obs_wl <- read_csv("./inputs/BVR_Daily_WaterLevel_Vol_2015_2022_interp.csv") |>
+  mutate(DateTime = as.POSIXct(strptime(Date, "%Y-%m-%d", tz="EST")),
+         Depth = "0.1") |>
+  filter(Date > as.POSIXct("2015-07-08") & Date < as.POSIXct("2022-05-04")) |>
+  select(-c(vol_m3,Date))
+  
+mod_wl <- get_surface_height(nc_file, ice.rm = TRUE, snow.rm = TRUE) |> 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime > as.POSIXct("2015-07-09"))  |>
+  mutate(Depth = "0.1") |> # to get wl in the same df as 0.1m vars
+  rename(mod_wl = surface_height) |>
+  select(DateTime,Depth,mod_wl)
+  
+wl_compare <-mod_wl |>
+  mutate(obs_wl = obs_wl$WaterLevel_m) |>
+  select(DateTime,Depth,mod_wl,obs_wl)
+  
 # temp
 obstemp<-read_csv('field_data/CleanedObsTemp.csv') |> 
   mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
@@ -170,7 +189,7 @@ docr_compare<-merge(mod_docr, obs_docr, by=c("DateTime","Depth")) |>
 
 #-------------------------------------------------------------#
 #merge all dfs
-all_vars <- reduce(list(watertemp, oxy_compare, 
+all_vars <- reduce(list(wl_compare, watertemp, oxy_compare, 
                         nh4_compare, no3_compare,
                         po4_compare, chla_compare, 
                         docl_compare, docr_compare), full_join) |>
@@ -188,7 +207,7 @@ all_vars <- reduce(list(watertemp, oxy_compare,
          obs_doc = sum(obs_docl,obs_docr),
          mod_doc = sum(mod_docl,mod_docr))
   
-mod_vars <- reduce(list(modtemp, mod_oxy,
+mod_vars <- reduce(list(mod_wl, modtemp, mod_oxy,
                         mod_nh4, mod_no3, 
                         mod_po4, mod_chla, 
                         mod_docl, mod_docr), full_join) |>
@@ -208,8 +227,8 @@ all_vars$period <- ifelse(all_vars$DateTime <= "2020-12-31",
 #convert from wide to long for plotting
 all_vars_final <- all_vars |> 
   filter(Depth %in% c(0.1,9)) |> 
-  select(-c(mod_nh4, obs_nh4, mod_no3, obs_no3, mod_docl, 
-            obs_docl, mod_docr, obs_docr)) |>
+  select(-c(mod_nh4, obs_nh4, mod_din, obs_din, mod_docl, 
+            obs_docl, mod_docr, obs_docr, mod_doc, obs_doc)) |>
   pivot_longer(cols = -c(DateTime,Depth,period), 
                names_pattern = "(...)_(...*)$",
                names_to = c("type", "var")) |> 
@@ -227,8 +246,7 @@ mod_vars_final <- mod_vars |>
          "NIT_no3" = "NIT_nit",
          "PHS_po4" = "PHS_frp",
          "PHY_chla" = "PHY_tchla") |>
-  select(-c(NIT_nh4, NIT_no3, OGM_docl, OGM_docr)) |>
-  filter(OXY_oxysat >1) |>
+  select(-c(NIT_nh4, NIT_din, OGM_doc ,OGM_docl, OGM_docr)) |>
   pivot_longer(cols = -c(DateTime,Depth), 
                names_pattern = "(...)_(...*)$",
                names_to = c("type", "var")) |> 
@@ -251,45 +269,44 @@ assign(paste0("mod_vars_final_", scenario[i]), mod_vars_final)
 #-------------------------------------------------------------#
 # Define the labels as expressions
 labels <- c(
+  expression("Water level (m" [] * ")"),
   expression("Water Temp (" * degree * "C)"),
-  expression("DO (mg L"^{-1}*")"),
-  expression("DIN (" * mu * " g L"^{-1}*")"),
+  expression("DO (mg L" ^-1*")"),
+  expression("NO" [3] * " (" * mu * " g L"^-1*")"),
   expression("DRP (" * mu * " g L"^{-1}*")"),
-  expression("DOC (" * mu * " g L"^{-1}*")"),
+ # expression("DOC (" * mu * " g L"^{-1}*")"),
   expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")")
- 
 )
 
-# Apply these labels as factor levels after defining them
+# Ensure factor levels in the data are consistent with the expressions
+variable_levels <- c("wl", "temp", "oxy", "no3", "po4", "chla") # Variable keys
+
 all_vars_final_baseline <- all_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,5,4,6,3) ],
-                           labels = labels))
+  mutate(
+    var = factor(var, levels = variable_levels),
+    variable = factor(var, levels = variable_levels, labels = labels) # Apply expression labels
+  )
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
   ungroup() |>
-  mutate(variable = factor(var, levels = unique(var)[c(1,2,4,3,5,6)],
-                           labels = labels)) |>
+  mutate(
+    var = factor(var, levels = variable_levels),
+    variable = factor(var, levels = variable_levels, labels = labels) # Apply expression labels
+  ) |>
   na.omit()
 
-# reorder vars
-all_vars_final_baseline$var <- factor(all_vars_final_baseline$var, 
-                                      levels = c("temp", "oxy","din",
-                                                 "po4", "doc", "chla"))
-mod_vars_final_baseline$var <- factor(mod_vars_final_baseline$var, 
-                                      levels = c("temp", "oxy", "din" ,
-                                                 "po4", "doc", "chla"))
-
-# plot vars for 0.1m
-ggplot() +
-  geom_line(data = subset(mod_vars_final_baseline, Depth %in% 0.1), 
-            aes(DateTime, value, color = "modeled")) +
-  geom_point(data = subset(all_vars_final_baseline, type %in% "obs" & Depth %in% 0.1), 
-             aes(DateTime, value, color = "observed")) + 
-  facet_wrap(~ variable, scales = "free_y", nrow = 3 ,
-             labeller = label_parsed) + 
+# Plot vars for 0.1m depth
+plot1 <- ggplot() + geom_line(
+    data = subset(mod_vars_final_baseline, Depth %in% 0.1), 
+    aes(DateTime, value, color = "modeled")) +
+  geom_point(
+    data = subset(all_vars_final_baseline, type %in% "obs" & Depth %in% 0.1), 
+    aes(DateTime, value, color = "observed")) + 
+  facet_wrap(~ variable, scales = "free_y", 
+             nrow = 3, labeller = label_parsed) + 
   geom_vline(xintercept = as.POSIXct("2020-12-31"), linetype = "dashed") +
-  theme_bw() + xlab("") +
+  theme_bw() + xlab("") + ylab("Value") +
   scale_color_manual(
     name = "",
     values = c("modeled" = "black", "observed" = "red"),
@@ -302,16 +319,29 @@ ggplot() +
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
         legend.background = element_blank(),
-        legend.position = c(0.8, 0.26),
+        legend.margin = margin(c(-10,-10,-15,-10)),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position = "top",
+        legend.direction = "horizontal",
         text = element_text(size = 10), 
         panel.border = element_rect(colour = "black", fill = NA),
         strip.background.x = element_blank(),
-        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
+        plot.margin = unit(c(0.2, 0.1, -1.3, 0), "cm"),
         panel.spacing.x = unit(0.1, "in"),
         panel.background = element_rect(fill = "white"),
         panel.spacing.y = unit(0, "lines"),  
         strip.background = element_blank())
 #ggsave("figures/allvars_mod_vs_obs_0.1m_spinup.jpg", width=8, height=6)
+
+# Combine the two plots (make sure to run plot2 from zoop_taxa_diagnostics.R)
+combined_plot <- plot_grid(
+  plot1, plot2, 
+  ncol = 1,   # Number of columns
+  align = "v" # Align plots vertically
+)
+print(combined_plot)
+#ggsave("figures/ms_fig1.jpg", width=8, height=6)
 
 # plot vars for 9m
 ggplot() +
@@ -336,7 +366,7 @@ ggplot() +
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
         legend.background = element_blank(),
-        legend.position = c(0.8, 0.26),
+        legend.position = c(0.8, 0.2),
         text = element_text(size = 10), 
         panel.border = element_rect(colour = "black", fill = NA),
         strip.background.x = element_blank(),
@@ -380,9 +410,22 @@ sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" &
                                    mod_vars_final_baseline$Depth %in% "0.1" & 
                                    mod_vars_final_baseline$season %in%"winter"])
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="din" & 
+(mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
+                                     mod_vars_final_baseline$Depth==0.1 & 
+                                     mod_vars_final_baseline$season %in%"winter"]) -
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
+                                     mod_vars_final_baseline$Depth==0.1 & 
+                                     mod_vars_final_baseline$season %in%"summer"])) /
+  (mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
+                                        mod_vars_final_baseline$Depth==0.1 & 
+                                        mod_vars_final_baseline$season %in%"winter"]) +
+     mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
+                                          mod_vars_final_baseline$Depth==0.1 & 
+                                          mod_vars_final_baseline$season %in%"summer"])) /2
+
+mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
                                      mod_vars_final_baseline$Depth==0.1 ])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="din" & 
+sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
                                    mod_vars_final_baseline$Depth==0.1 ])
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
@@ -390,15 +433,37 @@ mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" &
 sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
                                    mod_vars_final_baseline$Depth==0.1 ])
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="doc" & 
-                                     mod_vars_final_baseline$Depth==0.1 ])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="doc" & 
-                                   mod_vars_final_baseline$Depth==0.1 ])
+(mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
+                                      mod_vars_final_baseline$Depth==0.1 & 
+                                      mod_vars_final_baseline$season %in%"winter"]) -
+    mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
+                                         mod_vars_final_baseline$Depth==0.1 & 
+                                         mod_vars_final_baseline$season %in%"summer"])) /
+  (mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
+                                        mod_vars_final_baseline$Depth==0.1 & 
+                                        mod_vars_final_baseline$season %in%"winter"]) +
+     mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
+                                          mod_vars_final_baseline$Depth==0.1 & 
+                                          mod_vars_final_baseline$season %in%"summer"])) /2
 
 mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
                                      mod_vars_final_baseline$Depth==0.1 ])
 sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
                                    mod_vars_final_baseline$Depth==0.1 ])
+
+(mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
+                                      mod_vars_final_baseline$Depth==0.1 & 
+                                      mod_vars_final_baseline$season %in%"winter"]) -
+    mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
+                                         mod_vars_final_baseline$Depth==0.1 & 
+                                         mod_vars_final_baseline$season %in%"summer"])) /
+  (mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
+                                        mod_vars_final_baseline$Depth==0.1 & 
+                                        mod_vars_final_baseline$season %in%"winter"]) +
+     mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
+                                          mod_vars_final_baseline$Depth==0.1 & 
+                                          mod_vars_final_baseline$season %in%"summer"])) /2
+
 
 
 #modeled vars from 2000-2022 for each scenario
@@ -440,13 +505,6 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
           fill = "white"),
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/modeled_vars_scenarios_0.1.jpg", width=7, height=4)
-  
-  mod_vars_filtered <- mod_vars %>%
-    filter(Depth %in% 0.1) %>%
-    group_by(scenario, var) %>%
-    mutate(lower_bound = quantile(value, 0.25) - 1.5 * IQR(value),
-           upper_bound = quantile(value, 0.75) + 1.5 * IQR(value)) %>%
-    filter(value >= lower_bound & value <= upper_bound)
   
 # boxplots
   ggplot(subset(mod_vars, Depth %in% 0.1),
@@ -513,28 +571,30 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
 #-----------------------------------------------------------------------#
   # read in modeled state vars
   mod_vars <- read.csv("./analysis/data/mod_vars.csv") |>
-    mutate(year = lubridate::year(DateTime)) |>
-    group_by(year, Depth, scenario, var) |>
-    summarise(yearly_mean = mean(value)) 
+    mutate(year = lubridate::year(DateTime),
+           month = lubridate::month(DateTime)) |>
+    filter(month %in% c(5:9)) |>
+    group_by(year, month, Depth, scenario, var) |>
+    summarise(monthly_mean = mean(value)) 
   
   # line plots for each taxa/scenario
   mean_mod_vars <-  mod_vars |>
     group_by(var, year, scenario, Depth) |>
-    summarise(mean_val = mean(yearly_mean)) |>
+    summarise(mean_val = mean(monthly_mean)) |>
     ungroup() |>
-    mutate(variable = factor(var, levels = unique(var)[c(6,4,2,5,3,1)],
+    mutate(variable = factor(var, levels = unique(var)[c(6,5,3,2,4,1)],
                             labels = labels))
   
   mean_mod_vars$var <- factor(mean_mod_vars$var, 
-                              levels = c("temp", "oxy", "din" ,
-                                         "po4","doc", "chla"))
+                              levels = c("wl","temp", "oxy", "no3" ,
+                                         "po4", "chla"))
   
   ggplot(data=subset(mean_mod_vars,Depth==0.1 & !year %in% c("2015","2022")),
          aes(x = year, y = mean_val,  color = scenario)) +
     geom_line(size=1) + geom_point(size=2) +
     facet_wrap(~variable, scales = "free",
-               labeller = label_parsed) +
-    xlab("") + theme_bw() +
+               labeller = label_parsed) + ylab("Value") +
+    xlab("") + theme_bw() + ylab("Summer mean value") +
     scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
     theme(panel.grid.major = element_blank(), 
@@ -557,14 +617,14 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
           panel.spacing.x = unit(0.2, "in"),
           panel.background = element_rect(
             fill = "white"))
-  #ggsave("figures/mod_var_annual_timing_0.1m.jpg", width=7, height=4) 
+  #ggsave("figures/mod_vars_yearly_summer_0.1m.jpg", width=7, height=4) 
   
   ggplot(data=subset(mean_mod_vars,Depth==9 & !year %in% c("2015","2022")),
          aes(x = year, y = mean_val,  color = scenario)) +
     geom_line(size=1) + geom_point(size=2) +
     facet_wrap(~variable, scales = "free",
-               labeller = label_parsed) +
-    xlab("") + theme_bw() +
+               labeller = label_parsed) + ylab("Value") +
+    xlab("") + theme_bw() + ylab("Summer mean value") +
     scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
     theme(panel.grid.major = element_blank(), 
@@ -587,7 +647,7 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
           panel.spacing.x = unit(0.2, "in"),
           panel.background = element_rect(
             fill = "white"))
-  #ggsave("figures/mod_var_annual_timing_9m.jpg", width=7, height=4) 
+  #ggsave("figures/mod_vars_yearly_summer_9m.jpg", width=7, height=4) 
   
   # numbers for results text
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
@@ -665,48 +725,27 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
                                     mean_mod_vars$scenario=="plus10" &
                                     mean_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
                                 mean_mod_vars$scenario=="baseline" &
                                 mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
-                                    mean_mod_vars$scenario=="baseline" &
-                                    mean_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
                                 mean_mod_vars$scenario=="plus1" &
                                 mean_mod_vars$Depth==0.1])
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
+                              mean_mod_vars$scenario=="plus1" &
+                              mean_mod_vars$Depth==0.1])
     
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
-                                mean_mod_vars$scenario=="plus5" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
                                 mean_mod_vars$scenario=="plus5" &
                                 mean_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
+  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
                                 mean_mod_vars$scenario=="plus10" &
                                 mean_mod_vars$Depth==0.1])
-  
-  
- ( mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
-                                mean_mod_vars$scenario=="plus10" &
-                                mean_mod_vars$Depth==0.1]) -
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
-                                mean_mod_vars$scenario=="plus1" &
-                                mean_mod_vars$Depth==0.1])) /
-    mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
-                                  mean_mod_vars$scenario=="plus1" &
-                                  mean_mod_vars$Depth==0.1]) *100
-  
-  ( mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
-                                  mean_mod_vars$scenario=="plus10" &
-                                  mean_mod_vars$Depth==0.1]) -
-      mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
-                                    mean_mod_vars$scenario=="plus5" &
-                                    mean_mod_vars$Depth==0.1])) /
-    mean(mean_mod_vars$mean_val[mean_mod_vars$var=="din" &
-                                  mean_mod_vars$scenario=="plus5" &
-                                  mean_mod_vars$Depth==0.1]) *100
+  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
+                              mean_mod_vars$scenario=="plus10" &
+                              mean_mod_vars$Depth==0.1])
   
   mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
                                 mean_mod_vars$scenario=="baseline" &
@@ -764,260 +803,4 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   sd(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
                               mean_mod_vars$scenario=="plus10" &
                               mean_mod_vars$Depth==0.1])
-
-#-----------------------------------------------------------------------#
-# GOF table for calib vs. valid periods
-
-# Full water column, full period (2015-2022)
-all_gof <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","Temp"))
-all_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
-                       "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
-                       "NSE_all","mNSE_all","rNSE_all","wNSE_all",
-                       "wsNSE_all","d_all","dr_all","md_all","rd_all",
-                       "cp_all","r_all","R2_all","bR2_all","VE_all",
-                       "KGE_all","KGElf_all","KGEnp_all","KGEkm_all", 
-                       "r.Spearman","nonparamR2") 
-
-# Full water column, calibration period (2015-2020)
-all_gof_cal <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","Temp"))
-all_gof_cal$Parameter <- c("ME_cal","MAE_cal","MSE_cal","RMSE_cal","ubRMSE_cal",
-                           "NRMSE%_cal","PBIAS%_cal","RSR_cal","rSD_cal",
-                           "NSE_cal","mNSE_cal","rNSE_cal","wNSE_cal",
-                           "wsNSE_cal","d_cal","dr_cal","md_cal","rd_cal",
-                           "cp_cal","r_cal","R2_cal","bR2_cal","VE_cal",
-                           "KGE_cal","KGElf_cal","KGEnp_cal","KGEkm_cal", 
-                           "r.Spearman","nonparamR2") 
-
-# Full water column, validation period (2021-2022)
-all_gof_val <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","Temp"))
-all_gof_val$Parameter <- c("ME_val","MAE_val","MSE_val","RMSE_val","ubRMSE",
-                           "NRMSE%_val","PBIAS%_val","RSR_val","rSD_val",
-                           "NSE_val","mNSE_val","rNSE_val","wNSE_val",
-                           "wsNSE","d_val","dr_val","md_val","rd_val",
-                           "cp_val","r_val","R2_val","bR2_val","VE_val",
-                           "KGE_val","KGElf_val","KGEnp_val","KGEkm_val",
-                           "r.Spearman", "nonparamR2") 
-
-# calculate all gof metrics for full period + all different vars
-all_gof$Temp <- c(gof(watertemp$mod_temp,watertemp$obs_temp,do.spearman = TRUE), NA)
-all_gof$DO <- c(gof(oxy_compare$mod_oxy,oxy_compare$obs_oxy,do.spearman = TRUE), NA)
-all_gof$NH4 <- c(gof(nh4_compare$mod_nh4,nh4_compare$obs_nh4,do.spearman = TRUE), NA)
-all_gof$NO3 <- c(gof(no3_compare$mod_no3,no3_compare$obs_no3,do.spearman = TRUE), NA)
-all_gof$PO4 <- c(gof(po4_compare$mod_po4,po4_compare$obs_po4,do.spearman = TRUE), NA)
-all_gof$Chla <- c(gof(chla_compare$mod_chla,chla_compare$obs_chla,do.spearman = TRUE), NA)
-
-#create ranked dfs for nonparametric R2 calcs
-comb_temp_rank <- watertemp |> 
-  mutate(rank_obs = rank(obs_temp),
-         rank_mod = rank(mod_temp)) 
-comb_oxy_rank <- oxy_compare |> 
-  mutate(rank_obs = rank(obs_oxy),
-         rank_mod = rank(mod_oxy)) 
-comb_nh4_rank <- nh4_compare |>  
-  mutate(rank_obs = rank(obs_nh4),
-         rank_mod = rank(mod_nh4)) 
-comb_no3_rank <- no3_compare |> 
-  mutate(rank_obs = rank(obs_no3),
-         rank_mod = rank(mod_no3)) 
-comb_po4_rank <- po4_compare |> 
-  mutate(rank_obs = rank(obs_po4),
-         rank_mod = rank(mod_po4)) 
-comb_chla_rank <- chla_compare |> 
-  mutate(rank_obs = rank(obs_chla),
-         rank_mod = rank(mod_chla)) 
-
-# calculate non-parametric (ranked) R2, following Brett et al. 2016
-all_gof$Temp[29] <- summary(lm(comb_temp_rank$rank_obs ~ comb_temp_rank$rank_mod))$r.squared
-all_gof$DO[29] <- summary(lm(comb_oxy_rank$rank_obs ~ comb_oxy_rank$rank_mod))$r.squared
-all_gof$NH4[29] <- summary(lm(comb_nh4_rank$rank_obs ~ comb_nh4_rank$rank_mod))$r.squared
-all_gof$NO3[29] <- summary(lm(comb_no3_rank$rank_obs ~ comb_no3_rank$rank_mod))$r.squared
-all_gof$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mod))$r.squared
-all_gof$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
-
-# same as above but for CALIBRATION period
-all_gof_cal$Temp <- c(gof(watertemp$mod_temp[watertemp$DateTime< "2021-01-01"],
-                          watertemp$obs_temp[watertemp$DateTime< "2021-01-01"],
-                          do.spearman = TRUE), NA)
-all_gof_cal$DO <- c(gof(oxy_compare$mod_oxy[oxy_compare$DateTime< "2021-01-01"],
-                        oxy_compare$obs_oxy[oxy_compare$DateTime< "2021-01-01"],
-                        do.spearman = TRUE), NA)
-all_gof_cal$NH4 <- c(gof(nh4_compare$mod_nh4[nh4_compare$DateTime< "2021-01-01"],
-                         nh4_compare$obs_nh4[nh4_compare$DateTime< "2021-01-01"],
-                         do.spearman = TRUE), NA)
-all_gof_cal$NO3 <- c(gof(no3_compare$mod_no3[no3_compare$DateTime< "2021-01-01"],
-                         no3_compare$obs_no3[no3_compare$DateTime< "2021-01-01"],
-                         do.spearman = TRUE), NA)
-all_gof_cal$PO4 <- c(gof(po4_compare$mod_po4[po4_compare$DateTime< "2021-01-01"],
-                         po4_compare$obs_po4[po4_compare$DateTime< "2021-01-01"],
-                         do.spearman = TRUE), NA)
-all_gof_cal$Chla <- c(gof(chla_compare$mod_chla[chla_compare$DateTime< "2021-01-01"],
-                          chla_compare$obs_chla[chla_compare$DateTime< "2021-01-01"],
-                          do.spearman = TRUE), NA)
-
-#create ranked dfs for nonparametric R2 calcs
-comb_temp_rank <- watertemp |>  
-  filter(DateTime < "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_temp),
-         rank_mod = rank(mod_temp)) 
-comb_oxy_rank <- oxy_compare |> 
-  filter(DateTime < "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_oxy),
-         rank_mod = rank(mod_oxy)) 
-comb_nh4_rank <- nh4_compare |> 
-  filter(DateTime < "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_nh4),
-         rank_mod = rank(mod_nh4)) 
-comb_no3_rank <- no3_compare |> 
-  filter(DateTime < "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_no3),
-         rank_mod = rank(mod_no3)) 
-comb_po4_rank <- po4_compare |> 
-  filter(DateTime < "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_po4),
-         rank_mod = rank(mod_po4)) 
-comb_chla_rank <- chla_compare |> 
-  filter(DateTime < "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_chla),
-         rank_mod = rank(mod_chla)) 
-
-# calculate non-parametric (ranked) R2, following Brett et al. 2016
-all_gof_cal$Temp[29] <- summary(lm(comb_temp_rank$rank_obs ~ comb_temp_rank$rank_mod))$r.squared
-all_gof_cal$DO[29] <- summary(lm(comb_oxy_rank$rank_obs ~ comb_oxy_rank$rank_mod))$r.squared
-all_gof_cal$NH4[29] <- summary(lm(comb_nh4_rank$rank_obs ~ comb_nh4_rank$rank_mod))$r.squared
-all_gof_cal$NO3[29] <- summary(lm(comb_no3_rank$rank_obs ~ comb_no3_rank$rank_mod))$r.squared
-all_gof_cal$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mod))$r.squared
-all_gof_cal$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
-
-# now VALIDATION period
-all_gof_val$Temp <- c(gof(watertemp$mod_temp[watertemp$DateTime >= "2021-01-01"],
-                          watertemp$obs_temp[watertemp$DateTime >= "2021-01-01"],
-                          do.spearman = TRUE), NA)
-all_gof_val$DO <- c(gof(oxy_compare$mod_oxy[oxy_compare$DateTime >= "2021-01-01"],
-                        oxy_compare$obs_oxy[oxy_compare$DateTime >= "2021-01-01"],
-                        do.spearman = TRUE), NA)
-all_gof_val$NH4 <- c(gof(nh4_compare$mod_nh4[nh4_compare$DateTime >= "2021-01-01"],
-                         nh4_compare$obs_nh4[nh4_compare$DateTime >= "2021-01-01"],
-                         do.spearman = TRUE), NA)
-all_gof_val$NO3 <- c(gof(no3_compare$mod_no3[no3_compare$DateTime >= "2021-01-01"],
-                         no3_compare$obs_no3[no3_compare$DateTime >= "2021-01-01"],
-                         do.spearman = TRUE), NA)
-all_gof_val$PO4 <- c(gof(po4_compare$mod_po4[po4_compare$DateTime >= "2021-01-01"],
-                         po4_compare$obs_po4[po4_compare$DateTime >= "2021-01-01"],
-                         do.spearman = TRUE), NA)
-all_gof_val$Chla <- c(gof(chla_compare$mod_chla[chla_compare$DateTime >= "2021-01-01"],
-                          chla_compare$obs_chla[chla_compare$DateTime >= "2021-01-01"],
-                          do.spearman = TRUE), NA)
-
-#create ranked dfs for nonparametric R2 calcs
-comb_temp_rank <- watertemp |>  
-  filter(DateTime >= "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_temp),
-         rank_mod = rank(mod_temp)) 
-comb_oxy_rank <- oxy_compare |> 
-  filter(DateTime >= "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_oxy),
-         rank_mod = rank(mod_oxy)) 
-comb_nh4_rank <- nh4_compare |> 
-  filter(DateTime >= "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_nh4),
-         rank_mod = rank(mod_nh4)) 
-comb_no3_rank <- no3_compare |> 
-  filter(DateTime >= "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_no3),
-         rank_mod = rank(mod_no3)) 
-comb_po4_rank <- po4_compare |> 
-  filter(DateTime >= "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_po4),
-         rank_mod = rank(mod_po4)) 
-comb_chla_rank <- chla_compare |> 
-  filter(DateTime >= "2021-01-01") |> 
-  mutate(rank_obs = rank(obs_chla),
-         rank_mod = rank(mod_chla)) 
-
-# calculate non-parametric (ranked) R2, following Brett et al. 2016
-all_gof_val$Temp[29] <- summary(lm(comb_temp_rank$rank_obs ~ comb_temp_rank$rank_mod))$r.squared
-all_gof_val$DO[29] <- summary(lm(comb_oxy_rank$rank_obs ~ comb_oxy_rank$rank_mod))$r.squared
-all_gof_val$NH4[29] <- summary(lm(comb_nh4_rank$rank_obs ~ comb_nh4_rank$rank_mod))$r.squared
-all_gof_val$NO3[29] <- summary(lm(comb_no3_rank$rank_obs ~ comb_no3_rank$rank_mod))$r.squared
-all_gof_val$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mod))$r.squared
-all_gof_val$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
-
-####Cleaning up table ####
-## Add NMAE calculation for all parameters
-# all_gof
-all_gof[nrow(all_gof)+1,] <- NA
-all_gof[30,1] <- "NMAE_all"
-all_gof$Parameter[28] <- "r.Spearman_all"
-all_gof$Temp[30] <- round(all_gof$Temp[2]/mean(watertemp$obs_temp, na.rm=T),digits = 2)
-all_gof$DO[30] <- round(all_gof$DO[2]/mean(oxy_compare$obs_oxy, na.rm=T),digits = 2)
-all_gof$NH4[30] <- round(all_gof$NH4[2]/mean(nh4_compare$obs_nh4, na.rm=T),digits = 2)
-all_gof$NO3[30] <- round(all_gof$NO3[2]/mean(no3_compare$obs_no3, na.rm=T),digits = 2)
-all_gof$PO4[30] <- round(all_gof$PO4[2]/mean(po4_compare$obs_po4, na.rm=T),digits = 2)
-all_gof$Chla[30] <- round(all_gof$Chla[2]/mean(chla_compare$obs_chla, na.rm=T),digits = 2)
-
-# all_gof_cal
-all_gof_cal[nrow(all_gof_cal)+1,] <- NA
-all_gof_cal[30,1] <- "NMAE_cal"
-all_gof_cal$Parameter[28] <- "r.Spearman_cal"
-all_gof_cal$Temp[30] <- round(all_gof_cal$Temp[2]/mean(
-  watertemp$obs_temp[watertemp$DateTime < "2021-01-01"], na.rm=T),digits = 2)
-all_gof_cal$DO[30] <- round(all_gof_cal$DO[2]/mean(
-  oxy_compare$obs_oxy[oxy_compare$DateTime < "2021-01-01"], na.rm=T),digits = 2)
-all_gof_cal$NH4[30] <- round(all_gof_cal$NH4[2]/mean(
-  nh4_compare$obs_nh4[nh4_compare$DateTime < "2021-01-01"], na.rm=T),digits = 2)
-all_gof_cal$NO3[30] <- round(all_gof_cal$NO3[2]/mean(
-  no3_compare$obs_no3[no3_compare$DateTime < "2021-01-01"], na.rm=T),digits = 2)
-all_gof_cal$PO4[30] <- round(all_gof_cal$PO4[2]/mean(
-  po4_compare$obs_po4[po4_compare$DateTime < "2021-01-01"], na.rm=T),digits = 2)
-all_gof_cal$Chla[30] <- round(all_gof_cal$Chla[2]/mean(
-  chla_compare$obs_chla[chla_compare$DateTime < "2021-01-01"], na.rm=T),digits = 2)
-
-# all_gof_val
-all_gof_val[nrow(all_gof_val)+1,] <- NA
-all_gof_val[30,1] <- "NMAE_val"
-all_gof_val$Parameter[28] <- "r.Spearman_val"
-all_gof_val$Temp[30] <- round(all_gof_val$Temp[2]/mean(
-  watertemp$obs_temp[watertemp$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
-all_gof_val$DO[30] <- round(all_gof_val$DO[2]/mean(
-  oxy_compare$obs_oxy[oxy_compare$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
-all_gof_val$NH4[30] <- round(all_gof_val$NH4[2]/mean(
-  nh4_compare$obs_nh4[nh4_compare$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
-all_gof_val$NO3[30] <- round(all_gof_val$NO3[2]/mean(
-  no3_compare$obs_no3[no3_compare$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
-all_gof_val$PO4[30] <- round(all_gof_val$PO4[2]/mean(
-  po4_compare$obs_po4[po4_compare$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
-all_gof_val$Chla[30] <- round(all_gof_val$Chla[2]/mean(
-  chla_compare$obs_chla[chla_compare$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
-
-# Select GOF variables for the full year
-full_n_all <- c("n_all",length(obstemp$temp), length(obs_oxy$OXY_oxy),
-                length(obs_nh4$NIT_amm), length(obs_no3$NIT_nit),
-                length(obs_po4$PHS_frp), length(obs_chla$PHY_tchla))
-
-full_n_cal <- c("n_cal",length(obstemp$DateTime[which(obstemp$DateTime < "2021-01-01")]),
-                length(obs_oxy$DateTime[which(obs_oxy$DateTime < "2021-01-01")]),
-                length(obs_nh4$DateTime[which(obs_nh4$DateTime < "2021-01-01")]),
-                length(obs_no3$DateTime[which(obs_no3$DateTime < "2021-01-01")]),
-                length(obs_po4$DateTime[which(obs_po4$DateTime < "2021-01-01")]),
-                length(obs_chla$DateTime[which(obs_chla$DateTime < "2021-01-01")]))
-
-full_n_val <- c("n_val",length(obstemp$DateTime[which(obstemp$DateTime >= "2021-01-01")]),
-                length(obs_oxy$DateTime[which(obs_oxy$DateTime >= "2021-01-01")]),
-                length(obs_nh4$DateTime[which(obs_nh4$DateTime >= "2021-01-01")]),
-                length(obs_no3$DateTime[which(obs_no3$DateTime >= "2021-01-01")]),
-                length(obs_po4$DateTime[which(obs_po4$DateTime >= "2021-01-01")]),
-                length(obs_chla$DateTime[which(obs_chla$DateTime >= "2021-01-01")]))
-
-full_gof_all_table <- all_gof %>% 
-  filter(Parameter == "R2_all" | Parameter == "RMSE_all" | Parameter == "PBIAS%_all" | Parameter == "NMAE_all")
-
-full_gof_cal_table <- all_gof_cal %>% 
-  filter(Parameter == "R2_cal" | Parameter == "RMSE_cal" | Parameter == "PBIAS%_cal" | Parameter == "NMAE_cal")
-
-full_gof_val_table <- all_gof_val %>% 
-  filter(Parameter == "R2_val" | Parameter == "RMSE_val" | Parameter == "PBIAS%_val" | Parameter == "NMAE_val")
-
-full_gof_table <- rbind(full_n_all,full_gof_all_table,full_n_cal,full_gof_cal_table,full_n_val,full_gof_val_table)
-
-write_csv(full_gof_table,'figures/table_gof_watercol_bvr_2015-2022.csv')
 

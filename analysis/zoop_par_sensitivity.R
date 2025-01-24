@@ -3,31 +3,33 @@
 # load packages
 pacman::p_load(dplyr)
 
-# Rgrz_zoo (0.8-1.5), Rresp_zoo (0.1-0.3), Rmort_zoo (0.01-0.08)
-# note not doing prey preferences even though those differ among taxa
+# Define current parameters and their calibrated values for each taxon
+param_values <- list(
+  Rgrz_zoo = c(0.8, 1.3, 1.5),
+  Rresp_zoo = c(0.1, 0.3, 0.2),
+  Rmort_zoo = c(0.06, 0.08, 0.01),
+  ffecal_zoo = c(0.05, 0.04, 0.02),
+  ffecal_sed = c(0.3, 0.4, 0.8),
+  Topt_zoo = c(25, 28, 28),
+  Tmax_zoo = c(30, 35, 35),
+  INC_zoo = c(0.05, 0.22, 0.15),
+  IPC_zoo = c(0.0018, 0.024, 0.0125)
+)
 
-#define low and high vals
-Rgrz <- c(0.8,1.5)
-Rresp <- c(0.1,0.3)
-Rmort <- c(0.01,0.08)
-Tmax <- c(30, 35)
-Topt <- c(25, 28)
-#note that we did not adjust x pars becuase these are highly sensitive parameters and can easily lead to model instability due to inbalanced nutrient or plankton dynamics
+# Define the percentage change for sensitivity analysis
+percent_change <- c(-0.1, 0.1)
 
-# List of parameter names and their values
-param_list <- list(Rgrz = Rgrz, Rresp = Rresp, Rmort = Rmort, 
-                  Tmax = Tmax, Topt = Topt)
-taxa_columns <- c("rotifer", "cladoceran", "copepod")  # Columns for each taxa
+# Define the taxa columns
+taxa_columns <- c("rotifer", "cladoceran", "copepod")
 
-# create a new folder where all the sensitivity files will be copied into
-glm_files = list.files("./sims/spinup/baseline", full.names = TRUE)[1:3] 
+# Create new folders for sensitivity files
+glm_files <- list.files("./sims/spinup/baseline", full.names = TRUE)[1:3]
+sens_dirs <- c("low", "high")
 
-pars <- c("low","high")
-
-# Iterate over each sensitivity setting (low and high)
-for(i in 1:length(pars)){
-  # Directory setup
-  subdirName <- paste0("./sims/spinup/sensitivity_", pars[i])
+# Iterate over sensitivity cases (-10% and +10%)
+for (i in 1:length(percent_change)) {
+  # Create directory for the current sensitivity case
+  subdirName <- paste0("./sims/spinup/sensitivity_", sens_dirs[i])
   dir.create(subdirName)
   file.copy(from = glm_files, to = subdirName, recursive = TRUE)
   
@@ -40,15 +42,15 @@ for(i in 1:length(pars)){
       copepod = X.copepod.
     )
   
-  # Update parameters for each taxa
-  for(param_name in names(param_list)){
-    # Get the specific low or high value for this iteration
-    value <- param_list[[param_name]][i]
+  # Update parameters for each taxa based on percentage change
+  for (param_name in names(param_values)) {
+    # Calculate adjusted values
+    adjusted_values <- param_values[[param_name]] * (1 + percent_change[i])
     
-    # Modify the corresponding rows for each taxa
-    for(taxa in taxa_columns){
-      zoop_aed_file[zoop_aed_file$zoop.name == paste0(" '", param_name, "_zoo'"), taxa] <- as.numeric(value)
-      
+    # Update the corresponding rows for each taxon
+    for (j in 1:length(taxa_columns)) {
+      taxon <- taxa_columns[j]
+      zoop_aed_file[zoop_aed_file$zoop.name == paste0(" '", param_name, "'"), taxon] <- adjusted_values[j]
     }
   }
   
@@ -58,34 +60,32 @@ for(i in 1:length(pars)){
   
   # Create output folder for model results
   dir.create(paste0(subdirName, "/output"))
-}  
+}
 
-# now run the model and generate output
-for (i in 1:length(pars)){
-  
-  # run the model
-  sim_folder = paste0("./sims/spinup/sensitivity_",pars[i])
+# Run the model and generate output for each sensitivity case
+for (i in 1:length(sens_dirs)) {
+  sim_folder <- paste0("./sims/spinup/sensitivity_", sens_dirs[i])
   GLM3r::run_glm(sim_folder)
   
-  # set nml file
-  nc_file <- file.path(paste0("sims/spinup/sensitivity_",pars[i],"/output/output.nc")) 
+  # Set .nc file path
+  nc_file <- file.path(paste0(sim_folder, "/output/output.nc"))
   
-  # access and plot temperature
+  # Access and plot temperature
   current_temp <- glmtools::get_var(nc_file, var_name = "temp")
   p <- glmtools::plot_var(nc_file, var_name = "temp", reference = "surface", 
-                          plot.title = paste0("sensitivity_",pars[i]))
-  plot_filename <- paste0("./figures/waterTemp_sensitivity__",pars[i],".png")
+                          plot.title = paste0("sensitivity_", sens_dirs[i]))
+  plot_filename <- paste0("./figures/waterTemp_sensitivity__", sens_dirs[i], ".png")
   ggplot2::ggsave(p, filename = plot_filename, device = "png",
                   height = 6, width = 8, units = "in")
-  
 }
+
 
 #------------------------------------------------------------------------#
 # code to pull zoop data into a df
 
-for (i in 1:length(pars)){
+for (i in 1:length(sens_dirs)){
   
-  nc_file = paste0("sims/spinup/sensitivity_",pars[i],"/output/output.nc")  
+  nc_file = paste0("sims/spinup/sensitivity_",sens_dirs[i],"/output/output.nc")  
   
   #save zoop output
   var="ZOO_cladoceran"
@@ -161,8 +161,8 @@ for (i in 1:length(pars)){
                         names_to = c("mod", "taxon")) |> 
     na.omit() |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
-    dplyr::mutate(value = value * 12.011) |> # convert to ug/L
-    dplyr::filter(value < 6000) # just to make the plot look better
+    dplyr::mutate(value = value * 12.011 / 1000) |> # convert to mg/L
+    dplyr::filter(value < 6) # just to make the plot look better
   
   #convert from wide to long for plotting
   all_zoops_final <- all_zoops |> 
@@ -174,26 +174,32 @@ for (i in 1:length(pars)){
                   year = lubridate::year(DateTime),
                   doy = lubridate::yday(DateTime)) |>
     dplyr::ungroup() |>
-    dplyr::group_by(year) |>
-    dplyr::mutate(annual_sum = sum(value)) |>
-    dplyr::ungroup() |>
-    dplyr::mutate(annual_prop = (daily_sum / annual_sum) * 100) |>
     na.omit() |>
-    dplyr::mutate(value = value * 12.011) |> # convert to ug/L 
-    dplyr::mutate(scenario = pars[i])
+    dplyr::mutate(value = value * 12.011 / 1000) |> # convert to mg/L 
+    dplyr::mutate(scenario = sens_dirs[i])
   
   #now create a dynamic df name
-  assign(paste0("all_zoops_sens_", pars[i]), all_zoops_final)
+  assign(paste0("all_zoops_sens_", sens_dirs[i]), all_zoops_final)
 }
 #------------------------------------------------------------------------#
-# now zoop figs to summarize changes between high vs. low pars
+#create a combined zoop df with all scenarios
+#zoop_pars_sens <-  mget(c("all_zoops_sens_high","all_zoops_sens_low")) |>
+#                   setNames(paste0(sens_dirs)) |>
+#                   bind_rows(.id = "pars") |>
+#                   relocate(pars, .after = last_col())
+#write.csv(zoop_pars_sens, "./analysis/data/zoop_pars_sens.csv", row.names = F)
+
+zoop_pars <-read.csv("analysis/data/zoop_pars_sens.csv") |>
+  mutate(DateTime = as.Date(DateTime)) |>
+  filter(DateTime >= "2015-07-07")
+
+
+# zoop figs to summarize changes between high vs. low pars
 ggplot() +
-  geom_line(data=all_zoops_sens_high,
-            aes(DateTime, value, color = "high")) +
-  geom_line(data=all_zoops_sens_low,
-            aes(DateTime, value, color = "low")) +
+  geom_line(data=zoop_pars,
+            aes(DateTime, value, color = scenario)) +
   facet_wrap(~taxon, scales="free_y", nrow=3, strip.position = "right") + 
-  theme_bw() + xlab("") + 
+  theme_bw() + xlab("") + ylab("Value") +
   scale_color_manual("", values = c("#f4a261","#2a9d8f"),
                      breaks = c("high","low")) +
   theme(panel.grid.major = element_blank(), 
@@ -213,17 +219,6 @@ ggplot() +
           fill = "white"),
         panel.spacing.y = unit(0, "lines"))
 #ggsave("figures/zoop_sens_high_low_pars.jpg", width=6, height=6)
-
-#create a combined zoop df with all scenarios
-#zoop_pars <-  mget(c("all_zoops_sens_high","all_zoops_sens_low")) |>
-#                   setNames(paste0(pars)) |>
-#                   bind_rows(.id = "pars") |>
-#                   relocate(pars, .after = last_col())
-#write.csv(zoop_pars, "./analysis/data/zoop_pars.csv", row.names = F)
-
-zoop_pars <-read.csv("analysis/data/zoop_pars.csv") |>
-  mutate(DateTime = as.Date(DateTime)) |>
-  filter(DateTime >= "2015-07-07")
 
 ggplot(data = subset(zoop_pars, !taxon %in% "total"),
        aes(x=DateTime, y = value, color=taxon)) +
@@ -250,7 +245,6 @@ ggplot(data = subset(zoop_pars, !taxon %in% "total"),
         axis.text.y = element_text(size = 10),
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_text(face = "bold",hjust = 0),
-        axis.text.x = element_text(angle=90),
         strip.background.x = element_blank(),
         axis.title.y = element_text(size = 11),
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
@@ -264,17 +258,17 @@ ggplot(data = subset(zoop_pars, !taxon %in% "total"),
 
 # values for results text
 mean(zoop_pars$value[zoop_pars$taxon=="cladoceran" & 
-                       zoop_pars$scenario=="high"])
+                       zoop_pars$scenario=="high"]) -
 mean(zoop_pars$value[zoop_pars$taxon=="cladoceran" & 
                        zoop_pars$scenario=="low"])
 
 mean(zoop_pars$value[zoop_pars$taxon=="copepod" & 
-                       zoop_pars$scenario=="high"])
+                       zoop_pars$scenario=="high"]) -
 mean(zoop_pars$value[zoop_pars$taxon=="copepod" & 
                        zoop_pars$scenario=="low"])
 
 mean(zoop_pars$value[zoop_pars$taxon=="rotifer" & 
-                       zoop_pars$scenario=="high"])
+                       zoop_pars$scenario=="high"]) -
 mean(zoop_pars$value[zoop_pars$taxon=="rotifer" & 
                        zoop_pars$scenario=="low"])
 
@@ -310,7 +304,8 @@ mean(mean_proportions_par_sens$mean_proportion[
 # smoothed monthly biomass for each scenario
 zoop_pars |>
   filter(year %in% c(2016:2021)) |>
-  mutate(month = lubridate::month(DateTime)) |>
+  mutate(month = lubridate::month(DateTime),
+         taxon = stringr::str_to_title(taxon)) |>
   group_by(taxon, scenario, month) |>
   summarise(monthly_biom = mean(value), .groups = "drop") |>
   ggplot(aes(x = factor(month), y = monthly_biom, color = factor(
@@ -320,7 +315,7 @@ zoop_pars |>
   facet_wrap(~taxon, nrow=1, scales = "free_y")+ 
   scale_x_discrete(labels = c("Jan","","Mar","", "May", "", "Jul",
                               "","Sep", "","Nov","")) +
-  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
+  ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
   scale_color_manual("", values = c("#f4a261","#2a9d8f"),
                      breaks = c("high", "low")) +
   theme(panel.grid.major = element_blank(), 

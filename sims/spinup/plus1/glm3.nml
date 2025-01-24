@@ -102,7 +102,7 @@
    strm_hf_angle = 55
    strmbd_slope = 0.05
    strmbd_drag = 0.03
-   inflow_factor = 0.990002
+   inflow_factor = 0.99003
    inflow_fl = 'inputs/inflow_plus1.csv'
    inflow_varnum = 29
    inflow_vars = 'FLOW','TEMP','SALT','OXY_oxy','NIT_amm','NIT_nit','PHS_frp','OGM_doc','OGM_docr','OGM_poc','OGM_don','OGM_donr','OGM_pon','OGM_dop','OGM_dopr','OGM_pop','CAR_dic','CAR_pH','SIL_rsi','CAR_ch4','PHY_cyano','PHY_cyano_IN','PHY_cyano_IP','PHY_green','PHY_green_IN','PHY_green_IP','PHY_diatom','PHY_diatom_IN','PHY_diatom_IP'
