@@ -253,7 +253,7 @@ ggplot() +
 zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   mutate(DateTime = as.Date(DateTime)) |>
   filter(DateTime >= "2015-07-07") |>
-  group_by(taxon, scenario) |>
+  group_by(year, taxon, scenario) |>
   mutate(mean_biom = mean(value)) |>
   ungroup() |>
   mutate(diff = value - mean_biom) 
@@ -562,10 +562,10 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
   
 # scenario boxplots across taxa
 zoop_mean_biom <-  zoop_scenarios |>
-    filter(!taxon %in% "total") |>
-    group_by(taxon, scenario, year) |>
-    summarise(mean_biom = mean(value))  |>
-  filter(year %in% 2016:2021)
+    filter(!taxon %in% "total",
+           year %in% c(2016:2021)) |>
+    group_by(year, taxon, scenario) |>
+    summarise(mean_biom = mean(mean_biom))  
 
   ggplot(data=zoop_mean_biom, aes(x=factor(
     scenario,levels=c("baseline","plus1","plus5","plus10")), 
@@ -1006,7 +1006,7 @@ area <- ggplot(data = subset(phyto_scenarios, scenario %in% c("baseline","plus10
                   taxon = stringr::str_to_title(taxon)) |>
   ggplot(aes(x = max_doy, y = as.factor(scenario), 
              fill = as.factor(scenario))) + xlab("Max DOY") +
-    geom_boxplot(aes(fill = as.factor(scenario))) +
+    geom_violin(aes(fill = as.factor(scenario)), scale = "width", trim = FALSE) +
     scale_fill_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                       breaks = c("baseline","plus1","plus5","plus10")) +
     facet_wrap(~taxon, ncol=3, scales = "free_x") + ylab("") +
@@ -1032,7 +1032,7 @@ area <- ggplot(data = subset(phyto_scenarios, scenario %in% c("baseline","plus10
           panel.background = element_rect(
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
-  #ggsave("figures/zoop_boxplots_max_doy.jpg", width=7, height=4)
+  #ggsave("figures/zoop_violin_max_doy.jpg", width=7, height=4)
   
   
 zoop_timing <- zoop_scenarios |>

@@ -183,55 +183,122 @@ mean(thermo_depth$value[lubridate::year(thermo_depth$DateTime) %in% "2016" &
 mean(thermo_depth$value[lubridate::year(thermo_depth$DateTime) %in% "2016" &
                           thermo_depth$scenario=="plus10"])
 
-#calculate stratification duration for each year/scenario
-temp_scenarios <- read_csv("analysis/data/mod_vars.csv") |>
-  filter(var %in% "temp") |>
-  pivot_wider(names_from = Depth,
-              values_from = value) |>
-  rename(Surface_Temp = "0.1",
-         Bottom_Temp = "9") |>
-  select(-var) |>
-  mutate(Year = year(DateTime),  
-         Temp_Diff = Surface_Temp - Bottom_Temp,
-         Stratified = abs(Temp_Diff) > 1,
-         DayOfYear = yday(DateTime),
-         Month = month(as.Date(DayOfYear - 1, origin = paste0(Year, "-01-01"))),
-         Month_label = month.abb[Month]) |>
-  filter(Year %in% c(2016:2021))
+#calculate stratification duration for each year/scenario using density
+mod_dens_bl <- get_var("sims/spinup/baseline/output/output.nc", "dens") |> 
+  tidyr::pivot_longer(cols = starts_with('dens.elv_'),
+                      names_to = 'depth',
+                      values_to = 'density') |>
+  dplyr::mutate(depth = as.numeric(gsub('dens.elv_', '', depth))) |>
+  dplyr::filter(DateTime >= "2016-01-01" & DateTime <= "2021-12-31") |>
+  dplyr::arrange(DateTime, depth) |>
+  dplyr::group_by(DateTime) |>
+  dplyr::summarise(density_top = first(density),  
+                   density_bottom = last(density, na_rm = TRUE),
+                   density_diff = density_top - density_bottom,
+                   Stratified_binary = ifelse(abs(density_diff) > 0.1, 1, 0), 
+                   .groups = 'drop') |>
+  dplyr::select(DateTime, Stratified_binary) |>
+  tidyr::pivot_longer(cols = Stratified_binary,
+                      names_to = 'variable',
+                      values_to = 'observation') |>
+  dplyr::select(-variable) |>
+  dplyr::mutate(scenario = "baseline")
 
-# Convert 'Month_label' to a factor with the correct order
-temp_scenarios$Month_label <- factor(temp_scenarios$Month_label, levels = month.abb)
+mod_dens_plus1 <- get_var("sims/spinup/plus1/output/output.nc", "dens") |> 
+  tidyr::pivot_longer(cols = starts_with('dens.elv_'),
+                      names_to = 'depth',
+                      values_to = 'density') |>
+  dplyr::mutate(depth = as.numeric(gsub('dens.elv_', '', depth))) |>
+  dplyr::filter(DateTime >= "2016-01-01" & DateTime <= "2021-12-31") |>
+  dplyr::arrange(DateTime, depth) |>
+  dplyr::group_by(DateTime) |>
+  dplyr::summarise(density_top = first(density),  
+                   density_bottom = last(density, na_rm = TRUE),
+                   density_diff = density_top - density_bottom,
+                   Stratified_binary = ifelse(abs(density_diff) > 0.1, 1, 0), 
+                   .groups = 'drop') |>
+  dplyr::select(DateTime, Stratified_binary) |>
+  tidyr::pivot_longer(cols = Stratified_binary,
+                      names_to = 'variable',
+                      values_to = 'observation') |>
+  dplyr::select(-variable) |>
+  dplyr::mutate(scenario = "plus1")
 
-ggplot(temp_scenarios, aes(x = Month_label, y = as.factor(Stratified), color = scenario)) +
-  geom_point(size = 2, alpha = 0.1) +
-  geom_line(aes(group = scenario), alpha = 0.7, size = 1) +  # Connect points across years by 'Year' and 'scenario'
-  scale_y_discrete(labels = c("No", "Yes")) +  
-  scale_color_manual(values = c("baseline" = "#084c61", "plus1" = "#db504a", "plus5" = "#e3b505", "plus10" = "#680000")) + 
-  facet_wrap(~Year, scales = "free_y") +  # Facet by Year (each year in a separate panel)
-  xlab("Month") + ylab("Stratification Status") +
-  guides(shape = "none", color = guide_legend(title = "Scenario")) +
-  theme_minimal() +
-  theme(
-    legend.position = "top", 
-    axis.text.x = element_text(angle = 45, vjust = 0.8),
-    strip.text.x = element_text(face = "bold")
-  )
+mod_dens_plus5 <- get_var("sims/spinup/plus5/output/output.nc", "dens") |> 
+  tidyr::pivot_longer(cols = starts_with('dens.elv_'),
+                      names_to = 'depth',
+                      values_to = 'density') |>
+  dplyr::mutate(depth = as.numeric(gsub('dens.elv_', '', depth))) |>
+  dplyr::filter(DateTime >= "2016-01-01" & DateTime <= "2021-12-31") |>
+  dplyr::arrange(DateTime, depth) |>
+  dplyr::group_by(DateTime) |>
+  dplyr::summarise(density_top = first(density),  
+                   density_bottom = last(density, na_rm = TRUE),
+                   density_diff = density_top - density_bottom,
+                   Stratified_binary = ifelse(abs(density_diff) > 0.1, 1, 0), 
+                   .groups = 'drop') |>
+  dplyr::select(DateTime, Stratified_binary) |>
+  tidyr::pivot_longer(cols = Stratified_binary,
+                      names_to = 'variable',
+                      values_to = 'observation') |>
+  dplyr::select(-variable) |>
+  dplyr::mutate(scenario = "plus5")
 
-strat_periods <- temp_scenarios %>%
-  group_by(scenario, Year) %>%
-  summarise(
-    Strat_Days = sum(Stratified, na.rm = TRUE),  # Total stratified days for each year and scenario
-    .groups = "drop"
-  ) %>%
-  group_by(scenario) %>%
-  summarise(
-    Mean_Strat_Days = mean(Strat_Days, na.rm = TRUE),  # Mean of Stratified days across all years for each scenario
-    .groups = "drop"
-  )
+mod_dens_plus10 <- get_var("sims/spinup/plus10/output/output.nc", "dens") |> 
+  tidyr::pivot_longer(cols = starts_with('dens.elv_'),
+                      names_to = 'depth',
+                      values_to = 'density') |>
+  dplyr::mutate(depth = as.numeric(gsub('dens.elv_', '', depth))) |>
+  dplyr::filter(DateTime >= "2016-01-01" & DateTime <= "2021-12-31") |>
+  dplyr::arrange(DateTime, depth) |>
+  dplyr::group_by(DateTime) |>
+  dplyr::summarise(density_top = first(density),  
+                   density_bottom = last(density, na_rm = TRUE),
+                   density_diff = density_top - density_bottom,
+                   Stratified_binary = ifelse(abs(density_diff) > 0.1, 1, 0), 
+                   .groups = 'drop') |>
+  dplyr::select(DateTime, Stratified_binary) |>
+  tidyr::pivot_longer(cols = Stratified_binary,
+                      names_to = 'variable',
+                      values_to = 'observation') |>
+  dplyr::select(-variable) |>
+  dplyr::mutate(scenario = "plus10")
 
+scenario_dens <- dplyr::bind_rows(mod_dens_bl, mod_dens_plus1, 
+                                  mod_dens_plus5, mod_dens_plus10) |>
+  dplyr::mutate(year = lubridate::year(DateTime)) |>
+  dplyr::group_by(year, scenario) |>
+  dplyr::summarise(stratified_days = sum(observation)) |>
+  dplyr::ungroup() 
+
+mean(scenario_dens$stratified_days[scenario_dens$scenario=="baseline"]) # 299
+mean(scenario_dens$stratified_days[scenario_dens$scenario=="plus1"])    # 300
+mean(scenario_dens$stratified_days[scenario_dens$scenario=="plus5"])    # 310
+mean(scenario_dens$stratified_days[scenario_dens$scenario=="plus10"])   # 339
+
+ggplot(scenario_dens, 
+       aes(x = factor(scenario, levels = c("baseline", "plus1", "plus5", "plus10")), 
+           y = stratified_days, fill = scenario)) +
+  geom_boxplot() +
+  labs(x = "", y = "Stratified days") +
+  theme_bw() + guides(fill="none") +
+  scale_fill_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
+                     breaks = c("baseline","plus1","plus5","plus10")) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold",hjust = 0),
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        panel.background = element_rect(
+          fill = "white"))
+#ggsave("figures/strat_days_scenario.jpg", width=7, height=4) 
 
 # quick plot at % sat for all scenarios
-
 for(i in 1:length(scenario)){
   
   nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
@@ -284,4 +351,61 @@ ggplot(data=subset(psat_scenarios, Depth %in% 0.1)) +
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/modeled_psat_scenarios_0.1.jpg", width=7, height=4)
 
+# quick plot of meteorology and inflow across years
+met <- read_csv("sims/spinup/baseline/inputs/met.csv") |>
+  mutate(DateTime = ymd_hms(time),  
+         Year = year(DateTime)) |>
+  filter(DateTime >= "2016-01-01" & DateTime <= "2021-12-31") |>
+  group_by(Year) |>
+  summarize(
+    Mean_AirTemp = mean(AirTemp, na.rm = TRUE),  # Adjust column names as needed
+    Total_Precip = sum(Rain, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Extract year
+met_data <- met %>%
+  mutate(DateTime = ymd_hms(time),  
+         Year = factor(year(DateTime))) |> # Convert year to a factor for boxplots
+  filter(DateTime >= "2016-01-01" & DateTime <= "2021-12-31")
+  
+# Plot Air Temperature Boxplot
+ggplot(met, aes(x = Year, y = Mean_AirTemp)) +
+  geom_point(fill = "#1f78b4", alpha = 0.7) +
+  labs(title = "Annual Air Temperature Distribution",
+       x = "Year", y = "Air Temperature (°C)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Plot Precipitation Boxplot
+ggplot(met, aes(x = Year, y = Total_Precip)) +
+  geom_point(fill = "#33a02c", alpha = 0.7) +
+  labs(title = "Annual Precipitation Distribution",
+       x = "Year", y = "Precipitation (mm)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# inflow
+inflow <- read_csv("sims/spinup/baseline/inputs/BVR_inflow_2015_2022_allfractions_2poolsDOC_withch4_metInflow_0.65X_silica_0.2X_nitrate_0.4X_ammonium_1.9X_docr_1.7Xdoc.csv") |>
+  mutate(DateTime = ymd(time),  
+         Year = factor(year(DateTime))) |> # Convert year to a factor for boxplots
+  filter(DateTime >= "2016-01-01" & DateTime <= "2021-12-31") |>
+  group_by(Year) |>
+  summarise(MeanFlow = mean(FLOW, na.rm = TRUE),
+            MeanTemp = mean(TEMP, na.rm = TRUE),
+            MeanOxy = mean(OXY_oxy, na.rm = TRUE),
+            MeanAmm = mean(NIT_amm, na.rm = TRUE),
+            MeanNit = mean(NIT_nit, na.rm = TRUE),
+            MeanDOC = mean(OGM_doc, na.rm = TRUE)) |>
+  pivot_longer(cols = c(MeanFlow, MeanTemp, MeanOxy, MeanAmm, MeanNit, MeanDOC), 
+               names_to = "Variable", values_to = "Value")
+
+ggplot(inflow, aes(x = Year, y = Value)) +
+  geom_point(aes(fill = Variable), alpha = 0.7) +
+  facet_wrap(~Variable, scales = "free_y", ncol = 3) + # Free scales for different units
+  labs(title = "Annual Distribution of Inflow Variables",
+       x = "Year", y = "Value") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "none")
 
