@@ -889,7 +889,7 @@ full_n_all <- c("n_all",length(na.omit(clad_final$clad_obs)),
 
 
 zoop_gof_all_table <- zoop_gof %>% 
-  filter(Parameter == "r.Spearman_all" | Parameter == "R2_all" | Parameter == "RMSE_all" | Parameter == "PBIAS%_all" | Parameter == "NMAE_all")
+  filter(Parameter == "R2_all" | Parameter == "RMSE_all" | Parameter == "PBIAS%_all" | Parameter == "NMAE_all")
 
 zoop_gof_table <- rbind(full_n_all,zoop_gof_all_table)
 

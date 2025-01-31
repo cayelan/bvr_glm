@@ -1,6 +1,6 @@
 # need to automate this and have the output save in separate folders instead of overwriting
 
-pacman::p_load(ggplot2, dplyr, scales, NatParksPalettes, glmtools)
+pacman::p_load(ggplot2, dplyr, scales, NatParksPalettes, glmtools, tagger)
 
 scenario <- c("baseline","plus1","plus5","plus10")
   
@@ -85,6 +85,7 @@ all_zoops_obs <- purrr::reduce(list(clad_obs, cope_obs, rot_obs), dplyr::full_jo
   dplyr::mutate(DateTime = as.Date(DateTime)) |>
   dplyr::mutate(value = value * 12.011 / 1000) |> # convert to mg/L
   dplyr::filter(value < 6) # just to make the plot look better
+#write.csv(all_zoops_obs, "./analysis/data/zoop_obs.csv", row.names = F)
   
 #convert from wide to long for plotting
 all_zoops_final <- all_zoops |> 
@@ -120,10 +121,12 @@ all_zoops_final <- all_zoops |>
 facet_labels <- c("Cladoceran", "Copepod", "Rotifer", "Total biomass")
 names(facet_labels) <- c("cladoceran", "copepod", "rotifer","total")
 
+zoop_obs <- read_csv("analysis/data/zoop_obs.csv")
+
 # plot zoops
-plot2 <- ggplot() +
-  geom_line(data=all_zoops_baseline, aes(DateTime, value)) + 
-  geom_point(data=all_zoops_obs,
+plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
+  geom_line(aes(DateTime, value)) + 
+  geom_point(data=zoop_obs,
             aes(DateTime, value, color=taxon)) +
   theme_bw() + xlab("") + guides(color = "none") +
   facet_wrap(~taxon, scales = "free_y", nrow=2,
@@ -150,6 +153,15 @@ plot2 <- ggplot() +
         panel.background = element_rect(fill = "transparent", colour = NA), 
         plot.background = element_rect(fill = "transparent", colour = NA))
 #ggsave("figures/zoop_mod_vs_obs_copes_last.jpg", width=6, height=4)
+
+#summarize across taxa to describe bl zoop timing in results
+bl_zoop_summary <- zoop_scenarios |>
+  filter(scenario %in% c("baseline"),
+         year %in% c(2016:2021)) |>
+  group_by(year, taxon) |>
+  mutate(max_biom_doy = doy[which.max(value)]) |>
+  ungroup() |> group_by(taxon) |>
+  summarise(max_doy = mean(max_biom_doy))
 
 ggplot() +
   geom_line(data=subset(all_zoops_baseline, !taxon %in% "total"),

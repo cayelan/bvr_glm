@@ -2,7 +2,8 @@
 # 22 August 2024
 
 devtools::install_github("eliocamp/tagger")
-pacman::p_load(ggplot2,ggridges,dplyr, ARTool, FSA, egg, tagger)
+pacman::p_load(ggplot2,ggridges,dplyr, ARTool, 
+               FSA, egg, tagger, stringr)
 
 
 # phytos
@@ -265,9 +266,11 @@ area <-  ggplot(data = subset(zoop_scenarios,
   geom_area(aes(fill = taxon, color=taxon),
             position = "fill", 
             stat = "identity") +
-  facet_wrap(~scenario, scales = "free_x")+
+  facet_wrap(~scenario, scales = "free_x",
+             labeller = labeller(scenario = function(x) str_to_title(x)))+
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"))+
-  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
+  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
+                    labels = c("Cladoceran","Copepod","Rotifer"))+
   scale_x_date(expand = c(0,0), 
                breaks = as.Date(c("2016-01-01", "2018-01-01", "2020-01-01", "2022-01-01")),
                date_labels = '%Y') +
@@ -308,9 +311,10 @@ mean_proportions <- zoop_scenarios |>
 box <- ggplot(data = subset(mean_proportions, 
                             scenario %in% c("baseline","plus10")),
               aes(x=taxon, y = mean_proportion, fill=scenario)) +
-  geom_boxplot() +
-  scale_fill_manual(values = c("#147582","#680000"))+
-  scale_y_continuous(expand = c(0,0))+
+  geom_boxplot() + 
+  scale_fill_manual(values = c("#147582","#680000"),
+                    labels = c("Baseline","Plus10"))+
+  scale_y_continuous(expand = c(0,0), limits=c(-0.05,1.05))+
   xlab("") + ylab("Relative biomass") +
   tag_facets(tag_pool = c("c")) +
   guides(color= "none",
@@ -324,8 +328,6 @@ box <- ggplot(data = subset(mean_proportions,
         legend.position = "top",
         legend.title = element_blank(),
         text = element_text(size=9), 
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank(),
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_text(face = "bold",hjust = 0),
         strip.background = element_blank(),
@@ -359,6 +361,21 @@ mean(zoop_scenarios$value[zoop_scenarios$taxon=="total" &
 sd(zoop_scenarios$value[zoop_scenarios$taxon=="total" & 
                           zoop_scenarios$scenario=="plus10"])
 
+mean(zoop_scenarios$value[zoop_scenarios$taxon=="cladoceran" & 
+                            zoop_scenarios$scenario=="baseline"])
+sd(zoop_scenarios$value[zoop_scenarios$taxon=="cladoceran" & 
+                          zoop_scenarios$scenario=="baseline"])
+
+mean(zoop_scenarios$value[zoop_scenarios$taxon=="copepod" & 
+                            zoop_scenarios$scenario=="baseline"])
+sd(zoop_scenarios$value[zoop_scenarios$taxon=="copepod" & 
+                          zoop_scenarios$scenario=="baseline"])
+
+mean(zoop_scenarios$value[zoop_scenarios$taxon=="rotifer" & 
+                            zoop_scenarios$scenario=="baseline"])
+sd(zoop_scenarios$value[zoop_scenarios$taxon=="rotifer" & 
+                          zoop_scenarios$scenario=="baseline"])
+
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="cladoceran" &
                                         mean_proportions$scenario=="plus10"]) -
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="cladoceran" &
@@ -376,6 +393,26 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
                                         mean_proportions$scenario=="plus10"]) -
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
                                         mean_proportions$scenario=="baseline"])
+
+#list of proportions for high and low taxon biomass
+mean(mean_proportions$mean_proportion[mean_proportions$taxon=="cladoceran" &
+                                        mean_proportions$scenario=="baseline"])
+mean(mean_proportions$mean_proportion[mean_proportions$taxon=="cladoceran" &
+                                        mean_proportions$scenario=="plus10"])
+
+mean(mean_proportions$mean_proportion[mean_proportions$taxon=="copepod" &
+                                        mean_proportions$scenario=="baseline"])
+mean(mean_proportions$mean_proportion[mean_proportions$taxon=="copepod" &
+                                        mean_proportions$scenario=="plus5"])
+mean(mean_proportions$mean_proportion[mean_proportions$taxon=="copepod" &
+                                        mean_proportions$scenario=="plus10"])
+
+mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
+                                        mean_proportions$scenario=="baseline"])
+mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
+                                        mean_proportions$scenario=="plus5"])
+mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
+                                        mean_proportions$scenario=="plus10"])
 
 
 # biomass for each year + taxa
@@ -533,8 +570,9 @@ zoop_mean_biom <-  zoop_scenarios |>
   ggplot(data=zoop_mean_biom, aes(x=factor(
     scenario,levels=c("baseline","plus1","plus5","plus10")), 
              y = mean_biom, fill=taxon)) +
-    geom_boxplot() + ylim(0,1.3) +
-    scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
+    geom_boxplot() + ylim(0,1.27) +
+    scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
+                      labels = c("Cladoceran","Copepod","Rotifer"))+
     ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
     geom_text(data = subset(zoop_mean_biom, scenario == "plus10" & taxon == "rotifer"),
               aes(x = c(1.24,2.24,3.24,4.24,NA,NA), 
@@ -712,7 +750,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
         panel.spacing.x = unit(0.2, "in"),
         panel.background = element_rect(
           fill = "white"))
-#ggsave("figures/zoop_annual_biom_taxa_timing.jpg", width=7, height=4) 
+#ggsave("figures/zoop_annual_biom_taxa.jpg", width=7, height=4) 
   
 #reverse axes and summarize by year
  diff_zoops <- zoop_scenarios |>
@@ -1060,8 +1098,7 @@ zoop_timing <- zoop_scenarios |>
 # also plot the doy as a point for each year
   ggplot(zoop_scenarios, aes(x = max_doy, y = max_value, 
              color = as.factor(scenario))) +
-    geom_point(aes(fill = as.factor(scenario))) +
-    geom_line() +
+    geom_point(aes(fill = as.factor(scenario)), cex=2) +
     scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                       breaks = c("baseline","plus1","plus5","plus10")) +
     xlab("Day of year") + ylab("Maximum value") +

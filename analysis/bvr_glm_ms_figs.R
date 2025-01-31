@@ -18,8 +18,8 @@ pacman::p_load(tidyverse,lubridate,
 #focal depths
 depths<- c(0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 scenario <- c("baseline","plus1","plus5","plus10")
-
-for(i in 1:length(scenario)){
+i <- 1
+#for(i in 1:length(scenario)){
   
   nc_file = paste0("sims/spinup/",scenario[i],"/output/output.nc")  
 
@@ -253,7 +253,7 @@ mod_vars_final <- mod_vars |>
   na.omit() |>
   mutate(scenario = scenario[i])
 assign(paste0("mod_vars_final_", scenario[i]), mod_vars_final)
-}
+#}
 
 # write modeled vars to file
 #mod_vars <-  mget(c("mod_vars_final_baseline","mod_vars_final_plus1",
@@ -377,93 +377,83 @@ ggplot() +
         strip.background = element_blank())
 #ggsave("figures/allvars_mod_vs_obs_9m.jpg", width=8, height=6)
 
+# read in mod_vars
+mod_vars <- read_csv("analysis/data/mod_vars.csv")
+
 # numbers for results text
-mod_vars_final_baseline <- mod_vars_final_baseline |>
+mod_vars_bl <- mod_vars |>
+  filter(scenario %in% "baseline") |>
   mutate(season = ifelse(month(DateTime) %in% c(6,7,8), "summer",
                          ifelse(month(DateTime) %in% c(12,1,2), "winter", NA)))
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "temp" & 
-       mod_vars_final_baseline$Depth %in% "0.1" & 
-       mod_vars_final_baseline$season %in%"summer"])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "temp" & 
-                                   mod_vars_final_baseline$Depth %in% "0.1" & 
-                                   mod_vars_final_baseline$season %in%"summer"])
+mean(mod_vars_bl$value[mod_vars_bl$var %in% "temp" & 
+                         mod_vars_bl$Depth %in% "0.1" & 
+                         mod_vars_bl$season %in%"summer"])
+sd(mod_vars_bl$value[mod_vars_bl$var %in% "temp" & 
+                       mod_vars_bl$Depth %in% "0.1" & 
+                       mod_vars_bl$season %in%"summer"])
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "temp" & 
-                                     mod_vars_final_baseline$Depth %in% "0.1" & 
-                                     mod_vars_final_baseline$season %in%"winter"])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "temp" & 
-                                   mod_vars_final_baseline$Depth %in% "0.1" & 
-                                   mod_vars_final_baseline$season %in%"winter"])
+mean(mod_vars_bl$value[mod_vars_bl$var %in% "temp" & 
+                                     mod_vars_bl$Depth %in% "0.1" & 
+                                     mod_vars_bl$season %in%"winter"])
+sd(mod_vars_bl$value[mod_vars_bl$var %in% "temp" & 
+                       mod_vars_bl$Depth %in% "0.1" & 
+                       mod_vars_bl$season %in%"winter"])
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" & 
-                                     mod_vars_final_baseline$Depth %in% "0.1" & 
-                                     mod_vars_final_baseline$season %in%"summer"])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" & 
-                                   mod_vars_final_baseline$Depth %in% "0.1" & 
-                                   mod_vars_final_baseline$season %in%"summer"])
+mean(mod_vars_bl$value[mod_vars_bl$var %in% "oxy" & 
+                                     mod_vars_bl$Depth %in% "0.1" & 
+                                     mod_vars_bl$season %in%"summer"])
+sd(mod_vars_bl$value[mod_vars_bl$var %in% "oxy" & 
+                                   mod_vars_bl$Depth %in% "0.1" & 
+                                   mod_vars_bl$season %in%"summer"])
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" & 
-                                     mod_vars_final_baseline$Depth %in% "0.1" & 
-                                     mod_vars_final_baseline$season %in%"winter"])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var %in% "oxy" & 
-                                   mod_vars_final_baseline$Depth %in% "0.1" & 
-                                   mod_vars_final_baseline$season %in%"winter"])
+mean(mod_vars_bl$value[mod_vars_bl$var %in% "oxy" & 
+                         mod_vars_bl$Depth %in% "0.1" & 
+                         mod_vars_bl$season %in%"winter"])
+sd(mod_vars_bl$value[mod_vars_bl$var %in% "oxy" & 
+                       mod_vars_bl$Depth %in% "0.1" & 
+                       mod_vars_bl$season %in%"winter"])
 
-(mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
-                                     mod_vars_final_baseline$Depth==0.1 & 
-                                     mod_vars_final_baseline$season %in%"winter"]) -
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
-                                     mod_vars_final_baseline$Depth==0.1 & 
-                                     mod_vars_final_baseline$season %in%"summer"])) /
-  (mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
-                                        mod_vars_final_baseline$Depth==0.1 & 
-                                        mod_vars_final_baseline$season %in%"winter"]) +
-     mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
-                                          mod_vars_final_baseline$Depth==0.1 & 
-                                          mod_vars_final_baseline$season %in%"summer"])) /2
+(mean(mod_vars_bl$value[mod_vars_bl$var=="no3" & 
+                          mod_vars_bl$Depth==0.1 & 
+                          mod_vars_bl$season %in%"winter"]) -
+mean(mod_vars_bl$value[mod_vars_bl$var=="no3" & 
+                                     mod_vars_bl$Depth==0.1 & 
+                                     mod_vars_bl$season %in%"summer"])) /
+  (mean(mod_vars_bl$value[mod_vars_bl$var=="no3" & 
+                                        mod_vars_bl$Depth==0.1 & 
+                                        mod_vars_bl$season %in%"winter"]) +
+     mean(mod_vars_bl$value[mod_vars_bl$var=="no3" & 
+                              mod_vars_bl$Depth==0.1 & 
+                              mod_vars_bl$season %in%"summer"])) /2
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
-                                     mod_vars_final_baseline$Depth==0.1 ])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="no3" & 
-                                   mod_vars_final_baseline$Depth==0.1 ])
+mean(mod_vars_bl$value[mod_vars_bl$var=="no3" & 
+                                     mod_vars_bl$Depth==0.1 ])
+sd(mod_vars_bl$value[mod_vars_bl$var=="no3" & 
+                                   mod_vars_bl$Depth==0.1 ])
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
-                                     mod_vars_final_baseline$Depth==0.1 ])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
-                                   mod_vars_final_baseline$Depth==0.1 ])
+mean(mod_vars_bl$value[mod_vars_bl$var=="po4" & 
+                         mod_vars_bl$Depth==0.1 ])
+sd(mod_vars_bl$value[mod_vars_bl$var=="po4" & 
+                       mod_vars_bl$Depth==0.1 ])
 
-(mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
-                                      mod_vars_final_baseline$Depth==0.1 & 
-                                      mod_vars_final_baseline$season %in%"winter"]) -
-    mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
-                                         mod_vars_final_baseline$Depth==0.1 & 
-                                         mod_vars_final_baseline$season %in%"summer"])) /
-  (mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
-                                        mod_vars_final_baseline$Depth==0.1 & 
-                                        mod_vars_final_baseline$season %in%"winter"]) +
-     mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="po4" & 
-                                          mod_vars_final_baseline$Depth==0.1 & 
-                                          mod_vars_final_baseline$season %in%"summer"])) /2
+mean(mod_vars_bl$value[mod_vars_bl$var=="chla" & 
+                         mod_vars_bl$Depth==0.1 ])
+sd(mod_vars_bl$value[mod_vars_bl$var=="chla" & 
+                       mod_vars_bl$Depth==0.1 ])
 
-mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
-                                     mod_vars_final_baseline$Depth==0.1 ])
-sd(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
-                                   mod_vars_final_baseline$Depth==0.1 ])
-
-(mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
-                                      mod_vars_final_baseline$Depth==0.1 & 
-                                      mod_vars_final_baseline$season %in%"winter"]) -
-    mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
-                                         mod_vars_final_baseline$Depth==0.1 & 
-                                         mod_vars_final_baseline$season %in%"summer"])) /
-  (mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
-                                        mod_vars_final_baseline$Depth==0.1 & 
-                                        mod_vars_final_baseline$season %in%"winter"]) +
-     mean(mod_vars_final_baseline$value[mod_vars_final_baseline$var=="chla" & 
-                                          mod_vars_final_baseline$Depth==0.1 & 
-                                          mod_vars_final_baseline$season %in%"summer"])) /2
-
+(mean(mod_vars_bl$value[mod_vars_bl$var=="chla" & 
+                                      mod_vars_bl$Depth==0.1 & 
+                                      mod_vars_bl$season %in%"winter"]) -
+    mean(mod_vars_bl$value[mod_vars_bl$var=="chla" & 
+                             mod_vars_bl$Depth==0.1 & 
+                             mod_vars_bl$season %in%"summer"])) /
+  (mean(mod_vars_bl$value[mod_vars_bl$var=="chla" & 
+                                        mod_vars_bl$Depth==0.1 & 
+                                        mod_vars_bl$season %in%"winter"]) +
+     mean(mod_vars_bl$value[mod_vars_bl$var=="chla" & 
+                              mod_vars_bl$Depth==0.1 & 
+                              mod_vars_bl$season %in%"summer"])) /2
 
 
 #modeled vars from 2000-2022 for each scenario
@@ -570,30 +560,55 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
 
 #-----------------------------------------------------------------------#
   # read in modeled state vars
-  mod_vars <- read.csv("./analysis/data/mod_vars.csv") |>
+  summer_mod_vars <- read.csv("./analysis/data/mod_vars.csv") |>
     mutate(year = lubridate::year(DateTime),
            month = lubridate::month(DateTime)) |>
-    filter(month %in% c(5:9)) |>
+    filter(month %in% c(5:9),
+           !var %in% "wl") |>
     group_by(year, month, Depth, scenario, var) |>
     summarise(monthly_mean = mean(value)) 
   
+  summer_zoop_scenarios <- read.csv("./analysis/data/zoop_scenarios.csv") |>
+    mutate(month = lubridate::month(DateTime),
+           Depth = 0.1) |> #just so total biomass plots w/ surf vars
+    filter(month %in% c(5:9),
+           taxon %in% "total") |>
+    group_by(year, month, Depth, scenario, taxon) |>
+    summarise(monthly_mean = mean(value)) |>
+    rename(var = taxon)
+  
+  #combine zoops and wq vars
+  summer_all_vars <- bind_rows(summer_mod_vars, summer_zoop_scenarios)
+  
+  #new labels list
+  labels <- c(
+    # expression("Water level (m" [] * ")"),
+    expression("Water Temp (" * degree * "C)"),
+    expression("DO (mg L" ^-1*")"),
+    expression("NO" [3] * " (" * mu * " g L"^-1*")"),
+    expression("DRP (" * mu * " g L"^{-1}*")"),
+    # expression("DOC (" * mu * " g L"^{-1}*")"),
+    expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")"),
+    expression("Zoop biomass (mg L" ^-1*")")
+  )
+  
   # line plots for each taxa/scenario
-  mean_mod_vars <-  mod_vars |>
+  mean_summer_mod_vars <-  summer_all_vars |>
     group_by(var, year, scenario, Depth) |>
     summarise(mean_val = mean(monthly_mean)) |>
     ungroup() |>
-    mutate(variable = factor(var, levels = unique(var)[c(6,5,3,2,4,1)],
+    mutate(variable = factor(var, levels = unique(var)[c(5,3,2,4,1,6)],
                             labels = labels))
   
-  mean_mod_vars$var <- factor(mean_mod_vars$var, 
-                              levels = c("wl","temp", "oxy", "no3" ,
-                                         "po4", "chla"))
+  mean_summer_mod_vars$var <- factor(mean_summer_mod_vars$var, 
+                              levels = c("temp", "oxy", "no3" ,
+                                         "po4", "chla", "total"))
   
-  ggplot(data=subset(mean_mod_vars,Depth==0.1 & !year %in% c("2015","2022")),
+  ggplot(data=subset(mean_summer_mod_vars,Depth==0.1 & !year %in% c("2015","2022")),
          aes(x = year, y = mean_val,  color = scenario)) +
     geom_line(size=1) + geom_point(size=2) +
     facet_wrap(~variable, scales = "free",
-               labeller = label_parsed) + ylab("Value") +
+               labeller = label_parsed) + 
     xlab("") + theme_bw() + ylab("Summer mean value") +
     scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
@@ -619,11 +634,11 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
             fill = "white"))
   #ggsave("figures/mod_vars_yearly_summer_0.1m.jpg", width=7, height=4) 
   
-  ggplot(data=subset(mean_mod_vars,Depth==9 & !year %in% c("2015","2022")),
+  ggplot(data=subset(mean_summer_mod_vars,Depth==9 & !year %in% c("2015","2022")),
          aes(x = year, y = mean_val,  color = scenario)) +
     geom_line(size=1) + geom_point(size=2) +
     facet_wrap(~variable, scales = "free",
-               labeller = label_parsed) + ylab("Value") +
+               labeller = label_parsed) + 
     xlab("") + theme_bw() + ylab("Summer mean value") +
     scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                        breaks = c("baseline","plus1","plus5","plus10")) +
@@ -650,157 +665,204 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
   #ggsave("figures/mod_vars_yearly_summer_9m.jpg", width=7, height=4) 
   
   # numbers for results text
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                                mean_mod_vars$scenario=="baseline" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                              mean_mod_vars$scenario=="baseline" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                       mean_summer_mod_vars$scenario=="baseline" &
+                                       mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                              mean_summer_mod_vars$scenario=="baseline" &
+                              mean_summer_mod_vars$Depth==0.1])
   
-  diff(range(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                                 mean_mod_vars$scenario=="baseline" &
-                                 mean_mod_vars$Depth==0.1]))
+  diff(range(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                             mean_summer_mod_vars$scenario=="baseline" &
+                                             mean_summer_mod_vars$Depth==0.1]))
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                                mean_mod_vars$scenario=="plus1" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                              mean_mod_vars$scenario=="plus1" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                       mean_summer_mod_vars$scenario=="plus1" &
+                                       mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                              mean_summer_mod_vars$scenario=="plus1" &
+                              mean_summer_mod_vars$Depth==0.1])
   
-  diff(range(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                               mean_mod_vars$scenario=="plus1" &
-                               mean_mod_vars$Depth==0.1]))
+  diff(range(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                             mean_summer_mod_vars$scenario=="plus1" &
+                                             mean_summer_mod_vars$Depth==0.1]))
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                                mean_mod_vars$scenario=="plus5" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                              mean_mod_vars$scenario=="plus5" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                mean_summer_mod_vars$scenario=="plus5" &
+                                mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                     mean_summer_mod_vars$scenario=="plus5" &
+                                     mean_summer_mod_vars$Depth==0.1])
   
-  diff(range(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                               mean_mod_vars$scenario=="plus5" &
-                               mean_mod_vars$Depth==0.1]))
+  diff(range(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                      mean_summer_mod_vars$scenario=="plus5" &
+                                      mean_summer_mod_vars$Depth==0.1]))
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                                mean_mod_vars$scenario=="plus10" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                              mean_mod_vars$scenario=="plus10" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                       mean_summer_mod_vars$scenario=="plus10" &
+                                       mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                              mean_summer_mod_vars$scenario=="plus10" &
+                              mean_summer_mod_vars$Depth==0.1])
   
-  diff(range(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                            mean_mod_vars$scenario=="plus10" &
-                            mean_mod_vars$Depth==0.1]))
+  diff(range(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                             mean_summer_mod_vars$scenario=="plus10" &
+                                             mean_summer_mod_vars$Depth==0.1]))
+  
+  #calculate cvs
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                     mean_summer_mod_vars$scenario=="plus10" &
+                                     mean_summer_mod_vars$Depth==0.1]) /
+    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                         mean_summer_mod_vars$scenario=="plus10" &
+                                         mean_summer_mod_vars$Depth==0.1]) *100
+  
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                              mean_summer_mod_vars$scenario=="plus5" &
+                              mean_summer_mod_vars$Depth==0.1]) /
+    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                         mean_summer_mod_vars$scenario=="plus5" &
+                                         mean_summer_mod_vars$Depth==0.1]) *100
+  
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                     mean_summer_mod_vars$scenario=="plus1" &
+                                     mean_summer_mod_vars$Depth==0.1]) /
+    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                         mean_summer_mod_vars$scenario=="plus1" &
+                                         mean_summer_mod_vars$Depth==0.1]) *100
+  
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                              mean_summer_mod_vars$scenario=="baseline" &
+                              mean_summer_mod_vars$Depth==0.1]) /
+    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                  mean_summer_mod_vars$scenario=="baseline" &
+                                  mean_summer_mod_vars$Depth==0.1]) *100
+  
   
   #mean temp difff
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                                mean_mod_vars$scenario=="plus10" &
-                                mean_mod_vars$Depth==0.1]) - 
-    mean(mean_mod_vars$mean_val[mean_mod_vars$var=="temp" &
-                                  mean_mod_vars$scenario=="baseline" &
-                                  mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                       mean_summer_mod_vars$scenario=="plus10" &
+                                       mean_summer_mod_vars$Depth==0.1]) - 
+    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                         mean_summer_mod_vars$scenario=="baseline" &
+                                         mean_summer_mod_vars$Depth==0.1])
+  
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                       mean_summer_mod_vars$scenario=="plus5" &
+                                       mean_summer_mod_vars$Depth==0.1]) - 
+    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                  mean_summer_mod_vars$scenario=="baseline" &
+                                  mean_summer_mod_vars$Depth==0.1])
+  
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                       mean_summer_mod_vars$scenario=="plus1" &
+                                       mean_summer_mod_vars$Depth==0.1]) - 
+    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
+                                         mean_summer_mod_vars$scenario=="baseline" &
+                                         mean_summer_mod_vars$Depth==0.1])
   
 
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
-                                mean_mod_vars$scenario=="baseline" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
-                              mean_mod_vars$scenario=="baseline" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                mean_summer_mod_vars$scenario=="baseline" &
+                                mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                     mean_summer_mod_vars$scenario=="baseline" &
+                                     mean_summer_mod_vars$Depth==0.1])
 
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
-                                mean_mod_vars$scenario=="plus1" &
-                                mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                mean_summer_mod_vars$scenario=="plus1" &
+                                mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
-                                mean_mod_vars$scenario=="plus5" &
-                                mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                       mean_summer_mod_vars$scenario=="plus5" &
+                                       mean_summer_mod_vars$Depth==0.1])
     
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
-                                mean_mod_vars$scenario=="plus10" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="oxy" &
-                                    mean_mod_vars$scenario=="plus10" &
-                                    mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                mean_summer_mod_vars$scenario=="plus10" &
+                                mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                     mean_summer_mod_vars$scenario=="plus10" &
+                                     mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
-                                mean_mod_vars$scenario=="baseline" &
-                                mean_mod_vars$Depth==0.1])
+  #hypo oxy
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                       mean_summer_mod_vars$scenario=="baseline" &
+                                       mean_summer_mod_vars$Depth==9])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                     mean_summer_mod_vars$scenario=="baseline" &
+                                     mean_summer_mod_vars$Depth==9])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
-                                mean_mod_vars$scenario=="plus1" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
-                              mean_mod_vars$scenario=="plus1" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                       mean_summer_mod_vars$scenario=="plus10" &
+                                       mean_summer_mod_vars$Depth==9])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
+                                     mean_summer_mod_vars$scenario=="plus10" &
+                                     mean_summer_mod_vars$Depth==9])
+  
+  
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="no3" &
+                                mean_summer_mod_vars$scenario=="baseline" &
+                                mean_summer_mod_vars$Depth==0.1])
+  
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="no3" &
+                                       mean_summer_mod_vars$scenario=="plus1" &
+                                       mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="no3" &
+                              mean_summer_mod_vars$scenario=="plus1" &
+                              mean_summer_mod_vars$Depth==0.1])
     
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
-                                mean_mod_vars$scenario=="plus5" &
-                                mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="no3" &
+                                       mean_summer_mod_vars$scenario=="plus5" &
+                                       mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
-                                mean_mod_vars$scenario=="plus10" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="no3" &
-                              mean_mod_vars$scenario=="plus10" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="no3" &
+                                mean_summer_mod_vars$scenario=="plus10" &
+                                mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="no3" &
+                                     mean_summer_mod_vars$scenario=="plus10" &
+                                     mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
-                                mean_mod_vars$scenario=="baseline" &
-                                mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="po4" &
+                                mean_summer_mod_vars$scenario=="baseline" &
+                                mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
-                                mean_mod_vars$scenario=="plus1" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
-                              mean_mod_vars$scenario=="plus1" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="po4" &
+                                       mean_summer_mod_vars$scenario=="plus1" &
+                                       mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="po4" &
+                              mean_summer_mod_vars$scenario=="plus1" &
+                              mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
-                                mean_mod_vars$scenario=="plus5" &
-                                mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="po4" &
+                                       mean_summer_mod_vars$scenario=="plus5" &
+                                       mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
-                                mean_mod_vars$scenario=="plus10" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="po4" &
-                              mean_mod_vars$scenario=="plus10" &
-                              mean_mod_vars$Depth==0.1])
-  
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="doc" &
-                                mean_mod_vars$scenario=="baseline" &
-                                mean_mod_vars$Depth==0.1])
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="doc" &
-                                mean_mod_vars$scenario=="plus1" &
-                                mean_mod_vars$Depth==0.1])
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="doc" &
-                                mean_mod_vars$scenario=="plus5" &
-                                mean_mod_vars$Depth==0.1])
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="doc" &
-                                mean_mod_vars$scenario=="plus10" &
-                                mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="po4" &
+                                mean_summer_mod_vars$scenario=="plus10" &
+                                mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="po4" &
+                                     mean_summer_mod_vars$scenario=="plus10" &
+                                     mean_summer_mod_vars$Depth==0.1])
 
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
-                                mean_mod_vars$scenario=="baseline" &
-                                mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="chla" &
+                                mean_summer_mod_vars$scenario=="baseline" &
+                                mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
-                                mean_mod_vars$scenario=="plus1" &
-                                mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="chla" &
+                                       mean_summer_mod_vars$scenario=="plus1" &
+                                       mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
-                                mean_mod_vars$scenario=="plus5" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
-                              mean_mod_vars$scenario=="plus5" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="chla" &
+                                       mean_summer_mod_vars$scenario=="plus5" &
+                                       mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="chla" &
+                              mean_summer_mod_vars$scenario=="plus5" &
+                              mean_summer_mod_vars$Depth==0.1])
   
-  mean(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
-                                mean_mod_vars$scenario=="plus10" &
-                                mean_mod_vars$Depth==0.1])
-  sd(mean_mod_vars$mean_val[mean_mod_vars$var=="chla" &
-                              mean_mod_vars$scenario=="plus10" &
-                              mean_mod_vars$Depth==0.1])
+  mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="chla" &
+                                       mean_summer_mod_vars$scenario=="plus10" &
+                                       mean_summer_mod_vars$Depth==0.1])
+  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="chla" &
+                              mean_summer_mod_vars$scenario=="plus10" &
+                              mean_summer_mod_vars$Depth==0.1])
 

@@ -183,6 +183,53 @@ mean(thermo_depth$value[lubridate::year(thermo_depth$DateTime) %in% "2016" &
 mean(thermo_depth$value[lubridate::year(thermo_depth$DateTime) %in% "2016" &
                           thermo_depth$scenario=="plus10"])
 
+#calculate stratification duration for each year/scenario
+temp_scenarios <- read_csv("analysis/data/mod_vars.csv") |>
+  filter(var %in% "temp") |>
+  pivot_wider(names_from = Depth,
+              values_from = value) |>
+  rename(Surface_Temp = "0.1",
+         Bottom_Temp = "9") |>
+  select(-var) |>
+  mutate(Year = year(DateTime),  
+         Temp_Diff = Surface_Temp - Bottom_Temp,
+         Stratified = abs(Temp_Diff) > 1,
+         DayOfYear = yday(DateTime),
+         Month = month(as.Date(DayOfYear - 1, origin = paste0(Year, "-01-01"))),
+         Month_label = month.abb[Month]) |>
+  filter(Year %in% c(2016:2021))
+
+# Convert 'Month_label' to a factor with the correct order
+temp_scenarios$Month_label <- factor(temp_scenarios$Month_label, levels = month.abb)
+
+ggplot(temp_scenarios, aes(x = Month_label, y = as.factor(Stratified), color = scenario)) +
+  geom_point(size = 2, alpha = 0.1) +
+  geom_line(aes(group = scenario), alpha = 0.7, size = 1) +  # Connect points across years by 'Year' and 'scenario'
+  scale_y_discrete(labels = c("No", "Yes")) +  
+  scale_color_manual(values = c("baseline" = "#084c61", "plus1" = "#db504a", "plus5" = "#e3b505", "plus10" = "#680000")) + 
+  facet_wrap(~Year, scales = "free_y") +  # Facet by Year (each year in a separate panel)
+  xlab("Month") + ylab("Stratification Status") +
+  guides(shape = "none", color = guide_legend(title = "Scenario")) +
+  theme_minimal() +
+  theme(
+    legend.position = "top", 
+    axis.text.x = element_text(angle = 45, vjust = 0.8),
+    strip.text.x = element_text(face = "bold")
+  )
+
+strat_periods <- temp_scenarios %>%
+  group_by(scenario, Year) %>%
+  summarise(
+    Strat_Days = sum(Stratified, na.rm = TRUE),  # Total stratified days for each year and scenario
+    .groups = "drop"
+  ) %>%
+  group_by(scenario) %>%
+  summarise(
+    Mean_Strat_Days = mean(Strat_Days, na.rm = TRUE),  # Mean of Stratified days across all years for each scenario
+    .groups = "drop"
+  )
+
+
 # quick plot at % sat for all scenarios
 
 for(i in 1:length(scenario)){

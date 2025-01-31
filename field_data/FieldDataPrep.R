@@ -525,8 +525,45 @@ zoops <- read.csv("field_data/zoop_summary_2014-2022.csv", header=T) |>
 zoops_2015_2016 <- read.csv("field_data/EDI_zoop_taxa_2015.csv")
 #cyclopoids are a bit underestimated bc JPD only counted them in rep 1, but I think it's okay for biomass bc they make up a small proportion of total copepod biomass
 
-#zoops_2014_2016 <- zoops[as.Date(zoops$DateTime)<"2019-01-01",]
 zoops_2019_2021 <- zoops[as.Date(zoops$DateTime)>="2019-01-01",]
+
+#create a table of domiannce by biomass
+comb_zoops <- bind_rows(zoops_2015_2016, zoops_2019_2021)
+
+zoop_dominance <- comb_zoops |>
+  group_by(DateTime, Taxon) |>
+  filter(!Taxon %in% c("Cladocera","Copepoda","Rotifera")) |>
+  summarise(Daily_Biomass = sum(Biomass_ugL, na.rm = TRUE), .groups = "drop") |>
+  group_by(DateTime) |>
+  mutate(
+    Total_Biomass = sum(Daily_Biomass, na.rm = TRUE),  # Total biomass across all taxa per day
+    Prop_Biomass = Daily_Biomass / Total_Biomass  # Proportional contribution of each taxon
+  ) |>
+  ungroup()
+
+taxon_dominance <- zoop_dominance |>
+  group_by(Taxon) |>
+  summarise(
+    Mean_Prop_Biomass = mean(Prop_Biomass, na.rm = TRUE), 
+    Total_Biomass = sum(Daily_Biomass, na.rm = TRUE)  
+  ) |>
+  arrange(desc(Mean_Prop_Biomass)) |>  # Rank from most to least dominant
+  filter(Mean_Prop_Biomass >= 0.01) #only include zoops >1% of total biomass
+         
+    
+ggplot(taxon_dominance, aes(x = reorder(Taxon, -Mean_Prop_Biomass), 
+                            y = Mean_Prop_Biomass, fill = Taxon)) +
+  geom_bar(stat = "identity") +
+  xlab("Zooplankton Taxon") + 
+  ylab("Mean Proportional Biomass") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text.x = element_text(face = "bold")
+  )
+
+
 
 #calculate cladoceran, copepod, and rotifer biomass for 2014-2018 data
 zoops_final_pre <- zoops_2015_2016 |> 
@@ -537,27 +574,6 @@ zoops_final_pre <- zoops_2015_2016 |>
   group_by(StartDepth_m, DateTime, Taxon) |> 
   summarise(Biomass_ugL = mean(Biomass_ugL, na.rm=T),
             Size_mm = mean(MeanLength_mm, na.rm=T))
-
-#calculate cladoceran, copepod, and rotifer biomass for 2014-2018 data
-#zoops_3groups_pre <- zoops_2014_2016 |> 
-#  group_by(DateTime, StartDepth_m) |> 
-#  summarise(Cladocera_Biomass_ugL = sum(Biomass_ugL[
-#    Taxon %in% c("Bosmina","D. catawba", "Chydorus","D. ambigua",
-#                 "Diaphanosoma","Ceriodaphnia")], na.rm=T),
-#    Copepoda_Biomass_ugL = sum(Biomass_ugL[
-#      Taxon %in% c("Diaptomus","Nauplii", "Cyclopoids")], na.rm=T),
-#    Rotifera_Biomass_ugL = sum(Biomass_ugL[
-#      Taxon %in% c("Total Rotifers")], na.rm=T))
-
-#zoops_final_pre <- zoops_3groups_pre |> 
-#  group_by(DateTime, StartDepth_m) |> 
-#  pivot_longer(cols=Cladocera_Biomass_ugL:Rotifera_Biomass_ugL,
-#               names_to = c("Taxon"),
-#               values_to = "Biomass_ugL") |> 
-#  filter(hour(DateTime) %in% c(9,10,11,12,13,14)) |> #drop nighttime samples
-#  mutate(DateTime = as.Date(DateTime)) |> 
-#  mutate(Biomass_ugL = Biomass_ugL * (1/0.031)) |>  #correct for net inefficiency
-#  mutate(Taxon = str_extract(Taxon, "[^_]+")) #extract taxon before the first _
 
 #average reps when appropriate
 zoops_final_post <- zoops_2019_2021 |> 
