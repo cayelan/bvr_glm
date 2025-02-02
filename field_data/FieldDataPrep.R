@@ -563,8 +563,6 @@ ggplot(taxon_dominance, aes(x = reorder(Taxon, -Mean_Prop_Biomass),
     strip.text.x = element_text(face = "bold")
   )
 
-
-
 #calculate cladoceran, copepod, and rotifer biomass for 2014-2018 data
 zoops_final_pre <- zoops_2015_2016 |> 
   mutate(DateTime = as.POSIXct(DateTime, format="%Y-%m-%d %H:%M:%S", tz="UTC")) |> 
@@ -653,7 +651,7 @@ zoops_temp <- read.csv("field_data/field_zoops.csv") |>
   tidyr::pivot_longer(cols= -c(DateTime),
                       names_to = c("Taxon"),
                       values_to = "Biomass_ugL") |>
-  mutate(Biomass_ugL = Biomass_ugL * 12.011, #convert to ug/L from mmol/m3
+  mutate(Biomass_ugL = Biomass_ugL * 12.011 / 1000, #convert to mg/L from mmol/m3
          biomass_log = log(Biomass_ugL))
 
 
@@ -662,7 +660,7 @@ b <- ggplot(zoops_temp, aes(biomass_log, fill=Taxon)) +
   geom_density(alpha = 0.7) + theme_bw() + ylab("") +
   scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
                     breaks = c("cladoceran","copepod","rotifer"))+
-  xlab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
+  xlab(expression("Log transformed\nbiomass (mg C L"^{-1}*")")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),

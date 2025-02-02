@@ -285,14 +285,14 @@ all_vars_final_baseline <- all_vars_final_baseline |>
   ungroup() |>
   mutate(
     var = factor(var, levels = variable_levels),
-    variable = factor(var, levels = variable_levels, labels = labels) # Apply expression labels
+    variable = factor(var, levels = variable_levels, labels = labels) 
   )
 
 mod_vars_final_baseline <- mod_vars_final_baseline |>
   ungroup() |>
   mutate(
     var = factor(var, levels = variable_levels),
-    variable = factor(var, levels = variable_levels, labels = labels) # Apply expression labels
+    variable = factor(var, levels = variable_levels, labels = labels)
   ) |>
   na.omit()
 
@@ -340,7 +340,6 @@ combined_plot <- plot_grid(
   ncol = 1,   # Number of columns
   align = "v" # Align plots vertically
 )
-print(combined_plot)
 #ggsave("figures/ms_fig1.jpg", width=8, height=6)
 
 # plot vars for 9m

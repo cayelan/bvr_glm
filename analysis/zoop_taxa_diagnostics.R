@@ -122,6 +122,7 @@ facet_labels <- c("Cladoceran", "Copepod", "Rotifer", "Total biomass")
 names(facet_labels) <- c("cladoceran", "copepod", "rotifer","total")
 
 zoop_obs <- read_csv("analysis/data/zoop_obs.csv")
+zoop_scenarios <- read_csv("./analysis/data/zoop_scenarios.csv")
 
 # plot zoops
 plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
@@ -131,7 +132,8 @@ plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
   theme_bw() + xlab("") + guides(color = "none") +
   facet_wrap(~taxon, scales = "free_y", nrow=2,
              labeller = labeller(taxon = facet_labels)) +
-  ylab(expression("Biomass (mg L"^{-1}*")")) +
+  ylab(expression("Biomass (mg C L"^{-1}*")")) +
+  geom_vline(xintercept = as.Date("2020-12-31"), linetype = "dashed") +
   scale_color_manual(values = c("#084c61","#db504a","#e3b505","red"),
                      breaks = c("cladoceran","copepod","rotifer", "total"))+
   tag_facets(tag_pool = letters[7:10] ) +
@@ -164,10 +166,13 @@ bl_zoop_summary <- zoop_scenarios |>
   summarise(max_doy = mean(max_biom_doy))
 
 ggplot() +
-  geom_line(data=subset(all_zoops_baseline, !taxon %in% "total"),
+  geom_line(data=subset(zoop_scenarios, 
+                        scenario %in% "baseline" &
+                        !taxon %in% "total" &
+                          DateTime >= "2015-07-08"),
             aes(DateTime, value, color=taxon)) + 
   theme_bw() + xlab("") +
-  ylab(expression("Biomass (mg L"^{-1}*")")) +
+  ylab(expression("Biomass (mg C L"^{-1}*")")) +
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"),
                      breaks = c("cladoceran","copepod","rotifer"),
                      labels = c("Cladoceran","Copepod","Rotifer"))+
@@ -191,30 +196,40 @@ ggplot() +
 #ggsave("figures/zoop_dynamics_copes_last.jpg", width=6, height=4)
 
 # numbers for results text
-mean(all_zoops_final$value)
-sd(all_zoops_final$value)
+mean(zoop_scenarios$value[zoop_scenarios$scenario=="baseline"])
+sd(zoop_scenarios$value[zoop_scenarios$scenario=="baseline"])
 
-mean(all_zoops_final$value[all_zoops_final$taxon=="cladoceran"])
-sd(all_zoops_final$value[all_zoops_final$taxon=="cladoceran"])
+mean(zoop_scenarios$value[zoop_scenarios$taxon=="cladoceran" &
+                             zoop_scenarios$scenario=="baseline"])
+sd(zoop_scenarios$value[zoop_scenarios$taxon=="cladoceran" &
+                           zoop_scenarios$scenario=="baseline"])
 
-mean(all_zoops_final$value[all_zoops_final$taxon=="copepod"])
-sd(all_zoops_final$value[all_zoops_final$taxon=="copepod"])
+mean(zoop_scenarios$value[zoop_scenarios$taxon=="copepod" &
+                            zoop_scenarios$scenario=="baseline"])
+sd(zoop_scenarios$value[zoop_scenarios$taxon=="copepod" &
+                          zoop_scenarios$scenario=="baseline"])
 
-mean(all_zoops_final$value[all_zoops_final$taxon=="rotifer"])
-sd(all_zoops_final$value[all_zoops_final$taxon=="rotifer"])
+mean(zoop_scenarios$value[zoop_scenarios$taxon=="rotifer" &
+                             zoop_scenarios$scenario=="baseline"])
+sd(zoop_scenarios$value[zoop_scenarios$taxon=="rotifer" &
+                           zoop_scenarios$scenario=="baseline"])
 
 #add months to zoop df
-all_zoops_final <- all_zoops_final |>
+zoop_scenarios <- zoop_scenarios |>
   mutate(month = lubridate::month(DateTime)) 
   
-(mean(all_zoops_final$value[all_zoops_final$taxon=="total" & 
-                              all_zoops_final$month %in% c(12,1,2)]) -
-    mean(all_zoops_final$value[all_zoops_final$taxon=="total" & 
-                                 all_zoops_final$month %in% c(6,7,8)])) /
-  (mean(all_zoops_final$value[all_zoops_final$taxon=="total" & 
-                                all_zoops_final$month %in% c(12,1,2)]) +
-     mean(all_zoops_final$value[all_zoops_final$taxon=="total" & 
-                                  all_zoops_final$month %in% c(6,7,8)])) /2
+(mean(zoop_scenarios$value[zoop_scenarios$taxon=="total" & 
+                             zoop_scenarios$month %in% c(12,1,2)] &
+        zoop_scenarios$scenario=="baseline") -
+    mean(zoop_scenarios$value[zoop_scenarios$taxon=="total" & 
+                                zoop_scenarios$month %in% c(6,7,8)] &
+           zoop_scenarios$scenario=="baseline")) /
+  (mean(zoop_scenarios$value[zoop_scenarios$taxon=="total" & 
+                               zoop_scenarios$month %in% c(12,1,2)] &
+          zoop_scenarios$scenario=="baseline") +
+     mean(zoop_scenarios$value[zoop_scenarios$taxon=="total" & 
+                                 zoop_scenarios$month %in% c(6,7,8)] &
+            zoop_scenarios$scenario=="baseline")) /2
 
 #------------------------------------------------------------------------#
 # zoop diags for all taxa and scenarios
@@ -379,6 +394,8 @@ ggsave("figures/BVR_stacked_zoop_diags_baseline.jpg", width=5, height=4)
 #                   relocate(scenario, .after = last_col()) |>
 #             filter(time >= as.POSIXct("2015-07-07")) 
 #write.csv(taxa_diags_scenarios, "./analysis/data/taxa_diags_scenarios.csv", row.names = F)
+
+taxa_diags_scenarios <- read_csv("./analysis/data/taxa_diags_scenarios.csv")
 
 zoop_diags_summary <- taxa_diags_scenarios |>
   mutate(DateTime = time,

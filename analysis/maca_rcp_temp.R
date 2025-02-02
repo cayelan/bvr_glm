@@ -7,10 +7,15 @@ rcp_4.5_model_1_10 <- read.csv("analysis/MACA/rcp_4.5_model1-10.csv", skip=26) |
   mutate(across(.cols = -all_of("yyyy.mm.dd"), ~ . - 273.15)) |>
   mutate(yyyy.mm.dd = as.Date(yyyy.mm.dd)) |>
   select(-yyyy.mm.dd) |>
-  summarise(across(everything(), ~max(. , na.rm = TRUE)))
+  summarise(across(everything(), ~max(. , na.rm = TRUE))) #mean???
 
 min(rcp_4.5_model_1_10) # 43.6
 max(rcp_4.5_model_1_10) # 48.3
+
+ggplot(rcp_4.5_model_1_10, aes(x=as.Date(yyyy.mm.dd), 
+                               y=tasmax_bcc.csm1.1_rcp45.K.)) +
+  geom_line() + theme_bw()
+
 
 rcp_4.5_model_11_20 <- read.csv("analysis/MACA/rcp_4.5_model11-20.csv", skip=26) |> 
   mutate(across(.cols = -all_of("yyyy.mm.dd"), ~ . - 273.15)) |>

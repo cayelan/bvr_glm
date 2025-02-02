@@ -337,3 +337,42 @@ outflow$FLOW[outflow$FLOW<=0] <- 0.0001
 #write file
 write.csv(outflow, "./inputs/BVR_spillway_outflow_2015_2022_metInflow.csv", row.names=F)
 
+
+
+#read in fcr inflow
+inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/202/9/c065ff822e73c747f378efe47f5af12b" 
+infile1 <- tempfile()
+try(download.file(inUrl1,infile1))
+if (is.na(file.size(infile1))) download.file(inUrl1,infile1,method="auto")
+
+temp <- read.csv(infile1)
+
+# plot fcr weir temp vs. fcr air temp + find relationship
+fcr_weir  <- temp |>
+  select(DateTime, WVWA_Temp_C) |>
+  mutate(DateTime = as.Date(DateTime)) |>
+  group_by(DateTime) |>
+  summarise(inflow_temp = mean(WVWA_Temp_C, na.rm=T)) |>
+  filter(DateTime >= "2015-07-07" & DateTime <= "2022-05-05")
+
+fcr_air <- read_csv("sims/baseline/inputs/met.csv") |>
+  select(time, AirTemp) |>
+  mutate(DateTime = as.Date(time)) |>
+  group_by(DateTime) |>
+  summarise(airtemp = mean(AirTemp, na.rm=T)) |>
+  filter(DateTime %in% fcr_weir$DateTime)
+
+plot(fcr_weir$inflow_temp ~ fcr_air$airtemp)
+abline(a = 0, b = 1, col = "red", lwd = 2, lty = 2)
+
+# Fit a linear model
+model <- lm(fcr_weir$inflow_temp ~ fcr_air$airtemp)
+
+# Extract slope and intercept
+slope <- coef(model)[2]
+intercept <- coef(model)[1]
+
+# Print equation
+equation <- paste0("y = ", round(intercept, 2), " + ", round(slope, 2), "x")
+print(equation)
+

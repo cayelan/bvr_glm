@@ -185,49 +185,62 @@ for (i in 1:length(sens_dirs)){
 #create a combined zoop df with all scenarios
 #zoop_pars_sens <-  mget(c("all_zoops_sens_high","all_zoops_sens_low")) |>
 #                   setNames(paste0(sens_dirs)) |>
-#                   bind_rows(.id = "pars") |>
-#                   relocate(pars, .after = last_col())
+#                   bind_rows(.id = "scenario") |>
+#                   relocate(scenario, .after = last_col())
 #write.csv(zoop_pars_sens, "./analysis/data/zoop_pars_sens.csv", row.names = F)
 
 zoop_pars <-read.csv("analysis/data/zoop_pars_sens.csv") |>
   mutate(DateTime = as.Date(DateTime)) |>
   filter(DateTime >= "2015-07-07")
 
+zoops_bl <- read_csv("analysis/data/zoop_scenarios.csv") |>
+  filter(scenario %in% "baseline")
 
 # zoop figs to summarize changes between high vs. low pars
 ggplot() +
   geom_line(data=zoop_pars,
             aes(DateTime, value, color = scenario)) +
-  facet_wrap(~taxon, scales="free_y", nrow=3, strip.position = "right") + 
-  theme_bw() + xlab("") + ylab("Value") +
-  scale_color_manual("", values = c("#f4a261","#2a9d8f"),
-                     breaks = c("high","low")) +
+  geom_line(data=zoops_bl,
+            aes(DateTime, value, color = scenario)) +
+  facet_wrap(~str_to_title(taxon), scales="free_y", nrow=3) + 
+  theme_bw() + xlab("") + ylab(expression("Biomass (mg C L"^{-1}*")")) +
+  scale_color_manual("", values = c("#f4a261","#2a9d8f","black"),
+                     breaks = c("high","low","baseline"),
+                     labels = c("High","Low","Baseline")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
         legend.background = element_blank(),
-        legend.position = c(0.32,0.98),
+        legend.position = "top",
+        legend.title = element_blank(),
         text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
         panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_blank(),
+        strip.text.x = element_text(face = "bold",hjust = 0),
         strip.background.x = element_blank(),
-        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
-        legend.key = element_rect(fill = "transparent"),
-        legend.direction = "horizontal",
-        panel.spacing.x = unit(0.1, "in"),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing.x = unit(0.2, "in"),
         panel.background = element_rect(
           fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
+        panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/zoop_sens_high_low_pars.jpg", width=6, height=6)
 
-ggplot(data = subset(zoop_pars, !taxon %in% "total"),
+# Combine data from both dataframes
+combined_data <- bind_rows(zoop_pars, zoops_bl)
+
+ggplot(data = subset(combined_data, !taxon %in% "total"),
        aes(x=DateTime, y = value, color=taxon)) +
   geom_area(aes(color = taxon, fill = taxon),
             position = "fill", 
             stat = "identity") +
-  facet_wrap(~pars, scales = "free_x")+
+  facet_wrap(~str_to_title(scenario), scales = "free_x")+
   scale_color_manual(values = c("#084c61","#db504a","#e3b505"))+
-  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
+  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
+                    labels = c("Cladoceran","Copepod","Rotifer"))+
   scale_x_date(expand = c(0,0), date_breaks = "1 year", 
                date_labels = "%Y") +
   scale_y_continuous(expand = c(0,0))+
@@ -272,6 +285,11 @@ mean(zoop_pars$value[zoop_pars$taxon=="rotifer" &
 mean(zoop_pars$value[zoop_pars$taxon=="rotifer" & 
                        zoop_pars$scenario=="low"])
 
+mean(zoop_pars$value[zoop_pars$taxon=="rotifer" & 
+                       zoop_pars$scenario=="low"])
+mean(zoop_pars$value[zoop_pars$taxon=="rotifer" & 
+                       zoop_pars$scenario=="high"])
+
 mean_proportions_par_sens <- zoop_pars |>
   group_by(DateTime, scenario) |>
   mutate(proportion = value / value[taxon=="total"]) |>
@@ -302,22 +320,23 @@ mean(mean_proportions_par_sens$mean_proportion[
 
 
 # smoothed monthly biomass for each scenario
-zoop_pars |>
+combined_data |>
   filter(year %in% c(2016:2021)) |>
   mutate(month = lubridate::month(DateTime),
          taxon = stringr::str_to_title(taxon)) |>
   group_by(taxon, scenario, month) |>
   summarise(monthly_biom = mean(value), .groups = "drop") |>
   ggplot(aes(x = factor(month), y = monthly_biom, color = factor(
-    scenario, levels = c("high","low")),
+    scenario, levels = c("high","low","baseline")),
     group = interaction(taxon, scenario))) + 
   geom_smooth(method = "loess") +
   facet_wrap(~taxon, nrow=1, scales = "free_y")+ 
   scale_x_discrete(labels = c("Jan","","Mar","", "May", "", "Jul",
                               "","Sep", "","Nov","")) +
-  ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
-  scale_color_manual("", values = c("#f4a261","#2a9d8f"),
-                     breaks = c("high", "low")) +
+  ylab(expression("Biomass (mg C L"^{-1}*")")) + xlab("") +
+  scale_color_manual("", values = c("#f4a261","#2a9d8f","black"),
+                     breaks = c("high", "low","baseline"),
+                     labels = c("High","Low","Baseline")) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
