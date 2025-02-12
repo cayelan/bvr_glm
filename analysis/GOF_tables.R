@@ -1,9 +1,11 @@
 # Goodness of fit tables for full water column and 0.1m
 
-pacman::p_load(tidyverse, hydroGOF)
+pacman::p_load(tidyverse, hydroGOF, glmtools)
 
 #rerun var code for baseline condiitons
 nc_file = paste0("sims/spinup/baseline/output/output.nc")  
+
+depths<- c(0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 
 # water level
 obs_wl <- read_csv("./inputs/BVR_Daily_WaterLevel_Vol_2015_2022_interp.csv") |>
@@ -147,7 +149,7 @@ all_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
                        "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
                        "NSE_all","mNSE_all","rNSE_all","wNSE_all",
                        "wsNSE_all","d_all","dr_all","md_all","rd_all",
-                       "cp_all","r_all","R2_all","bR2_all","VE_all",
+                       "cp_all","r_all","R2_all","bR2_all","VE_all", 
                        "KGE_all","KGElf_all","KGEnp_all","KGEkm_all", 
                        "r.Spearman","nonparamR2") 
 
@@ -431,7 +433,7 @@ all_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
                        "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
                        "NSE_all","mNSE_all","rNSE_all","wNSE_all",
                        "wsNSE_all","d_all","dr_all","md_all","rd_all",
-                       "cp_all","r_all","R2_all","bR2_all","VE_all",
+                       "cp_all","r_all","R2_all","bR2_all","VE_all", #r2 and r are switched in the documentation order
                        "KGE_all","KGElf_all","KGEnp_all","KGEkm_all", 
                        "r.Spearman","nonparamR2") 
 

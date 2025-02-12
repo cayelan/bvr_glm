@@ -78,6 +78,16 @@ ggplot(all_scenarios_output, aes(time, Surface.Temp, color=as.factor(scenario)))
         panel.spacing.y = unit(0, "lines"))
 #ggsave("figures/surf_temp_scenarios.jpg", width=4, height=3)
 
+# check on number of ice days
+all_scenarios_ice <- reduce(list(baseline, plus1C, plus5C, plus10C), 
+                               full_join) |>
+  select(time, Vol.Blue.Ice, scenario) |>  
+  mutate(date = as.Date(time)) |>
+  filter(Vol.Blue.Ice > 0) |>
+  group_by(scenario) |>
+  summarise(ice_days = n_distinct(date))
+
+
 # numbers for results text
 mean(all_scenarios_output$Surface.Temp[
   all_scenarios_output$scenario=="baseline"])

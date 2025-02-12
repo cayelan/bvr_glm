@@ -1,6 +1,7 @@
 # need to automate this and have the output save in separate folders instead of overwriting
 
-pacman::p_load(ggplot2, dplyr, scales, NatParksPalettes, glmtools, tagger)
+pacman::p_load(ggplot2, dplyr, scales, NatParksPalettes, 
+               glmtools, tagger, cowplot)
 
 scenario <- c("baseline","plus1","plus5","plus10")
   
@@ -437,6 +438,96 @@ ggplot(zoop_diags_summary, aes(x = year, y = mean_rate, color = taxon)) +
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
         panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/annual_zoop_diag.jpg", width=6, height=4)
+
+zoop_diags_summary <- zoop_diags_summary |>
+  mutate(DateTime = as.Date(paste0(year, "-01-01"))) |>
+  mutate(DateTime = case_when(
+    year == 2015 ~ as.Date("2015-07-08"),
+    year == 2022 ~ as.Date("2022-05-03"),
+    TRUE ~ DateTime))
+
+# summary diag fig + phytos for ms (Fig. 8)
+plot1 <- ggplot(data=subset(zoop_diags_summary, 
+                            scenario %in% c("Baseline","Plus10")),
+                aes(x = DateTime, y = mean_rate, color = taxon)) +
+  geom_line(size = 1) +
+  geom_point() +
+  facet_grid(rows = vars(diag), cols = vars(scenario), scales = "free_y") + 
+  scale_x_date(limits = as.Date(c("2015-07-01", "2022-05-05")),expand = c(0.02,0.02))  +
+ # scale_x_date(expand = c(0,0)) +  # Match x-axis settings with plot2
+  scale_color_manual(values = c("#084c61", "#db504a", "#e3b505"),
+                     breaks = c("clads", "copes", "rots"),
+                     labels = c("Cladoceran","Copepod","Rotifer")) +
+  theme_bw() + 
+  ylab("Mean rate (mmolC/m3/day)") +
+  xlab("") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 9),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold", hjust = 0),
+        strip.background.x = element_blank(),
+        strip.background.y = element_blank(), 
+        axis.title.y = element_text(size = 10),
+        panel.spacing.x = unit(0.3, "in"),
+        legend.margin = margin(c(-0,-10,-15,-10)),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        panel.spacing = unit(0.5, "lines"))
+
+#note that this comes from zoop_scenarios.R
+plot2 <- ggplot(data = subset(phyto_scenarios, 
+                              scenario %in% c("baseline","plus10")),
+                aes(x=DateTime, y = value, color=taxon)) +
+  geom_area(aes(color = taxon, fill = taxon),
+            position = "fill", 
+            stat = "identity") +
+  facet_wrap(~factor(str_to_title(scenario), 
+                     levels = c("Baseline","Plus1","Plus5","Plus10")), 
+             scales = "free_x")+
+  scale_color_manual(values = c("cyan","green","brown4"))+
+  scale_fill_manual(values = c("cyan","green","brown4"),
+                    labels = c("Cyanobacteria","Greens","Diatoms"))+
+  scale_x_date(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0))+
+  xlab("") + ylab("Relative biomass") +
+  guides(color= "none",
+         fill = guide_legend(ncol=3)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 9),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_blank(),
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 10),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(-20,-10,0,-10),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing.x = unit(0.1, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing = unit(0.5, "lines"))
+  
+combined_plot <- plot_grid(
+  plot1, plot2, 
+  ncol = 1,   # Number of columns
+  align = "v" # Align plots vertically
+)
+#ggsave("figures/ms_fig8.jpg", width=8, height=6)
+  
+  
 
 # numbers for manuscript
 mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &

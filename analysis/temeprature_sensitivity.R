@@ -111,7 +111,7 @@ aed_bio_temp_function <- function(numg, theta, T_std, T_opt, T_max, name) {
   }
   
   ggplot(plot_data, aes(x = Temperature, y = GrowthRate, color = Group)) +
-    geom_line() + xlim(0,40) + #ylim(0,1.5) +
+    geom_line() + xlim(0,40) + ylim(0,1.5) +
     labs(#title = "Growth Rate as a Function of Temperature",
       x = "Temperature (°C)",
       y = "f(T)") + 

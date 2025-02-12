@@ -5,6 +5,8 @@ devtools::install_github("eliocamp/tagger")
 pacman::p_load(ggplot2,ggridges,dplyr, ARTool, 
                FSA, egg, tagger, stringr)
 
+scenario <- c("baseline","plus1","plus5","plus10")
+
 # phytos
 for (i in 1:length(scenario)){
   
@@ -31,9 +33,9 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   cyano <- cyano_full_wc |> 
-    #dplyr::select(DateTime, PHY_cyano_0.5, PHY_cyano_9) |>
-    dplyr::mutate(PHY_cyano = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
-    dplyr::select(DateTime, PHY_cyano) |> 
+    dplyr::select(DateTime, PHY_cyano_0.5, PHY_cyano_9) |>
+   # dplyr::mutate(PHY_cyano = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
+    dplyr::select(DateTime, PHY_cyano_0.5, PHY_cyano_9) |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
     dplyr::filter(DateTime >= "2015-07-08")
   
@@ -42,9 +44,9 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   green <- green_full_wc |> 
-    #dplyr::select(DateTime, PHY_green_0.5, PHY_green_9) |>
-    dplyr::mutate(PHY_green = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    dplyr::select(DateTime, PHY_green) |> 
+    dplyr::select(DateTime, PHY_green_0.5, PHY_green_9) |>
+    #dplyr::mutate(PHY_green = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+    dplyr::select(DateTime, PHY_green_0.5, PHY_green_9) |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
     dplyr::filter(DateTime >= "2015-07-08")
   
@@ -53,9 +55,9 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   diatom <- diatom_full_wc |> 
-    #dplyr::select(DateTime, PHY_diatom_0.5, PHY_diatom_9) |>
-    dplyr::mutate(PHY_diatom = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    dplyr::select(DateTime, PHY_diatom) |> 
+    dplyr::select(DateTime, PHY_diatom_0.5, PHY_diatom_9) |>
+   # dplyr::mutate(PHY_diatom = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+    dplyr::select(DateTime, PHY_diatom_0.5, PHY_diatom_9) |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
     dplyr::filter(DateTime >= "2015-07-08")
   
@@ -64,12 +66,12 @@ for (i in 1:length(scenario)){
   
   #convert from wide to long for plotting
   all_phytos_final <- all_phytos |> 
-    tidyr::pivot_longer(cols = -c(DateTime), 
-                        names_pattern = "(...)_(...*)$",
-                        names_to = c("mod", "taxon")) |> 
     #tidyr::pivot_longer(cols = -c(DateTime), 
-    #                    names_pattern = "(...)_(...*)_(..*)$",
-    #                    names_to = c("mod", "taxon","depth")) |> 
+    #                    names_pattern = "(...)_(...*)$",
+    #                    names_to = c("mod", "taxon")) |> 
+    tidyr::pivot_longer(cols = -c(DateTime), 
+                        names_pattern = "(...)_(...*)_(..*)$",
+                        names_to = c("mod", "taxon","depth")) |> 
     dplyr::group_by(DateTime) |>
     dplyr::mutate(daily_sum = sum(value),
                   year = lubridate::year(DateTime),
@@ -387,6 +389,19 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
           panel.background = element_rect(fill = "white"),
           panel.spacing = unit(0.5, "lines"))
   #ggsave("figures/smoothed_monthly_biom.jpg", width=7, height=4) 
+  
+  #calculate cv
+  zoop_cv <- zoop_scenarios |> 
+    filter(year %in% c(2016:2021)) |> 
+    mutate(month = lubridate::month(DateTime)) |> 
+    group_by(taxon, scenario) |> 
+    summarise(
+      mean_biom = mean(value, na.rm = TRUE), 
+      sd_biom = sd(value, na.rm = TRUE),
+      .groups = "drop"
+    ) |> 
+    mutate(cv_biom = sd_biom / mean_biom)
+  
   
 #same but panels for each year
   zoop_scenarios |>
@@ -742,7 +757,45 @@ ggplot(data = phyto_scenarios,
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/relative_phyto_scenarios.jpg", width=7, height=4)
-  
+
+ggplot(data = phyto_scenarios,
+       aes(x=DateTime, y = value, color=taxon)) +
+  geom_area(aes(color = taxon, fill = taxon),
+            stat = "identity") +
+  facet_wrap(~factor(str_to_title(scenario), 
+                     levels = c("Baseline","Plus1","Plus5","Plus10")), 
+             scales = "free_x")+
+  scale_color_manual(values = c("cyan","green","brown4"))+
+  scale_fill_manual(values = c("cyan","green","brown4"),
+                    labels = c("Cyanobacteria","Greens","Diatoms"))+
+  scale_x_date(expand = c(0,0), 
+               breaks = as.Date(c("2016-01-01", "2018-01-01", "2020-01-01", "2022-01-01")),
+               date_labels = '%Y') +
+  scale_y_continuous(expand = c(0,0))+
+  xlab("") + ylab("Absolute biomass") +
+  guides(color= "none",
+         fill = guide_legend(ncol=3)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold",hjust = 0),
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0,-10,-10,-10),
+        legend.margin=margin(0,0,0,0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(
+          fill = "white"),
+        panel.spacing = unit(0.5, "lines"))
+#ggsave("figures/phyto_biom_scenarios.jpg", width=7, height=4)
   
   phyto_mean_biom <-  phyto_scenarios |>
     group_by(taxon, scenario, year) |>
@@ -783,10 +836,97 @@ ggplot(data = phyto_scenarios,
             fill = "white"))
   #ggsave("figures/phyto_annual_biom_scenario_lineplot.jpg", width=7, height=4) 
   
+  # proportion boxplots for each scenario
+  phyto_mean_proportions <- phyto_scenarios |>
+    group_by(DateTime, scenario) |>
+    mutate(total = sum(value)) |>
+    mutate(proportion = value / total) |>
+    group_by(taxon, scenario, DateTime) |>
+    summarise(mean_proportion = mean(proportion)) |>
+    mutate(season = ifelse(lubridate::month(DateTime) %in% c(6,7,8), "summer",
+                           ifelse(lubridate::month(DateTime) %in% c(9,10,11), "fall",
+                                  ifelse(lubridate::month(DateTime) %in% c(12,1,2), "winter",
+                                         "sping"))))
+  
+  ggplot(data = subset(phyto_mean_proportions), 
+                       #scenario %in% c("baseline","plus10")),
+         aes(x=taxon, y = mean_proportion, fill=scenario)) +
+    geom_boxplot() + 
+    scale_fill_manual(values = c("#147582","#c6a000","#c85b00","#680000"),
+                      labels = c("Baseline","Plus1","Plus5","Plus10"))+
+    scale_y_continuous(expand = c(0,0), limits=c(-0.05,1.05))+
+    xlab("") + ylab("Relative biomass") +
+    tag_facets(tag_pool = c("c")) +
+    guides(color= "none",
+           fill = guide_legend(ncol=4)) +
+    theme(tagger.panel.tag.text = element_text(size=8),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=9), 
+          axis.text.x = element_text(angle=25, vjust=0.6),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          strip.background = element_blank(),
+          plot.margin = unit(c(0, 0.1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10, -10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+ #ggsave("figures/phyto_relative_biom_box.jpg", width=7, height=4)
+ 
+  #now break out by season
+  phyto_scenarios |>
+    mutate(season = ifelse(lubridate::month(DateTime) %in% c(6,7,8), "summer",
+                           ifelse(lubridate::month(DateTime) %in% c(9,10,11), "fall",
+                                  ifelse(lubridate::month(DateTime) %in% c(12,1,2), "winter",
+                                         "sping")))) |>
+    ggplot(aes(x=taxon, y = value, fill=scenario)) +
+    geom_boxplot() + 
+    facet_wrap(~season, scales="free_y") +
+    scale_fill_manual(values = c("#147582","#c6a000","#c85b00","#680000"),
+                      labels = c("Baseline","Plus1","Plus5","Plus10"))+
+    #scale_y_continuous(expand = c(0,0), limits=c(-0.05,1.05))+
+    xlab("") + ylab("Raw biomass") +
+    guides(color= "none",
+           fill = guide_legend(ncol=4)) +
+    theme(tagger.panel.tag.text = element_text(size=8),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=9), 
+          axis.text.x = element_text(angle=25, vjust=0.6),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          strip.background = element_blank(),
+          plot.margin = unit(c(0, 0.1, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10, -10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_rect(
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/phyto_relative_raw_biom_box_seasons.jpg", width=7, height=4)
+  
+  
   # smoothed monthly biomass for each scenario
   phyto_scenarios |>
     filter(year %in% c(2016:2021)) |>
-    mutate(month = lubridate::month(DateTime)) |>
+    mutate(month = lubridate::month(DateTime),
+           taxon = recode(taxon,
+                          "cyano" = "Cyanobacteria",
+                          "diatom" = "Diatoms",
+                          "green" = "Greens")) |>
     group_by(taxon, scenario, month) |>
     summarise(monthly_biom = mean(value), .groups = "drop") |>
     ggplot(aes(x = factor(month), y = monthly_biom, color = factor(
@@ -843,7 +983,7 @@ ggplot(data = phyto_scenarios,
                   taxon = stringr::str_to_title(taxon)) |>
   ggplot(aes(x = max_doy, y = as.factor(scenario), 
              fill = as.factor(scenario))) + xlab("Max DOY") +
-    geom_violin(aes(fill = as.factor(scenario)), scale = "width", trim = FALSE) +
+    geom_violin(aes(fill = as.factor(scenario)), scale = "width", trim = TRUE) +
     scale_fill_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
                       breaks = c("baseline","plus1","plus5","plus10")) +
     facet_wrap(~taxon, ncol=3, scales = "free_x") + ylab("") +
@@ -886,6 +1026,7 @@ zoop_timing <- zoop_scenarios |>
   kruskal.test(zoop_timing$mean_doy[zoop_timing$taxon=="copepod"]~
                  zoop_timing$scenario[zoop_timing$taxon=="copepod"])
   
+
 # numbers for results text
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="cladoceran" &
                               zoop_timing$scenario=="baseline"]) -
