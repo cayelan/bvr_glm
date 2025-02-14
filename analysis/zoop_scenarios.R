@@ -757,6 +757,40 @@ phyto_scenarios$taxon <- factor(phyto_scenarios$taxon,
             fill = "white"))
   #ggsave("figures/phyto_annual_biom_scenario_lineplot.jpg", width=7, height=4) 
 
+  ggplot(data = subset(phyto_scenarios),
+         aes(x=DateTime, y = value, color=taxon)) +
+    geom_line() +
+    facet_wrap(~factor(str_to_title(scenario), 
+                       levels = c("Baseline","Plus1","Plus5","Plus10")), 
+               scales = "free_x")+
+    scale_color_manual(values = c("cyan","green","brown4"),
+                       labels = c("Cyanobacteria","Greens","Diatoms"))+
+    scale_fill_manual(values = c("cyan","green","brown4"))+
+    scale_x_date(expand = c(0.02,0.02)) +
+    xlab("") + ylab("Raw biomass") +
+    guides(color= guide_legend(ncol=3),
+           fill = "none") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.key = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          text = element_text(size=10), 
+          axis.text = element_text(size = 9),
+          panel.border = element_rect(colour = "black", fill = NA),
+          strip.background.x = element_blank(),
+          axis.title.y = element_text(size = 10),
+          plot.margin = unit(c(0, 0.3, 0, 0), "cm"),
+          legend.box.margin = margin(0,-10,-10,-10),
+          legend.margin=margin(0,0,0,0),
+          panel.spacing.x = unit(0.2, "in"),
+          panel.background = element_blank(),
+          plot.background = element_blank(),
+          panel.spacing = unit(0.5, "lines"))
+  #ggsave("figures/phyto_raw_biom_scenario_lineplot.jpg", width=7, height=4) 
+  
 #------------------------------------------------------------------------#
 # zoop plots
   
@@ -899,9 +933,7 @@ zoop_timing <- zoop_scenarios |>
           panel.spacing = unit(0.5, "lines"))
   #ggsave("figures/zoop_max_val_vs_doy.jpg", width=7, height=4)
   
-  
-  
-# Create a phyto and zoop PEG model
+# Create a phyto and zoop PEG model fig
   
   total_phyto_scenarios <- phyto_scenarios |>
     mutate(DateTime = as.Date(DateTime)) |>

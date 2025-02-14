@@ -446,6 +446,98 @@ zoop_diags_summary <- zoop_diags_summary |>
     year == 2022 ~ as.Date("2022-05-03"),
     TRUE ~ DateTime))
 
+# values for results text 
+(mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+                                    zoop_diags_summary$taxon=="clads" &
+                                    zoop_diags_summary$diag=="Grazing"]) - 
+mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                               zoop_diags_summary$taxon=="clads" &
+                               zoop_diags_summary$diag=="Grazing"])) /
+  mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                      zoop_diags_summary$taxon=="clads" &
+                                      zoop_diags_summary$diag=="Grazing"])
+
+(mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+                                     zoop_diags_summary$taxon=="copes" &
+                                     zoop_diags_summary$diag=="Grazing"]) - 
+    mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                        zoop_diags_summary$taxon=="copes" &
+                                        zoop_diags_summary$diag=="Grazing"])) /
+  mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                      zoop_diags_summary$taxon=="copes" &
+                                      zoop_diags_summary$diag=="Grazing"])
+
+(mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+                                     zoop_diags_summary$taxon=="rots" &
+                                     zoop_diags_summary$diag=="Grazing"]) - 
+    mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                        zoop_diags_summary$taxon=="rots" &
+                                        zoop_diags_summary$diag=="Grazing"])) /
+  mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                      zoop_diags_summary$taxon=="rots" &
+                                      zoop_diags_summary$diag=="Grazing"])
+
+(mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+                                     zoop_diags_summary$taxon=="clads" &
+                                     zoop_diags_summary$diag=="Mortality"]) - 
+    mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                        zoop_diags_summary$taxon=="clads" &
+                                        zoop_diags_summary$diag=="Mortality"])) /
+  mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                      zoop_diags_summary$taxon=="clads" &
+                                      zoop_diags_summary$diag=="Mortality"])
+
+(mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+                                     zoop_diags_summary$taxon=="copes" &
+                                     zoop_diags_summary$diag=="Mortality"]) - 
+    mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                        zoop_diags_summary$taxon=="copes" &
+                                        zoop_diags_summary$diag=="Mortality"])) /
+  mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                      zoop_diags_summary$taxon=="copes" &
+                                      zoop_diags_summary$diag=="Mortality"])
+
+(mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+                                     zoop_diags_summary$taxon=="rots" &
+                                     zoop_diags_summary$diag=="Mortality"]) - 
+    mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                        zoop_diags_summary$taxon=="rots" &
+                                        zoop_diags_summary$diag=="Mortality"])) /
+  mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                      zoop_diags_summary$taxon=="rots" &
+                                      zoop_diags_summary$diag=="Mortality"])
+
+(mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+                                     zoop_diags_summary$taxon=="clads" &
+                                     zoop_diags_summary$diag=="Respiration"]) - 
+    mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                        zoop_diags_summary$taxon=="clads" &
+                                        zoop_diags_summary$diag=="Respiration"])) /
+  mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                      zoop_diags_summary$taxon=="clads" &
+                                      zoop_diags_summary$diag=="Respiration"])
+
+(mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+                                     zoop_diags_summary$taxon=="copes" &
+                                     zoop_diags_summary$diag=="Respiration"]) - 
+    mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                        zoop_diags_summary$taxon=="copes" &
+                                        zoop_diags_summary$diag=="Respiration"])) /
+  mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                      zoop_diags_summary$taxon=="copes" &
+                                      zoop_diags_summary$diag=="Respiration"])
+
+(mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+                                     zoop_diags_summary$taxon=="rots" &
+                                     zoop_diags_summary$diag=="Respiration"]) - 
+    mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                        zoop_diags_summary$taxon=="rots" &
+                                        zoop_diags_summary$diag=="Respiration"])) /
+  mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
+                                      zoop_diags_summary$taxon=="rots" &
+                                      zoop_diags_summary$diag=="Respiration"])
+
+
 # summary diag fig + phytos for ms (Fig. 8)
 plot1 <- ggplot(data=subset(zoop_diags_summary, 
                             scenario %in% c("Baseline","Plus10")),
@@ -457,7 +549,6 @@ plot1 <- ggplot(data=subset(zoop_diags_summary,
   scale_color_manual(values = c("#084c61", "#db504a", "#e3b505"),
                      breaks = c("clads", "copes", "rots"),
                      labels = c("Cladoceran","Copepod","Rotifer")) +
-  theme_bw() + 
   ylab("Mean rate (mmolC/m3/day)") +
   xlab("") +
   theme(panel.grid.major = element_blank(), 
@@ -477,24 +568,44 @@ plot1 <- ggplot(data=subset(zoop_diags_summary,
         axis.title.y = element_text(size = 10),
         panel.spacing.x = unit(0.2, "in"),
         legend.margin = margin(c(-0,-10,-15,-10)),
-        plot.margin = unit(c(0, 0.1, -1.6, 0), "cm"),
-        panel.spacing = unit(0.5, "lines"))
+        plot.margin = unit(c(0, 1.2, -1.6, 0), "cm"),
+        panel.spacing = unit(0.5, "lines"),
+        plot.background = element_rect(fill="white"),
+        panel.background = element_rect(fill="white"))
+
+total_phytos <- phyto_scenarios |>
+  group_by(DateTime, scenario) |>
+  summarise(total = sum(value)) |>  
+  ungroup() |>
+  mutate(taxon = "total") |>
+  filter(scenario %in% c("baseline","plus10"))
+
+# Compute max total biomass to rescale
+max_total <- max(total_phytos$total, na.rm = TRUE)
 
 #note that this comes from zoop_scenarios.R
 plot2 <- ggplot(data = subset(phyto_scenarios, 
-                              scenario %in% c("baseline","plus10")),
-                aes(x=DateTime, y = value, color=taxon)) +
-  geom_line() +
-  facet_wrap(~factor(str_to_title(scenario), 
-                     levels = c("Baseline","Plus10")), 
-             scales = "free_x")+
-  scale_color_manual(values = c("cyan","green","brown4"),
-                     labels = c("Cyanobacteria","Greens","Diatoms"))+
-  scale_fill_manual(values = c("cyan","green","brown4"))+
-  scale_x_date(expand = c(0.02,0.02)) +
-  xlab("") + ylab("Raw biomass") +
-  guides(color= guide_legend(ncol=3),
-         fill = "none") +
+                              scenario %in% c("baseline", "plus10")), 
+                aes(x = DateTime, y = value, fill=taxon)) +
+  geom_area(position = "fill", stat = "identity") +
+  geom_line(data = total_phytos, 
+            aes(x = DateTime, y = total/max_total, 
+            color = "Total"), linewidth = 1) +  
+  facet_wrap(~scenario, scales = "free_x") +
+  scale_fill_manual(values = c("cyan", "green", "brown4","lightgrey"),
+                    labels = c("Cyanobacteria", "Greens", "Diatoms","")) +
+  scale_color_manual(values = c("Total" = "lightgrey"),  
+                     labels = c("Total phytoplankton")) +
+  scale_x_date(expand = c(0, 0), 
+               breaks = as.Date(c("2016-01-01", "2018-01-01", "2020-01-01", "2022-01-01")),
+               date_labels = '%Y') +
+  scale_y_continuous(expand = c(0, 0), 
+                     name = "Relative Density",  
+                     sec.axis = sec_axis(~ . * max_total, 
+                                         name = expression("Total biomass (" * mu * " g L"^{-1}*")"))) +
+  xlab("") + ylab("Relative Density") +
+  guides(fill = guide_legend(ncol = 4),
+         color = guide_legend(ncol=1)) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -502,20 +613,21 @@ plot2 <- ggplot(data = subset(phyto_scenarios,
         legend.background = element_blank(),
         legend.position = "bottom",
         legend.title = element_blank(),
-        text = element_text(size=10), 
-        axis.text = element_text(size = 9),
+        text = element_text(size = 10), 
+        axis.text.y = element_text(size = 10),
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_blank(),
         strip.background.x = element_blank(),
-        axis.title.y = element_text(size = 10),
-        plot.margin = unit(c(1.4, 0.7, -0.1, 0.1), "cm"),
-        legend.box.margin = margin(-20,-10,0,-10),
-        legend.margin=margin(0,0,0,0),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(1.4, 0.2, 0.2, 0), "cm"),
+        legend.box.margin = margin(-20, -10, -10, -10),
+        legend.margin = margin(0, 0, 0, 0),
         panel.spacing.x = unit(0.2, "in"),
         panel.background = element_blank(),
         plot.background = element_blank(),
-        panel.spacing = unit(0.5, "lines"))
-  
+        panel.spacing = unit(0.5, "lines"),
+        legend.spacing = unit(0.01, "cm"))
+
 combined_plot <- plot_grid(
   plot1, plot2, 
   ncol = 1,   # Number of columns
@@ -523,45 +635,24 @@ combined_plot <- plot_grid(
 )
 #ggsave("figures/ms_fig8.jpg", width=8, height=6)
   
-  
-# numbers for manuscript
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &
-                                    zoop_diags_summary$scenario=="Baseline" & #highest grz
-                                    zoop_diags_summary$diag=="Grazing"])
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &
-                                    zoop_diags_summary$scenario=="Plus1" &
-                                    zoop_diags_summary$diag=="Grazing"])
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &
-                                    zoop_diags_summary$scenario=="Plus5" &
-                                    zoop_diags_summary$diag=="Grazing"]) #lowest grz
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &
-                                    zoop_diags_summary$scenario=="Plus10" &
-                                    zoop_diags_summary$diag=="Grazing"]) #lowest mort + resp
+# numbers for results text (phyto groups)
+(mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus10" &
+                             phyto_scenarios$taxon=="cyano"]) -
+mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
+                        phyto_scenarios$taxon=="cyano"])) /
+  mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
+                               phyto_scenarios$taxon=="cyano"])
 
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="copes" &
-                                    zoop_diags_summary$scenario=="Baseline" &
-                                    zoop_diags_summary$diag=="Grazing"])
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="copes" &
-                                    zoop_diags_summary$scenario=="Plus1" & #highest grz
-                                    zoop_diags_summary$diag=="Grazing"])
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="copes" &
-                                    zoop_diags_summary$scenario=="Plus5" &
-                                    zoop_diags_summary$diag=="Grazing"]) 
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="copes" &
-                                    zoop_diags_summary$scenario=="Plus10" &
-                                    zoop_diags_summary$diag=="Grazing"]) #lowest grz, resp, mort
+(mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus10" &
+                              phyto_scenarios$taxon=="diatom"]) -
+    mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
+                                 phyto_scenarios$taxon=="diatom"])) /
+  mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
+                               phyto_scenarios$taxon=="diatom"])
 
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="rots" &
-                                    zoop_diags_summary$scenario=="Baseline" &
-                                    zoop_diags_summary$diag=="Grazing"])
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="rots" &
-                                    zoop_diags_summary$scenario=="Plus1" & #lowest grz, mort, resp
-                                    zoop_diags_summary$diag=="Grazing"])
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="rots" &
-                                    zoop_diags_summary$scenario=="Plus5" &
-                                    zoop_diags_summary$diag=="Grazing"]) 
-mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="rots" &
-                                    zoop_diags_summary$scenario=="Plus10" &
-                                    zoop_diags_summary$diag=="Grazing"]) #highest grz
-
-
+(mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus10" &
+                              phyto_scenarios$taxon=="green"]) -
+    mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
+                                 phyto_scenarios$taxon=="green"])) /
+  mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
+                               phyto_scenarios$taxon=="green"])
