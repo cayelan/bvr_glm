@@ -454,7 +454,6 @@ plot1 <- ggplot(data=subset(zoop_diags_summary,
   geom_point() +
   facet_grid(rows = vars(diag), cols = vars(scenario), scales = "free_y") + 
   scale_x_date(limits = as.Date(c("2015-07-01", "2022-05-05")),expand = c(0.02,0.02))  +
- # scale_x_date(expand = c(0,0)) +  # Match x-axis settings with plot2
   scale_color_manual(values = c("#084c61", "#db504a", "#e3b505"),
                      breaks = c("clads", "copes", "rots"),
                      labels = c("Cladoceran","Copepod","Rotifer")) +
@@ -470,35 +469,32 @@ plot1 <- ggplot(data=subset(zoop_diags_summary,
         legend.direction = "horizontal",
         legend.title = element_blank(),
         text = element_text(size=10), 
-        axis.text.y = element_text(size = 9),
+        axis.text = element_text(size = 9),
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_text(face = "bold", hjust = 0),
         strip.background.x = element_blank(),
         strip.background.y = element_blank(), 
         axis.title.y = element_text(size = 10),
-        panel.spacing.x = unit(0.3, "in"),
+        panel.spacing.x = unit(0.2, "in"),
         legend.margin = margin(c(-0,-10,-15,-10)),
-        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        plot.margin = unit(c(0, 0.1, -1.6, 0), "cm"),
         panel.spacing = unit(0.5, "lines"))
 
 #note that this comes from zoop_scenarios.R
 plot2 <- ggplot(data = subset(phyto_scenarios, 
                               scenario %in% c("baseline","plus10")),
                 aes(x=DateTime, y = value, color=taxon)) +
-  geom_area(aes(color = taxon, fill = taxon),
-            position = "fill", 
-            stat = "identity") +
+  geom_line() +
   facet_wrap(~factor(str_to_title(scenario), 
-                     levels = c("Baseline","Plus1","Plus5","Plus10")), 
+                     levels = c("Baseline","Plus10")), 
              scales = "free_x")+
-  scale_color_manual(values = c("cyan","green","brown4"))+
-  scale_fill_manual(values = c("cyan","green","brown4"),
-                    labels = c("Cyanobacteria","Greens","Diatoms"))+
-  scale_x_date(expand = c(0,0)) +
-  scale_y_continuous(expand = c(0,0))+
-  xlab("") + ylab("Relative biomass") +
-  guides(color= "none",
-         fill = guide_legend(ncol=3)) +
+  scale_color_manual(values = c("cyan","green","brown4"),
+                     labels = c("Cyanobacteria","Greens","Diatoms"))+
+  scale_fill_manual(values = c("cyan","green","brown4"))+
+  scale_x_date(expand = c(0.02,0.02)) +
+  xlab("") + ylab("Raw biomass") +
+  guides(color= guide_legend(ncol=3),
+         fill = "none") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
@@ -507,17 +503,17 @@ plot2 <- ggplot(data = subset(phyto_scenarios,
         legend.position = "bottom",
         legend.title = element_blank(),
         text = element_text(size=10), 
-        axis.text.y = element_text(size = 9),
+        axis.text = element_text(size = 9),
         panel.border = element_rect(colour = "black", fill = NA),
         strip.text.x = element_blank(),
         strip.background.x = element_blank(),
         axis.title.y = element_text(size = 10),
-        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        plot.margin = unit(c(1.4, 0.7, -0.1, 0.1), "cm"),
         legend.box.margin = margin(-20,-10,0,-10),
         legend.margin=margin(0,0,0,0),
-        panel.spacing.x = unit(0.1, "in"),
-        panel.background = element_rect(
-          fill = "white"),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_blank(),
+        plot.background = element_blank(),
         panel.spacing = unit(0.5, "lines"))
   
 combined_plot <- plot_grid(
@@ -528,7 +524,6 @@ combined_plot <- plot_grid(
 #ggsave("figures/ms_fig8.jpg", width=8, height=6)
   
   
-
 # numbers for manuscript
 mean(zoop_diags_summary$mean_rate[zoop_diags_summary$taxon=="clads" &
                                     zoop_diags_summary$scenario=="Baseline" & #highest grz

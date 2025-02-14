@@ -718,85 +718,6 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
 phyto_scenarios$taxon <- factor(phyto_scenarios$taxon, 
                                   levels = c("cyano","green","diatom"))
   
-ggplot(data = phyto_scenarios,
-         aes(x=DateTime, y = value, color=taxon)) +
-    geom_area(aes(color = taxon, fill = taxon),
-              position = "fill", 
-              stat = "identity") +
-    facet_wrap(~factor(str_to_title(scenario), 
-                       levels = c("Baseline","Plus1","Plus5","Plus10")), 
-                       scales = "free_x")+
-    scale_color_manual(values = c("cyan","green","brown4"))+
-    scale_fill_manual(values = c("cyan","green","brown4"),
-                      labels = c("Cyanobacteria","Greens","Diatoms"))+
-    scale_x_date(expand = c(0,0), 
-               breaks = as.Date(c("2016-01-01", "2018-01-01", "2020-01-01", "2022-01-01")),
-               date_labels = '%Y') +
-    scale_y_continuous(expand = c(0,0))+
-    xlab("") + ylab("Relative biomass") +
-    guides(color= "none",
-           fill = guide_legend(ncol=3)) +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          axis.line = element_line(colour = "black"),
-          legend.key = element_blank(),
-          legend.background = element_blank(),
-          legend.position = "top",
-          legend.title = element_blank(),
-          text = element_text(size=10), 
-          axis.text.y = element_text(size = 10),
-          panel.border = element_rect(colour = "black", fill = NA),
-          strip.text.x = element_text(face = "bold",hjust = 0),
-          strip.background.x = element_blank(),
-          axis.title.y = element_text(size = 11),
-          plot.margin = unit(c(0, 1, 0, 0), "cm"),
-          legend.box.margin = margin(0,-10,-10,-10),
-          legend.margin=margin(0,0,0,0),
-          panel.spacing.x = unit(0.2, "in"),
-          panel.background = element_rect(
-            fill = "white"),
-          panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/relative_phyto_scenarios.jpg", width=7, height=4)
-
-ggplot(data = phyto_scenarios,
-       aes(x=DateTime, y = value, color=taxon)) +
-  geom_area(aes(color = taxon, fill = taxon),
-            stat = "identity") +
-  facet_wrap(~factor(str_to_title(scenario), 
-                     levels = c("Baseline","Plus1","Plus5","Plus10")), 
-             scales = "free_x")+
-  scale_color_manual(values = c("cyan","green","brown4"))+
-  scale_fill_manual(values = c("cyan","green","brown4"),
-                    labels = c("Cyanobacteria","Greens","Diatoms"))+
-  scale_x_date(expand = c(0,0), 
-               breaks = as.Date(c("2016-01-01", "2018-01-01", "2020-01-01", "2022-01-01")),
-               date_labels = '%Y') +
-  scale_y_continuous(expand = c(0,0))+
-  xlab("") + ylab("Absolute biomass") +
-  guides(color= "none",
-         fill = guide_legend(ncol=3)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.key = element_blank(),
-        legend.background = element_blank(),
-        legend.position = "top",
-        legend.title = element_blank(),
-        text = element_text(size=10), 
-        axis.text.y = element_text(size = 10),
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_text(face = "bold",hjust = 0),
-        strip.background.x = element_blank(),
-        axis.title.y = element_text(size = 11),
-        plot.margin = unit(c(0, 1, 0, 0), "cm"),
-        legend.box.margin = margin(0,-10,-10,-10),
-        legend.margin=margin(0,0,0,0),
-        panel.spacing.x = unit(0.2, "in"),
-        panel.background = element_rect(
-          fill = "white"),
-        panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/phyto_biom_scenarios.jpg", width=7, height=4)
-  
   phyto_mean_biom <-  phyto_scenarios |>
     group_by(taxon, scenario, year) |>
     summarise(mean_biom = mean(value)) |>
@@ -835,134 +756,7 @@ ggplot(data = phyto_scenarios,
           panel.background = element_rect(
             fill = "white"))
   #ggsave("figures/phyto_annual_biom_scenario_lineplot.jpg", width=7, height=4) 
-  
-  # proportion boxplots for each scenario
-  phyto_mean_proportions <- phyto_scenarios |>
-    group_by(DateTime, scenario) |>
-    mutate(total = sum(value)) |>
-    mutate(proportion = value / total) |>
-    group_by(taxon, scenario, DateTime) |>
-    summarise(mean_proportion = mean(proportion)) |>
-    mutate(season = ifelse(lubridate::month(DateTime) %in% c(6,7,8), "summer",
-                           ifelse(lubridate::month(DateTime) %in% c(9,10,11), "fall",
-                                  ifelse(lubridate::month(DateTime) %in% c(12,1,2), "winter",
-                                         "sping"))))
-  
-  ggplot(data = subset(phyto_mean_proportions), 
-                       #scenario %in% c("baseline","plus10")),
-         aes(x=taxon, y = mean_proportion, fill=scenario)) +
-    geom_boxplot() + 
-    scale_fill_manual(values = c("#147582","#c6a000","#c85b00","#680000"),
-                      labels = c("Baseline","Plus1","Plus5","Plus10"))+
-    scale_y_continuous(expand = c(0,0), limits=c(-0.05,1.05))+
-    xlab("") + ylab("Relative biomass") +
-    tag_facets(tag_pool = c("c")) +
-    guides(color= "none",
-           fill = guide_legend(ncol=4)) +
-    theme(tagger.panel.tag.text = element_text(size=8),
-          panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          axis.line = element_line(colour = "black"),
-          legend.key = element_blank(),
-          legend.background = element_blank(),
-          legend.position = "top",
-          legend.title = element_blank(),
-          text = element_text(size=9), 
-          axis.text.x = element_text(angle=25, vjust=0.6),
-          panel.border = element_rect(colour = "black", fill = NA),
-          strip.text.x = element_text(face = "bold",hjust = 0),
-          strip.background = element_blank(),
-          plot.margin = unit(c(0, 0.1, 0, 0), "cm"),
-          legend.box.margin = margin(0,-10, -10,-10),
-          legend.margin=margin(0,0,0,0),
-          panel.spacing.x = unit(0.2, "in"),
-          panel.background = element_rect(
-            fill = "white"),
-          panel.spacing = unit(0.5, "lines"))
- #ggsave("figures/phyto_relative_biom_box.jpg", width=7, height=4)
- 
-  #now break out by season
-  phyto_scenarios |>
-    mutate(season = ifelse(lubridate::month(DateTime) %in% c(6,7,8), "summer",
-                           ifelse(lubridate::month(DateTime) %in% c(9,10,11), "fall",
-                                  ifelse(lubridate::month(DateTime) %in% c(12,1,2), "winter",
-                                         "sping")))) |>
-    ggplot(aes(x=taxon, y = value, fill=scenario)) +
-    geom_boxplot() + 
-    facet_wrap(~season, scales="free_y") +
-    scale_fill_manual(values = c("#147582","#c6a000","#c85b00","#680000"),
-                      labels = c("Baseline","Plus1","Plus5","Plus10"))+
-    #scale_y_continuous(expand = c(0,0), limits=c(-0.05,1.05))+
-    xlab("") + ylab("Raw biomass") +
-    guides(color= "none",
-           fill = guide_legend(ncol=4)) +
-    theme(tagger.panel.tag.text = element_text(size=8),
-          panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          axis.line = element_line(colour = "black"),
-          legend.key = element_blank(),
-          legend.background = element_blank(),
-          legend.position = "top",
-          legend.title = element_blank(),
-          text = element_text(size=9), 
-          axis.text.x = element_text(angle=25, vjust=0.6),
-          panel.border = element_rect(colour = "black", fill = NA),
-          strip.text.x = element_text(face = "bold",hjust = 0),
-          strip.background = element_blank(),
-          plot.margin = unit(c(0, 0.1, 0, 0), "cm"),
-          legend.box.margin = margin(0,-10, -10,-10),
-          legend.margin=margin(0,0,0,0),
-          panel.spacing.x = unit(0.2, "in"),
-          panel.background = element_rect(
-            fill = "white"),
-          panel.spacing = unit(0.5, "lines"))
-  #ggsave("figures/phyto_relative_raw_biom_box_seasons.jpg", width=7, height=4)
-  
-  
-  # smoothed monthly biomass for each scenario
-  phyto_scenarios |>
-    filter(year %in% c(2016:2021)) |>
-    mutate(month = lubridate::month(DateTime),
-           taxon = recode(taxon,
-                          "cyano" = "Cyanobacteria",
-                          "diatom" = "Diatoms",
-                          "green" = "Greens")) |>
-    group_by(taxon, scenario, month) |>
-    summarise(monthly_biom = mean(value), .groups = "drop") |>
-    ggplot(aes(x = factor(month), y = monthly_biom, color = factor(
-      scenario, levels = c("baseline", "plus1", "plus5", "plus10")),
-      group = interaction(taxon, scenario))) + 
-    geom_smooth(method = "loess") +
-    facet_wrap(~taxon, nrow=1)+ 
-    scale_x_discrete(labels = c("Jan","","Mar","", "May", "", "Jul",
-                                "","Sep", "","Nov","")) +
-    ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
-    scale_color_manual("", values = c("#147582", "#c6a000", "#c85b00", "#680000"),
-                       breaks = c("baseline", "plus1", "plus5", "plus10"),
-                       labels = c("Baseline","Plus1","Plus5","Plus10")) +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          axis.line = element_line(colour = "black"),
-          legend.key = element_blank(),
-          legend.background = element_blank(),
-          legend.position = "top",
-          legend.direction = "horizontal",
-          legend.title = element_blank(),
-          text = element_text(size = 10), 
-          axis.text.x = element_text(angle=45, vjust = 0.9, hjust= 0.8),
-          axis.text.y = element_text(size = 10),
-          panel.border = element_rect(colour = "black", fill = NA),
-          strip.text.x = element_text(face = "bold", hjust = ),
-          strip.background.x = element_blank(),
-          axis.title.y = element_text(size = 11),
-          plot.margin = unit(c(0, 1, 0, 0), "cm"),
-          legend.box.margin = margin(0, -10, -10, -10),
-          legend.margin = margin(0, 0, 0, 0),
-          panel.spacing.x = unit(0.2, "in"),
-          panel.background = element_rect(fill = "white"),
-          panel.spacing = unit(0.5, "lines"))
-  #ggsave("figures/smoothed_monthly_biom_phytos.jpg", width=7, height=4) 
-  
+
 #------------------------------------------------------------------------#
 # zoop plots
   
@@ -1105,3 +899,78 @@ zoop_timing <- zoop_scenarios |>
           panel.spacing = unit(0.5, "lines"))
   #ggsave("figures/zoop_max_val_vs_doy.jpg", width=7, height=4)
   
+  
+  
+# Create a phyto and zoop PEG model
+  
+  total_phyto_scenarios <- phyto_scenarios |>
+    mutate(DateTime = as.Date(DateTime)) |>
+    group_by(DateTime, scenario) |>
+    summarise(total_phytos = sum(value)) |>
+    filter(DateTime >= "2016-01-01" & DateTime <= "2021-12-31") |>
+    arrange(scenario, DateTime)
+  
+  total_zoop_scenarios <- zoop_scenarios |>
+    mutate(DateTime = as.Date(DateTime)) |>
+    group_by(DateTime, scenario) |>
+    summarise(total_zoops = sum(value)) |>
+    arrange(scenario, DateTime)
+  
+  
+  plankton <- full_join(total_phyto_scenarios, total_zoop_scenarios, 
+                        by = c("DateTime", "scenario")) |>
+    pivot_longer(cols = c(total_phytos, total_zoops), 
+                 names_to = "plankton", 
+                 values_to = "value") 
+  
+  # standardize plankton biomass
+  plankton_standardized <- plankton |>
+    group_by(plankton) |>
+    mutate(standardized_biom = if_else(plankton == "total_phytos", 
+                                  (value - mean(value, na.rm = TRUE)) / 
+                                    sd(value, na.rm = TRUE),
+                                  if_else(plankton == "total_zoops", 
+                                          (value - mean(value, na.rm = TRUE)) / 
+                                            sd(value, na.rm = TRUE),
+                                          NA_real_))) |>
+    ungroup()
+  
+  # smoothed monthly biomass for each scenario
+  plankton_standardized |>
+    mutate(DateTime = as.Date(DateTime),
+           month = lubridate::month(DateTime),
+           scenario = factor(str_to_title(scenario), 
+                             levels = c("Baseline","Plus1","Plus5","Plus10"))) |>
+    group_by(plankton, scenario, month) |>
+    summarise(monthly_biom = mean(standardized_biom, na.rm = TRUE), .groups = "drop") |>
+    ggplot(aes(x = factor(month), y = monthly_biom, color = plankton)) + 
+    geom_point(alpha = 0.5) +  # Add points for visibility
+    geom_smooth(aes(group = plankton), method = "loess") + 
+    facet_wrap(~scenario, nrow = 1) + 
+    scale_color_manual("", values = c("#4A1634", "#4B91BB"),
+                       labels = c("Total phytoplankton", "Total zooplankton")) +
+  scale_x_discrete(breaks = 1:12, labels = c("Jan","","Mar","", "May", "", "Jul",
+                              "","Sep", "","Nov","")) +
+  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) + xlab("") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        text = element_text(size = 10), 
+        axis.text.x = element_text(angle = 45, vjust = 0.9, hjust = 0.8),
+        axis.text.y = element_text(size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.text.x = element_text(face = "bold", hjust = 0.5),  # Added hjust
+        strip.background.x = element_blank(),
+        axis.title.y = element_text(size = 11),
+        plot.margin = unit(c(0, 1, 0, 0), "cm"),
+        legend.box.margin = margin(0, -10, -10, -10),
+        legend.margin = margin(0, 0, 0, 0),
+        panel.spacing.x = unit(0.2, "in"),
+        panel.background = element_rect(fill = "white"),
+        panel.spacing = unit(0.5, "lines"))
+  ggsave("figures/phyto_zoop_timing.jpg", width=7, height=5)
