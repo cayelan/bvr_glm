@@ -1,7 +1,7 @@
 #growth as a function of temperature for zoops/phytos
 #adapted from python source code (aed_util.F90) 
 
-library(ggplot2)
+library(ggplot2, glmtools)
 
 aed_bio_temp_function <- function(numg, theta, T_std, T_opt, T_max, name) {
   tol <- 0.05
@@ -110,14 +110,19 @@ aed_bio_temp_function <- function(numg, theta, T_std, T_opt, T_max, name) {
     }
   }
   
+  #vlines <- data.frame(
+  #  xintercept = c(15.16, 16.14, 17.64, 20.88),
+  #  line_id = c("A", "B", "C", "D")
+  #)
+  
   ggplot(plot_data, aes(x = Temperature, y = GrowthRate, color = Group)) +
     geom_line() + xlim(0,40) + ylim(0,1.5) +
     labs(#title = "Growth Rate as a Function of Temperature",
       x = "Temperature (°C)",
       y = "f(T)") + 
-    annotate("text", x=c(2,5,8), y=1.5, label = topt_lab) +
-    #scale_color_manual("", values = c("#084c61","#db504a","#e3b505")) +
-    scale_color_manual("", values = c("cyan","brown","darkgreen")) +
+    #annotate("text", x=c(2,5,8), y=1.5, label = topt_lab) +
+    scale_color_manual("", values = c("#084c61","#db504a","#e3b505")) +
+    #scale_color_manual("", values = c("cyan","brown","darkgreen")) +
     theme_bw() +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank())
@@ -142,10 +147,33 @@ T_std <- c(20, 20, 20)
 T_opt <- c(25, 28, 28)
 T_max <- c(30, 35, 35)
 name <- c("Rotifer", "Cladoceran", "Copepod")
-topt_lab <- T_opt[c(2,3,1)]
+#topt_lab <- T_opt[c(2,3,1)]
 
 aed_bio_temp_function(numg, theta, T_std, T_opt, T_max, name)
 ggsave("figures/zoop_temp_curve.jpg", width=7, height=4)
 
 #ggpubr::ggarrange(ps1,ps2, common.legend = T)
 #ggsave("figures/topt_option3.jpg")
+
+#mean surface water temperature over simulation period for scenarios
+bl <- glmtools::get_temp("sims/spinup/baseline/output/output.nc",
+                          reference="surface", z_out=0.1) |> 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
+plus1 <- glmtools::get_temp("sims/spinup/plus1/output/output.nc",
+                         reference="surface", z_out=0.1) |> 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
+plus5 <- glmtools::get_temp("sims/spinup/plus5/output/output.nc",
+                         reference="surface", z_out=0.1) |> 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
+plus10 <- glmtools::get_temp("sims/spinup/plus10/output/output.nc",
+                         reference="surface", z_out=0.1) |> 
+  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+  filter(DateTime >= "2015-07-07")
+
+mean(bl$temp_0.1)     # 15.16 
+mean(plus1$temp_0.1)  # 16.14
+mean(plus5$temp_0.1)  # 17.64
+mean(plus10$temp_0.1) # 20.88

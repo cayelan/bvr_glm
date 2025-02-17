@@ -33,9 +33,9 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   cyano <- cyano_full_wc |> 
-    dplyr::select(DateTime, PHY_cyano_0.5, PHY_cyano_9) |>
-   # dplyr::mutate(PHY_cyano = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
-    dplyr::select(DateTime, PHY_cyano_0.5, PHY_cyano_9) |> 
+    #dplyr::select(DateTime, PHY_cyano_0.5, PHY_cyano_9) |>
+    dplyr::mutate(PHY_cyano = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
+    dplyr::select(DateTime, PHY_cyano) |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
     dplyr::filter(DateTime >= "2015-07-08")
   
@@ -44,9 +44,9 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   green <- green_full_wc |> 
-    dplyr::select(DateTime, PHY_green_0.5, PHY_green_9) |>
-    #dplyr::mutate(PHY_green = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    dplyr::select(DateTime, PHY_green_0.5, PHY_green_9) |> 
+    #dplyr::select(DateTime, PHY_green_0.5, PHY_green_9) |>
+    dplyr::mutate(PHY_green = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+    dplyr::select(DateTime, PHY_green) |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
     dplyr::filter(DateTime >= "2015-07-08")
   
@@ -55,9 +55,9 @@ for (i in 1:length(scenario)){
   
   #sum all depths
   diatom <- diatom_full_wc |> 
-    dplyr::select(DateTime, PHY_diatom_0.5, PHY_diatom_9) |>
-   # dplyr::mutate(PHY_diatom = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    dplyr::select(DateTime, PHY_diatom_0.5, PHY_diatom_9) |> 
+    #dplyr::select(DateTime, PHY_diatom_0.5, PHY_diatom_9) |>
+    dplyr::mutate(PHY_diatom = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+    dplyr::select(DateTime, PHY_diatom) |> 
     dplyr::mutate(DateTime = as.Date(DateTime)) |>
     dplyr::filter(DateTime >= "2015-07-08")
   
@@ -66,12 +66,12 @@ for (i in 1:length(scenario)){
   
   #convert from wide to long for plotting
   all_phytos_final <- all_phytos |> 
-    #tidyr::pivot_longer(cols = -c(DateTime), 
-    #                    names_pattern = "(...)_(...*)$",
-    #                    names_to = c("mod", "taxon")) |> 
     tidyr::pivot_longer(cols = -c(DateTime), 
-                        names_pattern = "(...)_(...*)_(..*)$",
-                        names_to = c("mod", "taxon","depth")) |> 
+                        names_pattern = "(...)_(...*)$",
+                        names_to = c("mod", "taxon")) |> 
+    #tidyr::pivot_longer(cols = -c(DateTime), 
+    #                   names_pattern = "(...)_(...*)_(..*)$",
+    #                    names_to = c("mod", "taxon","depth")) |> 
     dplyr::group_by(DateTime) |>
     dplyr::mutate(daily_sum = sum(value),
                   year = lubridate::year(DateTime),
@@ -88,35 +88,6 @@ for (i in 1:length(scenario)){
   #now create a dynamic df name
   assign(paste0("all_phytos_", scenario[i]), all_phytos_final)
 }
-
-# quick fig for surface and deep phyto groups
-ggplot() +
-  geom_line(data=all_phytos_final,
-            aes(DateTime, value, color = taxon)) +
-  #facet_wrap(~depth, scales="free_y", nrow=3, strip.position = "right") + 
-  theme_bw() + xlab("") +
-  ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
-  scale_color_manual("", values = c("cyan","green","#680000"),
-                     breaks = c("cyano","green","diatom")) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.background = element_blank(),
-        legend.position = c(0.28,0.98),
-        text = element_text(size=10), 
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_blank(),
-        strip.background.x = element_blank(),
-        plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
-        legend.key = element_rect(fill = "transparent"),
-        legend.direction = "horizontal",
-        panel.spacing.x = unit(0.1, "in"),
-        panel.background = element_rect(
-          fill = "white"),
-        panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/phytos_fullwc_baseline.jpg", width=6, height=6)
-#ggsave("figures/phytos_0.5_9m_baseline.jpg", width=6, height=6)
-
 #------------------------------------------------------------------------#
 # proportional plankton figs for each scenario
 
@@ -128,7 +99,7 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   ungroup() |>
   mutate(diff = value - mean_biom) 
 
-# relative zoop density for baseline vs. plus 10
+# relative zoop density for baseline vs. plus 10 (Figure 4)
 area <-  ggplot(data = subset(zoop_scenarios, 
                               scenario %in% c("baseline","plus10") &
                                 !taxon %in% c("total")),
@@ -285,17 +256,21 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
                                         mean_proportions$scenario=="plus10"])
 
+# stacked annual biomass bar chart (Figure S6)
+zoop_annual <- zoop_scenarios |>
+  mutate(year = year(DateTime)) |>
+  group_by(year, taxon, scenario) |>
+  summarize(annual_biomass = sum(value, na.rm = TRUE), .groups = "drop")
 
-# biomass for each year + taxa
-  ggplot(zoop_scenarios,
-         aes(x=DateTime, y = value, color=scenario)) +
-    geom_line() +
-    facet_wrap(~taxon, scales = "free_y", nrow=3)+
-    scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                       breaks = c("baseline","plus1","plus5","plus10")) +
-    scale_x_date(expand = c(0,0), date_breaks = "1 year", 
-                 date_labels = "%Y") +
-    ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
+ggplot(data=subset(zoop_annual, !taxon %in% "total" &
+                     scenario %in% "baseline" & 
+                     year %in% c(2016:2021)),
+       aes(x = factor(year), y = annual_biomass, fill = taxon)) +
+  geom_col(position = "stack") + 
+  facet_wrap(~ str_to_title(scenario)) +       
+  labs(x = "", y = expression("Biomass (mg C L"^{-1}*")"), fill = "") +
+  scale_fill_manual(values = c("#084c61","#db504a","#e3b505"),
+                    labels = c("Cladoceran","Copepod","Rotifer"))+
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
@@ -307,7 +282,6 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
           axis.text.y = element_text(size = 10),
           panel.border = element_rect(colour = "black", fill = NA),
           strip.text.x = element_text(face = "bold",hjust = 0),
-          axis.text.x = element_text(angle=90),
           strip.background.x = element_blank(),
           axis.title.y = element_text(size = 11),
           plot.margin = unit(c(0, 1, 0, 0), "cm"),
@@ -317,41 +291,9 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
           panel.background = element_rect(
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/BVR_zoop_biom_scenario_lineplot.jpg", width=7, height=4) 
+#ggsave("figures/BVR_stacked_zoop_biom_barchart.jpg", width=7, height=4) 
   
-#boxplots for scenarios + year facets
-  ggplot(data = subset(zoop_scenarios, 
-                       year %in% 2016:2021 &
-                         !taxon %in% "total"),
-         aes(x = factor(
-    scenario,levels=c("baseline","plus1","plus5","plus10")),
-    y = value, fill = taxon)) +
-    geom_boxplot() + facet_wrap(~year, scales = "free_y") +
-    labs(y = expression("Biomass (mg C L"^{-1}*")"), x = "") +
-    theme_bw() + scale_fill_manual(values = c("#084c61","#db504a","#e3b505"))+
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          axis.line = element_line(colour = "black"),
-          legend.key = element_blank(),
-          legend.background = element_blank(),
-          legend.position = "top",
-          legend.title = element_blank(),
-          text = element_text(size=10), 
-          axis.text.y = element_text(size = 10),
-          panel.border = element_rect(colour = "black", fill = NA),
-          strip.text.x = element_text(face = "bold",hjust = 0),
-          strip.background.x = element_blank(),
-          axis.title.y = element_text(size = 11),
-          plot.margin = unit(c(0, 1, 0, 0), "cm"),
-          legend.box.margin = margin(0,-10,-15,-10),
-          legend.margin=margin(0,0,0,0),
-          panel.spacing.x = unit(0.2, "in"),
-          panel.background = element_rect(
-            fill = "white"),
-          panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/zoop_biom_vs_scenario_year_facet_boxplots.jpg", width=7, height=4) 
-    
-# smoothed monthly biomass for each scenario
+# smoothed monthly biomass for each scenario (Figure 6)
   zoop_scenarios |>
     filter(year %in% c(2016:2021)) |>
     mutate(month = lubridate::month(DateTime)) |>
@@ -403,7 +345,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
     mutate(cv_biom = sd_biom / mean_biom)
   
   
-#same but panels for each year
+#same but panels for each year (Figure S13)
   zoop_scenarios |>
     mutate(month = lubridate::month(DateTime)) |>
     group_by(taxon, scenario, month, year) |>
@@ -445,7 +387,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
 #ggsave("figures/smoothed_monthly_biom_multipanel.jpg", width=7, height=4) 
   
   
-# scenario boxplots across taxa
+# scenario boxplots across taxa (Figure 4)
 zoop_mean_biom <-  zoop_scenarios |>
     filter(!taxon %in% "total",
            year %in% c(2016:2021)) |>
@@ -539,9 +481,6 @@ zoop_mean_biom <-  zoop_scenarios |>
     Adjusted_P_Value = adjusted_p_values
   )
   
-  print(results_df)
-  
-  
   # numbers for results text
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus10" &
                                   zoop_mean_biom$taxon=="rotifer"]) - 
@@ -607,21 +546,21 @@ zoop_mean_biom <-  zoop_scenarios |>
         mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
                                         zoop_mean_biom$taxon=="copepod"]) *100 
   
-#-------------------------------------------------------------------------#
-# playing around with some other visualizations
+# mean annual zoop biomass across scenarios (Figure S8)
 ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
   geom_point(size=2) + geom_line(size=1) +
-  facet_wrap(~taxon, scales="free_y") +
+  facet_wrap(~str_to_title(taxon), scales="free_y") +
   ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
   scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                     breaks = c("baseline","plus1","plus5","plus10")) +
+                     breaks = c("baseline","plus1","plus5","plus10"),
+                     labels = c("Baseline","Plus1","Plus5","Plus10")) +
   theme_bw() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"),
         legend.key = element_blank(),
         legend.background = element_blank(),
-        legend.position = "bottom",
+        legend.position = "top",
         legend.direction = "horizontal",
         legend.title = element_blank(),
         text = element_text(size=10), 
@@ -631,77 +570,14 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
         strip.background.x = element_blank(),
         axis.title.y = element_text(size = 11),
         plot.margin = unit(c(0, 1, 0, 0), "cm"),
-        legend.box.margin = margin(0,-10,-10,-10),
-        legend.margin=margin(-25,0,10,0),
+        legend.box.margin = margin(-20,-10,-10,-10),
+        legend.margin=margin(20,0,-5,0),
         panel.spacing.x = unit(0.2, "in"),
         panel.background = element_rect(
           fill = "white"))
 #ggsave("figures/zoop_annual_biom_scenario_lineplot.jpg", width=7, height=4) 
 
-# line plots for each taxa/scenario
-ggplot(zoop_mean_biom, aes(x = year, y = mean_biom,  color = scenario)) +
-  geom_line() +
-  facet_grid(taxon ~ factor(scenario,levels=c("baseline","plus1",
-                                              "plus5","plus10"))) +
-  ylab(expression("Biomass (mg L"^{-1}*")")) + xlab("") +
-  theme_bw() +
-  scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                     breaks = c("baseline","plus1","plus5","plus10")) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.key = element_blank(),
-        legend.background = element_blank(),
-        legend.position = "bottom",
-        legend.direction = "horizontal",
-        legend.title = element_blank(),
-        text = element_text(size=10), 
-        axis.text.y = element_text(size = 10),
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text = element_text(face = "bold",hjust = 0),
-        strip.background = element_blank(),
-        axis.title.y = element_text(size = 11),
-        plot.margin = unit(c(0, 1, 0, 0), "cm"),
-        legend.box.margin = margin(0,-10,-10,-10),
-        legend.margin=margin(-25,0,10,0),
-        panel.spacing.x = unit(0.2, "in"),
-        panel.background = element_rect(
-          fill = "white"))
-#ggsave("figures/zoop_annual_biom_taxa.jpg", width=7, height=4) 
-  
-#reverse axes and summarize by year
- diff_zoops <- zoop_scenarios |>
-   group_by(taxon, year, scenario) |>
-   summarise(mean_diff = mean(diff, na.rm = TRUE), 
-                   sd = sd(diff, na.rm = TRUE)) 
- 
- ggplot(data=subset(diff_zoops, year %in% 2016:2021)) +  
-   geom_point(aes(x=mean_diff, 
-                  y=factor(scenario,levels=c("baseline","plus1",
-                                             "plus5","plus10")), 
-                           color=scenario), size=3) +
-   theme_bw() + xlab("Difference from mean") + ylab("") +
-   facet_wrap(~taxon, scales="free_x") + 
-   scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                      breaks = c("baseline","plus1","plus5","plus10")) +
-   geom_vline(xintercept = 0, linetype = "dashed") +
-   theme(panel.grid.major = element_blank(), 
-         panel.grid.minor = element_blank(),
-         axis.line = element_line(colour = "black"),
-         legend.background = element_blank(),
-         legend.position = "right",
-         text = element_text(size=10), 
-         axis.text.x = element_text(angle=90),
-         panel.border = element_rect(colour = "black", fill = NA),
-         strip.background.x = element_blank(),
-         plot.margin = unit(c(0.2, 0.1, 0, 0), "cm"),
-         legend.margin = margin(c(-10,-1,-10,-10)),
-         panel.spacing.x = unit(0.1, "in"),
-         panel.background = element_rect(
-           fill = "white"),
-         panel.spacing.y = unit(0, "lines"))
-#ggsave("figures/zoop_mean_diff_allyears.jpg", width=7, height=4)
-  
+#-----------------------------------------------------------------------#
 #create a combined phyto df with all scenarios
 #  phyto_scenarios <-  mget(c("all_phytos_baseline","all_phytos_plus1",
 #                            "all_phytos_plus5", "all_phytos_plus10")) |>
@@ -726,6 +602,7 @@ phyto_scenarios$taxon <- factor(phyto_scenarios$taxon,
                           "diatom" = "Diatoms",
                           "green" = "Greens"))
   
+  # Figure S12
   ggplot(data = subset(phyto_mean_biom, year %in% 2016:2021), 
          aes(x = year, y = mean_biom, color = scenario)) +
     geom_point(size=2) + geom_line(size=1) +
@@ -757,6 +634,7 @@ phyto_scenarios$taxon <- factor(phyto_scenarios$taxon,
             fill = "white"))
   #ggsave("figures/phyto_annual_biom_scenario_lineplot.jpg", width=7, height=4) 
 
+  # Figure S9
   ggplot(data = subset(phyto_scenarios),
          aes(x=DateTime, y = value, color=taxon)) +
     geom_line() +
@@ -767,7 +645,7 @@ phyto_scenarios$taxon <- factor(phyto_scenarios$taxon,
                        labels = c("Cyanobacteria","Greens","Diatoms"))+
     scale_fill_manual(values = c("cyan","green","brown4"))+
     scale_x_date(expand = c(0.02,0.02)) +
-    xlab("") + ylab("Raw biomass") +
+    xlab("") + ylab(expression("Biomass (" * mu * " g L"^{-1}*")")) +
     guides(color= guide_legend(ncol=3),
            fill = "none") +
     theme(panel.grid.major = element_blank(), 
@@ -803,7 +681,7 @@ phyto_scenarios$taxon <- factor(phyto_scenarios$taxon,
     dplyr::filter(DateTime >= "2016-01-01" &
                     DateTime < "2022-01-01") #filtering out the 2 partial years
 
-# visualize the mean doy for peak biomass across all years
+# visualize the mean doy for peak biomass across all years (Figure 7)
   zoop_scenarios |>
     dplyr::mutate(scenario = factor(scenario, 
                                     levels = c("baseline", "plus1",
@@ -838,7 +716,6 @@ phyto_scenarios$taxon <- factor(phyto_scenarios$taxon,
             fill = "white"),
           panel.spacing = unit(0.5, "lines"))
   #ggsave("figures/zoop_violin_max_doy.jpg", width=7, height=4)
-  
   
 zoop_timing <- zoop_scenarios |>
   group_by(year, taxon, scenario) |>
@@ -901,39 +778,7 @@ zoop_timing <- zoop_scenarios |>
     mean(zoop_timing$mean_doy[zoop_timing$taxon=="rotifer" &
                                 zoop_timing$scenario=="plus1"])
   
-# also plot the doy as a point for each year
-  ggplot(zoop_scenarios, aes(x = max_doy, y = max_value, 
-             color = as.factor(scenario))) +
-    geom_point(aes(fill = as.factor(scenario)), cex=2) +
-    scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                      breaks = c("baseline","plus1","plus5","plus10")) +
-    xlab("Day of year") + ylab("Maximum value") +
-    facet_wrap(~taxon, ncol=3, scales = "free_y") +
-    theme_bw() + guides(fill = "none") +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          axis.line = element_line(colour = "black"),
-          legend.key = element_blank(),
-          legend.background = element_blank(),
-          legend.position = "top",
-          legend.title = element_blank(),
-          text = element_text(size=10), 
-          axis.text.y = element_text(size = 10),
-          panel.border = element_rect(colour = "black", fill = NA),
-          strip.text.x = element_text(face = "bold",hjust = 0),
-          axis.text.x = element_text(angle=90),
-          strip.background.x = element_blank(),
-          axis.title.y = element_text(size = 11),
-          plot.margin = unit(c(0, 1, 0, 0), "cm"),
-          legend.box.margin = margin(0,-10,-10,-10),
-          legend.margin=margin(0,0,0,0),
-          panel.spacing.x = unit(0.2, "in"),
-          panel.background = element_rect(
-            fill = "white"),
-          panel.spacing = unit(0.5, "lines"))
-  #ggsave("figures/zoop_max_val_vs_doy.jpg", width=7, height=4)
-  
-# Create a phyto and zoop PEG model fig
+# Create a phyto and zoop PEG model fig (Figure S14)
   
   total_phyto_scenarios <- phyto_scenarios |>
     mutate(DateTime = as.Date(DateTime)) |>
@@ -1005,4 +850,4 @@ zoop_timing <- zoop_scenarios |>
         panel.spacing.x = unit(0.2, "in"),
         panel.background = element_rect(fill = "white"),
         panel.spacing = unit(0.5, "lines"))
-  ggsave("figures/phyto_zoop_timing.jpg", width=7, height=5)
+  #ggsave("figures/phyto_zoop_timing.jpg", width=7, height=5)

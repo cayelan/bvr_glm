@@ -125,7 +125,7 @@ names(facet_labels) <- c("cladoceran", "copepod", "rotifer","total")
 zoop_obs <- read_csv("analysis/data/zoop_obs.csv")
 zoop_scenarios <- read_csv("./analysis/data/zoop_scenarios.csv")
 
-# plot zoops
+# plot zoops (Figure 1 g-j)
 plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
   geom_line(aes(DateTime, value)) + 
   geom_point(data=zoop_obs,
@@ -157,7 +157,7 @@ plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
         plot.background = element_rect(fill = "transparent", colour = NA))
 #ggsave("figures/zoop_mod_vs_obs_copes_last.jpg", width=6, height=4)
 
-#summarize across taxa to describe bl zoop timing in results
+#summarize across taxa to describe bl zoop timing in results (Figure 2)
 bl_zoop_summary <- zoop_scenarios |>
   filter(scenario %in% c("baseline"),
          year %in% c(2016:2021)) |>
@@ -234,157 +234,126 @@ zoop_scenarios <- zoop_scenarios |>
 
 #------------------------------------------------------------------------#
 # zoop diags for all taxa and scenarios
-taxa <- c("copes","clads","rots")
-
-for(i in 1:length(scenario)){
-for(j in 1:length(taxa)){
-
-# change output location "output/cladoceran/output.nc
-glm_nml_file <- file.path(paste0("./sims/spinup/",scenario[i],"/glm3.nml"))
-glm_nml <- glmtools::read_nml(nml_file = glm_nml_file)
-glm_nml <- glmtools::set_nml(glm_nml,
-                             arg_name = "output::out_dir",
-                             arg_val = paste0("output/",taxa[j]))
-glmtools::write_nml(glm_nml, file = glm_nml_file)
-
-zoop_files <- c("aed/aed_zoop_pars_3groups_4Sep2024.csv",
-                "aed/aed_zoop_pars_3groups_4Sep2024_clads.csv",
-                "aed/aed_zoop_pars_3groups_4Sep2024_rots.csv")
-
-# walk through this to manually change which aed file glm uses
-aed_nml_file <- file.path(paste0("./sims/spinup/",scenario[i],"/aed/aed2_4zones.nml"))
-aed_nml <- glmtools::read_nml(nml_file = aed_nml_file)
-aed_nml <- glmtools::set_nml(aed_nml,
-                             arg_name = "aed_zooplankton::dbase",
-                             arg_val = zoop_files[j])
-glmtools::write_nml(aed_nml, file = aed_nml_file)
-
-# run the model
-sim_folder = paste0("./sims/spinup/",scenario[i])
-GLM3r::run_glm(sim_folder)
-  
-}
-}
-
-library(ncdf4)
-library(dplyr)
-
-# Specify the zip file path
-zip_file <- "./sims/spinup/baseline/output/baseline_taxa.zip"
-zip_file <- "./sims/spinup/plus1/output/plus1_taxa.zip"
-zip_file <- "./sims/spinup/plus5/output/plus5_taxa.zip"
-zip_file <- "./sims/spinup/plus10/output/plus10_taxa.zip"
-
-# Create a temporary directory to extract the files
-temp_dir <- tempdir()
-unzip(zip_file, exdir = temp_dir)
+#taxa <- c("copes","clads","rots")
+#
+#for(i in 1:length(scenario)){
+#for(j in 1:length(taxa)){
+#
+## change output location "output/cladoceran/output.nc
+#glm_nml_file <- file.path(paste0("./sims/spinup/",scenario[i],"/glm3.nml"))
+#glm_nml <- glmtools::read_nml(nml_file = glm_nml_file)
+#glm_nml <- glmtools::set_nml(glm_nml,
+#                             arg_name = "output::out_dir",
+#                             arg_val = paste0("output/",taxa[j]))
+#glmtools::write_nml(glm_nml, file = glm_nml_file)
+#
+#zoop_files <- c("aed/aed_zoop_pars_3groups_4Sep2024.csv",
+#                "aed/aed_zoop_pars_3groups_4Sep2024_clads.csv",
+#                "aed/aed_zoop_pars_3groups_4Sep2024_rots.csv")
+#
+## walk through this to manually change which aed file glm uses
+#aed_nml_file <- file.path(paste0("./sims/spinup/",scenario[i],"/aed/aed2_4zones.nml"))
+#aed_nml <- glmtools::read_nml(nml_file = aed_nml_file)
+#aed_nml <- glmtools::set_nml(aed_nml,
+#                             arg_name = "aed_zooplankton::dbase",
+#                             arg_val = zoop_files[j])
+#glmtools::write_nml(aed_nml, file = aed_nml_file)
+#
+## run the model
+#sim_folder = paste0("./sims/spinup/",scenario[i])
+#GLM3r::run_glm(sim_folder)
+#  
+#}
+#}
+#
+#library(ncdf4)
+#library(dplyr)
+#
+## Specify the zip file path
+#zip_file <- "./sims/spinup/baseline/output/baseline_taxa.zip"
+#zip_file <- "./sims/spinup/plus1/output/plus1_taxa.zip"
+#zip_file <- "./sims/spinup/plus5/output/plus5_taxa.zip"
+#zip_file <- "./sims/spinup/plus10/output/plus10_taxa.zip"
+#
+## Create a temporary directory to extract the files
+#temp_dir <- tempdir()
+#unzip(zip_file, exdir = temp_dir)
 
 # Function to extract data from an .nc file
-read_nc_data <- function(nc_file) {
-  nc <- nc_open(nc_file)
-  
-  # Extract variables, assuming the 500 is depth and 7969 is time
-  time <- ncvar_get(nc, "time")
-  grz <- ncvar_get(nc, "ZOO_grz") 
-  resp <- ncvar_get(nc, "ZOO_resp")
-  mort <- ncvar_get(nc, "ZOO_mort")
-  
-  # Assuming time is in 24-hour periods
-  origin_date <- as.Date("2000-07-08")  # Your start date
-  time_in_days <- time / 24  # Convert time to days
-  
-  # Calculate the actual dates by adding the number of days to the origin
-  dates <- origin_date + time_in_days
-  
-  # Convert to POSIXct (if you need precise time information, e.g., midnight each day)
-  time <- as.POSIXct(dates, tz = "UTC")
-  
-  # Flatten the variables (use only time dimension)
-  # Assuming that depth is the first dimension (500) and time is the second (7969)
-  grz <- as.vector(grz[1, ])  # Select the first depth slice for grazing
-  resp <- as.vector(resp[1, ])  # Select the first depth slice for respiration
-  mort <- as.vector(mort[1, ])  # Select the first depth slice for mortality
-  
-  # Close the NetCDF file
-  nc_close(nc)
-  
-  # Extract taxon name from file path (assuming the folder name is the taxon)
-  taxon_name <- basename(dirname(nc_file))  # Extract folder name as taxon
-  
-  # Combine into a data frame
-  diags <- data.frame(
-    time = time,
-    grz = grz,
-    resp = resp,
-    mort = mort,
-    taxon = taxon_name, 
-    file = basename(nc_file)  
-  )
-  
-  return(diags) 
-}
-
-# List all .nc files in the extracted folders
-nc_files <- list.files(temp_dir, pattern = "\\.nc$", recursive = TRUE, full.names = TRUE)
+#read_nc_data <- function(nc_file) {
+#  nc <- nc_open(nc_file)
+#  
+#  # Extract variables, assuming the 500 is depth and 7969 is time
+#  time <- ncvar_get(nc, "time")
+#  grz <- ncvar_get(nc, "ZOO_grz") 
+#  resp <- ncvar_get(nc, "ZOO_resp")
+#  mort <- ncvar_get(nc, "ZOO_mort")
+#  
+#  origin_date <- as.Date("2000-07-08")  
+#  time_in_days <- time / 24  # Convert time to days
+#  
+#  # Calculate the actual dates by adding the number of days to the origin
+#  dates <- origin_date + time_in_days
+#  
+#  # Convert to POSIXct (if you need precise time information, e.g., midnight each day)
+#  time <- as.POSIXct(dates, tz = "UTC")
+#  
+#  # Flatten the variables (use only time dimension)
+#  # Assuming that depth is the first dimension (500) and time is the second (7969)
+#  grz <- as.vector(grz[1, ])  # Select the first depth slice for grazing
+#  resp <- as.vector(resp[1, ])  # Select the first depth slice for respiration
+#  mort <- as.vector(mort[1, ])  # Select the first depth slice for mortality
+#  
+#  # Close the NetCDF file
+#  nc_close(nc)
+#  
+#  # Extract taxon name from file path (assuming the folder name is the taxon)
+#  taxon_name <- basename(dirname(nc_file))  # Extract folder name as taxon
+#  
+#  # Combine into a data frame
+#  diags <- data.frame(
+#    time = time,
+#    grz = grz,
+#    resp = resp,
+#    mort = mort,
+#    taxon = taxon_name, 
+#    file = basename(nc_file)  
+#  )
+#  
+#  return(diags) 
+#}
+#
+## List all .nc files in the extracted folders
+#nc_files <- list.files(temp_dir, pattern = "\\.nc$", recursive = TRUE, full.names = TRUE)
 
 # Initialize individual taxa data frames
-clads <- NULL
-copes <- NULL
-rots <- NULL
-
-# Loop through all .nc files and read data for each taxon
-for (file in nc_files) {
-  taxon_name <- basename(dirname(file))  # Get the folder name (taxon)
-  
-  # Read data only for a specific taxon
-  if (taxon_name == "clads") {
-    clads <- read_nc_data(file)
-  } else if (taxon_name == "copes") {
-    copes <- read_nc_data(file)
-  } else if (taxon_name == "rots") {
-    rots <- read_nc_data(file)
-  }
-}
-
-# Combine all taxa data frames into one
-plus5_diags <- bind_rows(clads, copes, rots)|>
-  mutate(mort = mort * -1,
-         resp = resp * -1) |>
-  pivot_longer(cols = c(grz, resp, mort),  
-               names_to = "diag",         
-               values_to = "value") |>
-  select(-file) |>
-  mutate(scenario = "baseline")
-
-ggplot(baseline_diags, aes(x = time, y = value)) + 
-  geom_area(aes(color = diag, fill = diag),
-            position = "stack", stat="identity",
-            linewidth=1) +
-  facet_wrap(~taxon) +
-  scale_color_manual(values = NatParksPalettes::
-                       natparks.pals("Volcanoes", 5,  direction = -1))+
-  scale_fill_manual(values = NatParksPalettes::
-                      natparks.pals("Volcanoes", 5, direction = -1))+
-  ylab("Diagnostics (mmolC/m3/day)")+ xlab("") +
-  scale_x_datetime(expand = c(0,0),labels = 
-                     date_format("%Y",tz="EST5EDT")) +
-  scale_y_continuous(expand = c(0,0), limits = c(-2,12))+
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.key = element_blank(),
-        legend.background = element_blank(),
-        legend.position = c(0.88,0.83),
-        text = element_text(size=8), 
-        axis.text.y = element_text(size = 8),
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_text(face = "bold",hjust = 0),
-        axis.text.x = element_text(angle=0),
-        strip.background.x = element_blank(),
-        axis.title.y = element_text(size = 9),
-        plot.margin = unit(c(0, 1, 0, 0), "cm"),
-        panel.spacing = unit(0.5, "lines"))
-ggsave("figures/BVR_stacked_zoop_diags_baseline.jpg", width=5, height=4) 
+#clads <- NULL
+#copes <- NULL
+#rots <- NULL
+#
+## Loop through all .nc files and read data for each taxon
+#for (file in nc_files) {
+#  taxon_name <- basename(dirname(file))  # Get the folder name (taxon)
+#  
+#  # Read data only for a specific taxon
+#  if (taxon_name == "clads") {
+#    clads <- read_nc_data(file)
+#  } else if (taxon_name == "copes") {
+#    copes <- read_nc_data(file)
+#  } else if (taxon_name == "rots") {
+#    rots <- read_nc_data(file)
+#  }
+#}
+#
+## Combine all taxa data frames into one
+#plus5_diags <- bind_rows(clads, copes, rots)|>
+#  mutate(mort = mort * -1,
+#         resp = resp * -1) |>
+#  pivot_longer(cols = c(grz, resp, mort),  
+#               names_to = "diag",         
+#               values_to = "value") |>
+#  select(-file) |>
+#  mutate(scenario = "baseline")
 
 #----------------------------------------------------------------------#
 # write modeled vars to file
@@ -406,40 +375,7 @@ zoop_diags_summary <- taxa_diags_scenarios |>
          scenario = factor(str_to_title(scenario), levels = c("Baseline", "Plus1", "Plus5", "Plus10"))) |>
   group_by(year = lubridate::year(DateTime), taxon, diag, scenario) |>
   summarize(mean_rate = mean(value, na.rm = TRUE), .groups = "drop") |>
-  mutate(combined_label = paste0(scenario, " ", diag)) 
-
-ggplot(zoop_diags_summary, aes(x = year, y = mean_rate, color = taxon)) +
-  geom_line(size = 1) +
-  geom_point() +
-  facet_grid(rows = vars(diag), cols = vars(scenario), scales = "free_y") +
-  scale_color_manual(values = c("#084c61", "#db504a", "#e3b505"),
-                     breaks = c("clads", "copes", "rots"),
-                     labels = c("Cladoceran","Copepod","Rotifer")) +
-  theme_bw() +
-  ylab("Mean rate (mmolC/m3/day)") +
-  xlab("") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.key = element_blank(),
-        legend.background = element_blank(),
-        legend.position = "top",
-        legend.direction = "horizontal",
-        legend.title = element_blank(),
-        text = element_text(size=8), 
-        axis.text.y = element_text(size = 8),
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_text(face = "bold",hjust = 0),
-        axis.text.x = element_text(angle=0),
-        strip.background.x = element_blank(),
-        strip.background.y = element_blank(), 
-        axis.title.y = element_text(size = 9),
-        legend.margin = margin(c(-0,-10,-15,-10)),
-        plot.margin = unit(c(0, 1, 0, 0), "cm"),
-        panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/annual_zoop_diag.jpg", width=6, height=4)
-
-zoop_diags_summary <- zoop_diags_summary |>
+  mutate(combined_label = paste0(scenario, " ", diag))  |>
   mutate(DateTime = as.Date(paste0(year, "-01-01"))) |>
   mutate(DateTime = case_when(
     year == 2015 ~ as.Date("2015-07-08"),
@@ -592,18 +528,17 @@ plot2 <- ggplot(data = subset(phyto_scenarios,
             aes(x = DateTime, y = total/max_total, 
             color = "Total"), linewidth = 1) +  
   facet_wrap(~scenario, scales = "free_x") +
-  scale_fill_manual(values = c("cyan", "green", "brown4","lightgrey"),
+  scale_fill_manual(values = c("cyan", "green", "brown4","black"),
                     labels = c("Cyanobacteria", "Greens", "Diatoms","")) +
-  scale_color_manual(values = c("Total" = "lightgrey"),  
+  scale_color_manual(values = c("Total" = "black"),  
                      labels = c("Total phytoplankton")) +
   scale_x_date(expand = c(0, 0), 
                breaks = as.Date(c("2016-01-01", "2018-01-01", "2020-01-01", "2022-01-01")),
-               date_labels = '%Y') +
+               date_labels = '%Y') + xlab("") +
   scale_y_continuous(expand = c(0, 0), 
-                     name = "Relative Density",  
+                     name = "Relative biomass",  
                      sec.axis = sec_axis(~ . * max_total, 
                                          name = expression("Total biomass (" * mu * " g L"^{-1}*")"))) +
-  xlab("") + ylab("Relative Density") +
   guides(fill = guide_legend(ncol = 4),
          color = guide_legend(ncol=1)) +
   theme(panel.grid.major = element_blank(), 
