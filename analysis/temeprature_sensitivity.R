@@ -110,22 +110,28 @@ aed_bio_temp_function <- function(numg, theta, T_std, T_opt, T_max, name) {
     }
   }
   
-  #vlines <- data.frame(
-  #  xintercept = c(15.16, 16.14, 17.64, 20.88),
-  #  line_id = c("A", "B", "C", "D")
-  #)
+  vlines <- data.frame(
+    xintercept = c(15.16, 16.14, 17.64, 20.88),
+    line_id = c("Baseline", "Plus1", "Plus5", "Plus10")
+  )
   
   ggplot(plot_data, aes(x = Temperature, y = GrowthRate, color = Group)) +
     geom_line() + xlim(0,40) + ylim(0,1.5) +
     labs(#title = "Growth Rate as a Function of Temperature",
       x = "Temperature (°C)",
       y = "f(T)") + 
+    geom_vline(data = vlines, 
+               aes(xintercept = xintercept, linetype = line_id),
+               color = "black", size = 0.5) +
+    scale_linetype_discrete(name = NULL,
+                            breaks = c("Baseline","Plus1","Plus5","Plus10")) +
     #annotate("text", x=c(2,5,8), y=1.5, label = topt_lab) +
     scale_color_manual("", values = c("#084c61","#db504a","#e3b505")) +
     #scale_color_manual("", values = c("cyan","brown","darkgreen")) +
     theme_bw() +
     theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank())
+          panel.grid.minor = element_blank(),
+          legend.key.spacing.y = unit(0.3, "cm"))
 }
 
 # 3 phyto groups:
@@ -150,7 +156,7 @@ name <- c("Rotifer", "Cladoceran", "Copepod")
 #topt_lab <- T_opt[c(2,3,1)]
 
 aed_bio_temp_function(numg, theta, T_std, T_opt, T_max, name)
-ggsave("figures/zoop_temp_curve.jpg", width=7, height=4)
+ggsave("figures/zoop_temp_curve_scenario_surface_temps.jpg", width=7, height=4)
 
 #ggpubr::ggarrange(ps1,ps2, common.legend = T)
 #ggsave("figures/topt_option3.jpg")

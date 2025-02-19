@@ -419,3 +419,15 @@ ggplot(inflow, aes(x = Year, y = Value)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1),
         legend.position = "none")
 
+# look at secchi
+secchi_obs <- read.csv("./field_data/field_secchi.csv")
+
+nc_file <-  "sims/spinup/plus10/output/output.nc"
+
+#plot Secchi depth & light extinction
+lec <- get_var(file=nc_file,var_name = 'extc',z_out=1,reference = 'surface') |>
+  filter(DateTime >= "2015-07-08")
+plot(lec$DateTime, 1.7/lec$extc_1, , ylim=c(0,5), type="l")
+points(as.POSIXct(secchi_obs$DateTime), secchi_obs$Secchi_m, 
+       col="red", type="p", pch=16)
+plot(lec$DateTime, lec$extc_1)

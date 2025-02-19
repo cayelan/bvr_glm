@@ -11,7 +11,7 @@ install_github("hzambran/hydroGOF")
 devtools::install_github("eliocamp/tagger")
 
 #load packages
-pacman::p_load(tidyverse,lubridate, 
+pacman::p_load(tidyverse,lubridate, hydroTSM,
                glmtools, ggtext, tagger, cowplot)
 
 # create modeled vs. observed df for each variable
@@ -296,7 +296,7 @@ mod_vars_final_baseline <- mod_vars_final_baseline |>
   ) |>
   na.omit()
 
-# Plot vars for 0.1m depth
+# Plot vars for 0.1m depth (Figure 1 a-f)
 plot1 <- ggplot() + geom_line(
     data = subset(mod_vars_final_baseline, Depth %in% 0.1), 
     aes(DateTime, value, color = "modeled")) +
@@ -342,7 +342,7 @@ combined_plot <- plot_grid(
 )
 #ggsave("figures/ms_fig1.jpg", width=8, height=6)
 
-# plot vars for 9m
+# plot vars for 9m (Figure S4)
 ggplot() +
   geom_line(data = subset(mod_vars_final_baseline, Depth %in% 9), 
             aes(DateTime, value, color = "modeled")) +
@@ -377,13 +377,11 @@ ggplot() +
 #ggsave("figures/allvars_mod_vs_obs_9m.jpg", width=8, height=6)
 
 # read in mod_vars
-mod_vars <- read_csv("analysis/data/mod_vars.csv")
+mod_vars <- read_csv("analysis/data/mod_vars.csv") 
 
 # numbers for results text
 mod_vars_bl <- mod_vars |>
-  filter(scenario %in% "baseline") |>
-  mutate(season = ifelse(month(DateTime) %in% c(6,7,8), "summer",
-                         ifelse(month(DateTime) %in% c(12,1,2), "winter", NA)))
+  filter(scenario %in% "baseline") 
 
 mean(mod_vars_bl$value[mod_vars_bl$var %in% "temp" & 
                          mod_vars_bl$Depth %in% "0.1" & 
@@ -463,100 +461,6 @@ sd(mod_vars_bl$value[mod_vars_bl$var=="chla" &
 #  relocate(scenario, .after = last_col()) |>
 #  select(-type)
 #write.csv(scenarios_df, "./analysis/data/modeled_vars_scenarios.csv", row.names = F)
-
-scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv") 
-
-  ggplot(data=subset(scenarios_df, Depth %in% 0.1)) +
-  geom_line(aes(x = as.POSIXct(DateTime), y = value, 
-                color = as.factor(scenario))) + xlab("") +
-  scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                    breaks = c("baseline","plus1","plus5","plus10")) +
-  facet_wrap(~var, ncol=3, scales = "free_y") + 
-  theme_bw() + guides(fill = "none") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.key = element_blank(),
-        legend.background = element_blank(),
-        legend.position = "top",
-        legend.title = element_blank(),
-        text = element_text(size=10), 
-        axis.text.y = element_text(size = 10),
-        panel.border = element_rect(colour = "black", fill = NA),
-        strip.text.x = element_text(face = "bold",hjust = 0),
-        strip.background.x = element_blank(),
-        axis.title.y = element_text(size = 11),
-        plot.margin = unit(c(0, 1, 0, 0), "cm"),
-        legend.box.margin = margin(0,-10,-10,-10),
-        legend.margin=margin(0,0,0,0),
-        panel.spacing.x = unit(0.2, "in"),
-        panel.background = element_rect(
-          fill = "white"),
-        panel.spacing = unit(0.5, "lines"))
-#ggsave("figures/modeled_vars_scenarios_0.1.jpg", width=7, height=4)
-  
-# boxplots
-  ggplot(subset(mod_vars, Depth %in% 0.1),
-         aes(x = scenario, y = value, 
-             fill = as.factor(scenario))) +
-    geom_boxplot() + xlab("") +
-    scale_fill_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                       breaks = c("baseline","plus1","plus5","plus10")) +
-    scale_x_discrete(limits = c("baseline", "plus1", "plus5", "plus10")) +
-    facet_wrap(~var, ncol=3, scales = "free_y") + 
-    theme_bw() + guides(fill = "none") +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          axis.line = element_line(colour = "black"),
-          legend.key = element_blank(),
-          legend.background = element_blank(),
-          legend.position = "top",
-          legend.title = element_blank(),
-          text = element_text(size=10), 
-          axis.text.y = element_text(size = 10),
-          panel.border = element_rect(colour = "black", fill = NA),
-          strip.text.x = element_text(face = "bold",hjust = 0),
-          strip.background.x = element_blank(),
-          axis.title.y = element_text(size = 11),
-          plot.margin = unit(c(0, 1, 0, 0), "cm"),
-          legend.box.margin = margin(0,-10,-10,-10),
-          legend.margin=margin(0,0,0,0),
-          panel.spacing.x = unit(0.2, "in"),
-          panel.background = element_rect(
-            fill = "white"),
-          panel.spacing = unit(0.5, "lines"))
-  #ggsave("figures/modeled_vars_scenarios_0.1_boxplots.jpg", width=7, height=4)
-  
-  ggplot(subset(scenarios_df, Depth %in% 9),
-         aes(x = as.POSIXct(DateTime), y = value, 
-             color = as.factor(scenario))) +
-    geom_line() + xlab("") +
-    scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                       breaks = c("baseline","plus1","plus5","plus10")) +
-    facet_wrap(~var, ncol=3, scales = "free_y") + 
-    theme_bw() + guides(fill = "none") +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          axis.line = element_line(colour = "black"),
-          legend.key = element_blank(),
-          legend.background = element_blank(),
-          legend.position = "top",
-          legend.title = element_blank(),
-          text = element_text(size=10), 
-          axis.text.y = element_text(size = 10),
-          panel.border = element_rect(colour = "black", fill = NA),
-          strip.text.x = element_text(face = "bold",hjust = 0),
-          strip.background.x = element_blank(),
-          axis.title.y = element_text(size = 11),
-          plot.margin = unit(c(0, 1, 0, 0), "cm"),
-          legend.box.margin = margin(0,-10,-10,-10),
-          legend.margin=margin(0,0,0,0),
-          panel.spacing.x = unit(0.2, "in"),
-          panel.background = element_rect(
-            fill = "white"),
-          panel.spacing = unit(0.5, "lines"))
-  #ggsave("figures/modeled_vars_scenarios_9.jpg", width=7, height=4)
-
 #-----------------------------------------------------------------------#
   # read in modeled state vars
   summer_mod_vars <- read.csv("./analysis/data/mod_vars.csv") |>
@@ -603,64 +507,82 @@ scenarios_df <- read.csv("./analysis/data/modeled_vars_scenarios.csv")
                               levels = c("temp", "oxy", "no3" ,
                                          "po4", "chla", "total"))
   
-  ggplot(data=subset(mean_summer_mod_vars,Depth==0.1 & !year %in% c("2015","2022")),
-         aes(x = year, y = mean_val,  color = scenario)) +
-    geom_line(size=1) + geom_point(size=2) +
+  # Figure 3 boxplot of wq vars
+  ggplot(data=subset(mean_summer_mod_vars,Depth==0.1 & 
+                       !year %in% c("2015","2022")),
+         aes(x = scenario, y = mean_val,  fill = scenario)) +
+    geom_boxplot() + xlab("") +
     facet_wrap(~variable, scales = "free",
                labeller = label_parsed) + 
-    xlab("") + theme_bw() + ylab("Summer mean value") +
-    scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                       breaks = c("baseline","plus1","plus5","plus10")) +
+    theme_bw() + ylab("Summer mean value") +
+    scale_fill_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
+                      breaks = c("baseline","plus1","plus5","plus10")) +
+    scale_x_discrete(limits = c("baseline", "plus1", "plus5", "plus10"),
+                     labels = c(
+                       "baseline" = "Baseline",
+                       "plus1" = "Plus1",
+                       "plus5" = "Plus5",
+                       "plus10" = "Plus10")) +
+    theme_bw() + guides(fill = "none") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
           legend.key = element_blank(),
           legend.background = element_blank(),
-          legend.position = "bottom",
-          legend.direction = "horizontal",
+          legend.position = "top",
           legend.title = element_blank(),
           text = element_text(size=10), 
           axis.text.y = element_text(size = 10),
           panel.border = element_rect(colour = "black", fill = NA),
-          strip.text = element_text(face = "bold",hjust = 0),
-          strip.background = element_blank(),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          strip.background.x = element_blank(),
           axis.title.y = element_text(size = 11),
           plot.margin = unit(c(0, 1, 0, 0), "cm"),
           legend.box.margin = margin(0,-10,-10,-10),
-          legend.margin=margin(-25,0,10,0),
+          legend.margin=margin(0,0,0,0),
           panel.spacing.x = unit(0.2, "in"),
           panel.background = element_rect(
-            fill = "white"))
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
   #ggsave("figures/mod_vars_yearly_summer_0.1m.jpg", width=7, height=4) 
-  
-  ggplot(data=subset(mean_summer_mod_vars,Depth==9 & !year %in% c("2015","2022")),
-         aes(x = year, y = mean_val,  color = scenario)) +
-    geom_line(size=1) + geom_point(size=2) +
+
+  # Figure S5 boxplots
+  ggplot(data=subset(mean_summer_mod_vars,Depth==9 & 
+                       !year %in% c("2015","2022")),
+         aes(x = scenario, y = mean_val,  fill = scenario)) +
+    geom_boxplot() + xlab("") +
     facet_wrap(~variable, scales = "free",
                labeller = label_parsed) + 
-    xlab("") + theme_bw() + ylab("Summer mean value") +
-    scale_color_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
-                       breaks = c("baseline","plus1","plus5","plus10")) +
+    theme_bw() + ylab("Summer mean value") +
+    scale_fill_manual("", values = c("#147582","#c6a000","#c85b00","#680000"),
+                      breaks = c("baseline","plus1","plus5","plus10")) +
+    scale_x_discrete(limits = c("baseline", "plus1", "plus5", "plus10"),
+                     labels = c(
+                       "baseline" = "Baseline",
+                       "plus1" = "Plus1",
+                       "plus5" = "Plus5",
+                       "plus10" = "Plus10")) +
+    theme_bw() + guides(fill = "none") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
           legend.key = element_blank(),
           legend.background = element_blank(),
-          legend.position = "bottom",
-          legend.direction = "horizontal",
+          legend.position = "top",
           legend.title = element_blank(),
           text = element_text(size=10), 
           axis.text.y = element_text(size = 10),
           panel.border = element_rect(colour = "black", fill = NA),
-          strip.text = element_text(face = "bold",hjust = 0),
-          strip.background = element_blank(),
+          strip.text.x = element_text(face = "bold",hjust = 0),
+          strip.background.x = element_blank(),
           axis.title.y = element_text(size = 11),
           plot.margin = unit(c(0, 1, 0, 0), "cm"),
           legend.box.margin = margin(0,-10,-10,-10),
-          legend.margin=margin(-25,0,10,0),
+          legend.margin=margin(0,0,0,0),
           panel.spacing.x = unit(0.2, "in"),
           panel.background = element_rect(
-            fill = "white"))
+            fill = "white"),
+          panel.spacing = unit(0.5, "lines"))
   #ggsave("figures/mod_vars_yearly_summer_9m.jpg", width=7, height=4) 
   
   # numbers for results text
