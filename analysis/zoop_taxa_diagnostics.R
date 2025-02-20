@@ -146,7 +146,7 @@ plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
              labeller = labeller(taxon = facet_labels)) +
   ylab(expression("Biomass (mg C L"^{-1}*")")) +
   geom_vline(xintercept = as.Date("2020-12-31"), linetype = "dashed") +
-  scale_color_manual(values = c("#084c61","#db504a","#e3b505","red"),
+  scale_color_manual(values = c(rep("red",4)),
                      breaks = c("cladoceran","copepod","rotifer", "total"))+
   tag_facets(tag_pool = letters[7:10] ) +
   theme(panel.grid.major = element_blank(), 

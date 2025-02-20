@@ -486,12 +486,12 @@ sd(mod_vars_bl$value[mod_vars_bl$var=="chla" &
   #new labels list
   labels <- c(
     # expression("Water level (m" [] * ")"),
-    expression("Water Temp (" * degree * "C)"),
+    expression("Water temp (" * degree * "C)"),
     expression("DO (mg L" ^-1*")"),
     expression("NO" [3] * " (" * mu * " g L"^-1*")"),
     expression("DRP (" * mu * " g L"^{-1}*")"),
     # expression("DOC (" * mu * " g L"^{-1}*")"),
-    expression("Chlorophyll " * italic(a) * " (" * mu * " g L"^{-1}*")"),
+    expression("Phyto biomass (" * mu * " g L"^{-1}*")"),
     expression("Zoop biomass (mg L" ^-1*")")
   )
   
