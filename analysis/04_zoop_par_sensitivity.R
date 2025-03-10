@@ -3,184 +3,186 @@
 # load packages
 pacman::p_load(dplyr)
 
-# Define current parameters and their calibrated values for each taxon
-param_values <- list(
-  Rgrz_zoo = c(0.8, 1.3, 1.5),
-  Rresp_zoo = c(0.1, 0.3, 0.2),
-  Rmort_zoo = c(0.06, 0.08, 0.01),
-  ffecal_zoo = c(0.05, 0.04, 0.02),
-  ffecal_sed = c(0.3, 0.4, 0.8),
-  Topt_zoo = c(25, 28, 28),
-  Tmax_zoo = c(30, 35, 35),
-  INC_zoo = c(0.05, 0.22, 0.15),
-  IPC_zoo = c(0.0018, 0.024, 0.0125)
-)
+#Note that the below code is commented out because the output of this sensitivity analysis is saved in the sims folder
 
-# Define the percentage change for sensitivity analysis
-percent_change <- c(-0.1, 0.1)
-
-# Define the taxa columns
-taxa_columns <- c("rotifer", "cladoceran", "copepod")
-
-# Create new folders for sensitivity files
-glm_files <- list.files("./sims/spinup/baseline", full.names = TRUE)[1:3]
-sens_dirs <- c("low", "high")
-
-# Iterate over sensitivity cases (-10% and +10%)
-for (i in 1:length(percent_change)) {
-  # Create directory for the current sensitivity case
-  subdirName <- paste0("./sims/spinup/sensitivity_", sens_dirs[i])
-  dir.create(subdirName)
-  file.copy(from = glm_files, to = subdirName, recursive = TRUE)
-  
-  # Load and modify the AED zooplankton parameter file
-  zoop_aed_file <- read.csv(paste0(subdirName, "/aed/aed_zoop_pars_3groups_4Sep2024.csv")) |>
-    rename(
-      zoop.name = X.zoop_name.,
-      rotifer = X.rotifer.,
-      cladoceran = X.cladoceran.,
-      copepod = X.copepod.
-    )
-  
-  # Update parameters for each taxa based on percentage change
-  for (param_name in names(param_values)) {
-    # Calculate adjusted values
-    adjusted_values <- param_values[[param_name]] * (1 + percent_change[i])
-    
-    # Update the corresponding rows for each taxon
-    for (j in 1:length(taxa_columns)) {
-      taxon <- taxa_columns[j]
-      zoop_aed_file[zoop_aed_file$zoop.name == paste0(" '", param_name, "'"), taxon] <- adjusted_values[j]
-    }
-  }
-  
-  # Save the modified file
-  write.csv(zoop_aed_file, file = paste0(subdirName, "/aed/aed_zoop_pars_3groups_4Sep2024.csv"), 
-            row.names = FALSE, quote = FALSE)
-  
-  # Create output folder for model results
-  dir.create(paste0(subdirName, "/output"))
-}
+## Define current parameters and their calibrated values for each taxon
+#param_values <- list(
+#  Rgrz_zoo = c(0.8, 1.3, 1.5),
+#  Rresp_zoo = c(0.1, 0.3, 0.2),
+#  Rmort_zoo = c(0.06, 0.08, 0.01),
+#  ffecal_zoo = c(0.05, 0.04, 0.02),
+#  ffecal_sed = c(0.3, 0.4, 0.8),
+#  Topt_zoo = c(25, 28, 28),
+#  Tmax_zoo = c(30, 35, 35),
+#  INC_zoo = c(0.05, 0.22, 0.15),
+#  IPC_zoo = c(0.0018, 0.024, 0.0125)
+#)
+#
+## Define the percentage change for sensitivity analysis
+#percent_change <- c(-0.1, 0.1)
+#
+## Define the taxa columns
+#taxa_columns <- c("rotifer", "cladoceran", "copepod")
+#
+## Create new folders for sensitivity files
+#glm_files <- list.files("./sims/spinup/baseline", full.names = TRUE)[1:3]
+#sens_dirs <- c("low", "high")
+#
+## Iterate over sensitivity cases (-10% and +10%)
+#for (i in 1:length(percent_change)) {
+#  # Create directory for the current sensitivity case
+#  subdirName <- paste0("./sims/spinup/sensitivity_", sens_dirs[i])
+#  dir.create(subdirName)
+#  file.copy(from = glm_files, to = subdirName, recursive = TRUE)
+#  
+#  # Load and modify the AED zooplankton parameter file
+#  zoop_aed_file <- read.csv(paste0(subdirName, "/aed/aed_zoop_pars_3groups_4Sep2024.csv")) |>
+#    rename(
+#      zoop.name = X.zoop_name.,
+#      rotifer = X.rotifer.,
+#      cladoceran = X.cladoceran.,
+#      copepod = X.copepod.
+#    )
+#  
+#  # Update parameters for each taxa based on percentage change
+#  for (param_name in names(param_values)) {
+#    # Calculate adjusted values
+#    adjusted_values <- param_values[[param_name]] * (1 + percent_change[i])
+#    
+#    # Update the corresponding rows for each taxon
+#    for (j in 1:length(taxa_columns)) {
+#      taxon <- taxa_columns[j]
+#      zoop_aed_file[zoop_aed_file$zoop.name == paste0(" '", param_name, "'"), taxon] <- adjusted_values[j]
+#    }
+#  }
+#  
+#  # Save the modified file
+#  write.csv(zoop_aed_file, file = paste0(subdirName, "/aed/aed_zoop_pars_3groups_4Sep2024.csv"), 
+#            row.names = FALSE, quote = FALSE)
+#  
+#  # Create output folder for model results
+#  dir.create(paste0(subdirName, "/output"))
+#}
 
 # Run the model and generate output for each sensitivity case
-for (i in 1:length(sens_dirs)) {
-  sim_folder <- paste0("./sims/spinup/sensitivity_", sens_dirs[i])
-  GLM3r::run_glm(sim_folder)
-  
-  # Set .nc file path
-  nc_file <- file.path(paste0(sim_folder, "/output/output.nc"))
-  
-  # Access and plot temperature
-  current_temp <- glmtools::get_var(nc_file, var_name = "temp")
-  p <- glmtools::plot_var(nc_file, var_name = "temp", reference = "surface", 
-                          plot.title = paste0("sensitivity_", sens_dirs[i]))
-  plot_filename <- paste0("./figures/waterTemp_sensitivity__", sens_dirs[i], ".png")
-  ggplot2::ggsave(p, filename = plot_filename, device = "png",
-                  height = 6, width = 8, units = "in")
-}
+#for (i in 1:length(sens_dirs)) {
+#  sim_folder <- paste0("./sims/spinup/sensitivity_", sens_dirs[i])
+#  GLM3r::run_glm(sim_folder)
+#  
+#  # Set .nc file path
+#  nc_file <- file.path(paste0(sim_folder, "/output/output.nc"))
+#  
+#  # Access and plot temperature
+#  current_temp <- glmtools::get_var(nc_file, var_name = "temp")
+#  p <- glmtools::plot_var(nc_file, var_name = "temp", reference = "surface", 
+#                          plot.title = paste0("sensitivity_", sens_dirs[i]))
+#  plot_filename <- paste0("./figures/waterTemp_sensitivity__", sens_dirs[i], ".png")
+#  ggplot2::ggsave(p, filename = plot_filename, device = "png",
+#                  height = 6, width = 8, units = "in")
+#}
 
 
 #------------------------------------------------------------------------#
 # code to pull zoop data into a df
 
-for (i in 1:length(sens_dirs)){
-  
-  nc_file = paste0("sims/spinup/sensitivity_",sens_dirs[i],"/output/output.nc")  
-  
-  #save zoop output
-  var="ZOO_cladoceran"
-  clad_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
-    dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-    dplyr::select(DateTime, var) |> 
-    na.omit() 
-  
-  # Function to get zoop data for varying depths
-  get_zoops <- function(depths, nc_file, var) {
-    lapply(depths, function(z) {
-      if (z == 0) {
-        glmtools::get_var(file = nc_file, var_name = var, z_out = z, reference = 'surface')
-      } else {
-        glmtools::get_var(file = nc_file, var_name = var, z_out = z, reference = 'surface') |>
-          dplyr::select(-DateTime)
-      }
-    }) |> 
-      dplyr::bind_cols()
-    
-  }
-  
-  # Define depth range and call the function
-  depths <- seq(0, 11, by = 0.5)
-  clad_full_wc <- get_zoops(depths, nc_file, var)
-  
-  #sum all depths
-  clad <- clad_full_wc |> 
-    dplyr::mutate(ZOO_cladoceran = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
-    dplyr::select(DateTime, ZOO_cladoceran) |> 
-    dplyr::mutate(DateTime = as.Date(DateTime)) |>
-    dplyr::filter(DateTime >= "2015-07-08")
-  
-  var="ZOO_copepod"
-  cope_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
-    dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-    dplyr::select(DateTime, var) |> 
-    na.omit() 
-  
-  cope_full_wc <- get_zoops(depths, nc_file, var)
-  
-  #sum all depths
-  cope <- cope_full_wc |> 
-    dplyr::mutate(ZOO_copepod = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    dplyr::select(DateTime, ZOO_copepod) |> 
-    dplyr::mutate(DateTime = as.Date(DateTime)) |>
-    dplyr::filter(DateTime >= "2015-07-08")
-  
-  var="ZOO_rotifer"
-  rot_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
-    dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-    dplyr::select(DateTime, var) |> 
-    na.omit() 
-  
-  rot_full_wc <- get_zoops(depths, nc_file, var)
-  
-  #sum all depths
-  rot <- rot_full_wc |> 
-    dplyr::mutate(ZOO_rotifer = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-    dplyr::select(DateTime, ZOO_rotifer) |> 
-    dplyr::mutate(DateTime = as.Date(DateTime)) |>
-    dplyr::filter(DateTime >= "2015-07-08")
-  
-  
-  #combine into one df 
-  all_zoops <- purrr::reduce(list(clad, cope, rot), dplyr::full_join)  |> 
-    dplyr::group_by(DateTime) |>
-    dplyr::mutate(ZOO_total = sum(ZOO_cladoceran, ZOO_copepod, ZOO_rotifer)) 
-  
-  all_zoops_obs <- purrr::reduce(list(clad_obs, cope_obs, rot_obs), dplyr::full_join) |> 
-    tidyr::pivot_longer(cols = -c(DateTime), 
-                        names_pattern = "(...)_(...*)$",
-                        names_to = c("mod", "taxon")) |> 
-    na.omit() |> 
-    dplyr::mutate(DateTime = as.Date(DateTime)) |>
-    dplyr::mutate(value = value * 12.011 / 1000) |> # convert to mg/L
-    dplyr::filter(value < 6) # just to make the plot look better
-  
-  #convert from wide to long for plotting
-  all_zoops_final <- all_zoops |> 
-    tidyr::pivot_longer(cols = -c(DateTime), 
-                        names_pattern = "(...)_(...*)$",
-                        names_to = c("mod", "taxon")) |> 
-    dplyr::group_by(DateTime) |>
-    dplyr::mutate(daily_sum = sum(value),
-                  year = lubridate::year(DateTime),
-                  doy = lubridate::yday(DateTime)) |>
-    dplyr::ungroup() |>
-    na.omit() |>
-    dplyr::mutate(value = value * 12.011 / 1000) |> # convert to mg/L 
-    dplyr::mutate(scenario = sens_dirs[i])
-  
-  #now create a dynamic df name
-  assign(paste0("all_zoops_sens_", sens_dirs[i]), all_zoops_final)
-}
+#for (i in 1:length(sens_dirs)){
+#  
+#  nc_file = paste0("sims/spinup/sensitivity_",sens_dirs[i],"/output/output.nc")  
+#  
+#  #save zoop output
+#  var="ZOO_cladoceran"
+#  clad_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
+#    dplyr::mutate(DateTime = as.Date(DateTime)) |> 
+#    dplyr::select(DateTime, var) |> 
+#    na.omit() 
+#  
+#  # Function to get zoop data for varying depths
+#  get_zoops <- function(depths, nc_file, var) {
+#    lapply(depths, function(z) {
+#      if (z == 0) {
+#        glmtools::get_var(file = nc_file, var_name = var, z_out = z, reference = 'surface')
+#      } else {
+#        glmtools::get_var(file = nc_file, var_name = var, z_out = z, reference = 'surface') |>
+#          dplyr::select(-DateTime)
+#      }
+#    }) |> 
+#      dplyr::bind_cols()
+#    
+#  }
+#  
+#  # Define depth range and call the function
+#  depths <- seq(0, 11, by = 0.5)
+#  clad_full_wc <- get_zoops(depths, nc_file, var)
+#  
+#  #sum all depths
+#  clad <- clad_full_wc |> 
+#    dplyr::mutate(ZOO_cladoceran = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
+#    dplyr::select(DateTime, ZOO_cladoceran) |> 
+#    dplyr::mutate(DateTime = as.Date(DateTime)) |>
+#    dplyr::filter(DateTime >= "2015-07-08")
+#  
+#  var="ZOO_copepod"
+#  cope_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
+#    dplyr::mutate(DateTime = as.Date(DateTime)) |> 
+#    dplyr::select(DateTime, var) |> 
+#    na.omit() 
+#  
+#  cope_full_wc <- get_zoops(depths, nc_file, var)
+#  
+#  #sum all depths
+#  cope <- cope_full_wc |> 
+#    dplyr::mutate(ZOO_copepod = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+#    dplyr::select(DateTime, ZOO_copepod) |> 
+#    dplyr::mutate(DateTime = as.Date(DateTime)) |>
+#    dplyr::filter(DateTime >= "2015-07-08")
+#  
+#  var="ZOO_rotifer"
+#  rot_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
+#    dplyr::mutate(DateTime = as.Date(DateTime)) |> 
+#    dplyr::select(DateTime, var) |> 
+#    na.omit() 
+#  
+#  rot_full_wc <- get_zoops(depths, nc_file, var)
+#  
+#  #sum all depths
+#  rot <- rot_full_wc |> 
+#    dplyr::mutate(ZOO_rotifer = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
+#    dplyr::select(DateTime, ZOO_rotifer) |> 
+#    dplyr::mutate(DateTime = as.Date(DateTime)) |>
+#    dplyr::filter(DateTime >= "2015-07-08")
+#  
+#  
+#  #combine into one df 
+#  all_zoops <- purrr::reduce(list(clad, cope, rot), dplyr::full_join)  |> 
+#    dplyr::group_by(DateTime) |>
+#    dplyr::mutate(ZOO_total = sum(ZOO_cladoceran, ZOO_copepod, ZOO_rotifer)) 
+#  
+#  all_zoops_obs <- purrr::reduce(list(clad_obs, cope_obs, rot_obs), dplyr::full_join) |> 
+#    tidyr::pivot_longer(cols = -c(DateTime), 
+#                        names_pattern = "(...)_(...*)$",
+#                        names_to = c("mod", "taxon")) |> 
+#    na.omit() |> 
+#    dplyr::mutate(DateTime = as.Date(DateTime)) |>
+#    dplyr::mutate(value = value * 12.011 / 1000) |> # convert to mg/L
+#    dplyr::filter(value < 6) # just to make the plot look better
+#  
+#  #convert from wide to long for plotting
+#  all_zoops_final <- all_zoops |> 
+#    tidyr::pivot_longer(cols = -c(DateTime), 
+#                        names_pattern = "(...)_(...*)$",
+#                        names_to = c("mod", "taxon")) |> 
+#    dplyr::group_by(DateTime) |>
+#    dplyr::mutate(daily_sum = sum(value),
+#                  year = lubridate::year(DateTime),
+#                  doy = lubridate::yday(DateTime)) |>
+#    dplyr::ungroup() |>
+#    na.omit() |>
+#    dplyr::mutate(value = value * 12.011 / 1000) |> # convert to mg/L 
+#    dplyr::mutate(scenario = sens_dirs[i])
+#  
+#  #now create a dynamic df name
+#  assign(paste0("all_zoops_sens_", sens_dirs[i]), all_zoops_final)
+#}
 #------------------------------------------------------------------------#
 #create a combined zoop df with all scenarios
 #zoop_pars_sens <-  mget(c("all_zoops_sens_high","all_zoops_sens_low")) |>
@@ -196,7 +198,7 @@ zoop_pars <-read.csv("analysis/data/zoop_pars_sens.csv") |>
 zoops_bl <- read_csv("analysis/data/zoop_scenarios.csv") |>
   filter(scenario %in% "baseline")
 
-# zoop figs to summarize changes between high vs. low pars
+# zoop figs to summarize changes between high vs. low pars (Figure S2)
 ggplot() +
   geom_line(data=zoop_pars,
             aes(DateTime, value, color = scenario)) +
@@ -232,6 +234,7 @@ ggplot() +
 # Combine data from both dataframes
 combined_data <- bind_rows(zoop_pars, zoops_bl)
 
+# Figure S11
 ggplot(data = subset(combined_data, !taxon %in% "total"),
        aes(x=DateTime, y = value, color=taxon)) +
   geom_area(aes(color = taxon, fill = taxon),
@@ -319,7 +322,7 @@ mean(mean_proportions_par_sens$mean_proportion[
     mean_proportions_par_sens$scenario=="low"])) *100
 
 
-# smoothed monthly biomass for each scenario
+# smoothed monthly biomass for each scenario (Figure S10)
 combined_data |>
   filter(year %in% c(2016:2021)) |>
   mutate(month = lubridate::month(DateTime),

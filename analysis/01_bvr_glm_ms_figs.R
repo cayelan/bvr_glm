@@ -8,6 +8,7 @@ library(devtools)
 install_github("hzambran/hydroTSM")
 install_github("hzambran/hydroGOF")
 
+devtools::install_github("rqthomas/glmtools", force = TRUE)
 devtools::install_github("eliocamp/tagger")
 
 #load packages
@@ -67,7 +68,6 @@ mod_oxy <- get_var(nc_file, "OXY_oxy", reference='surface', z_out=depths) |>
 
 oxy_compare <- merge(mod_oxy, obs_oxy, by=c("DateTime","Depth")) |> 
   rename(mod_oxy = OXY_oxy.x, obs_oxy = OXY_oxy.y)
-
 
 # NH4
 obs_nh4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
@@ -334,6 +334,42 @@ plot1 <- ggplot() + geom_line(
         strip.background = element_blank())
 #ggsave("figures/allvars_mod_vs_obs_0.1m_spinup.jpg", width=8, height=6)
 
+# read in zoop data
+zoop_obs <- read_csv("analysis/data/zoop_obs.csv")
+zoop_scenarios <- read_csv("./analysis/data/zoop_scenarios.csv")
+
+# plot zoops (Figure 1 g-j)
+plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
+  geom_line(aes(DateTime, value)) + 
+  geom_point(data=zoop_obs,
+             aes(DateTime, value, color=taxon)) +
+  theme_bw() + xlab("") + guides(color = "none") +
+  facet_wrap(~taxon, scales = "free_y", nrow=2,
+             labeller = labeller(taxon = facet_labels)) +
+  ylab(expression("Biomass (mg C L"^{-1}*")")) +
+  geom_vline(xintercept = as.Date("2020-12-31"), linetype = "dashed") +
+  scale_color_manual(values = c(rep("red",4)),
+                     breaks = c("cladoceran","copepod","rotifer", "total"))+
+  tag_facets(tag_pool = letters[7:10] ) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.background = element_blank(),
+        legend.position = "top",
+        legend.title = element_blank(),
+        text = element_text(size=10), 
+        panel.border = element_rect(colour = "black", fill = NA),
+        strip.background.x = element_blank(),
+        plot.margin = unit(c(1, 0.1, 0, 0), "cm"),
+        legend.key = element_rect(fill = "transparent"),
+        legend.direction = "horizontal",
+        panel.spacing.x = unit(0.1, "in"),
+        panel.spacing.y = unit(0, "lines"),
+        strip.background = element_blank(),
+        panel.background = element_rect(fill = "transparent", colour = NA), 
+        plot.background = element_rect(fill = "transparent", colour = NA))
+#ggsave("figures/zoop_mod_vs_obs_copes_last.jpg", width=6, height=4)
+
 # Combine the two plots (make sure to run plot2 from zoop_taxa_diagnostics.R)
 combined_plot <- plot_grid(
   plot1, plot2, 
@@ -381,7 +417,9 @@ mod_vars <- read_csv("analysis/data/mod_vars.csv")
 
 # numbers for results text
 mod_vars_bl <- mod_vars |>
-  filter(scenario %in% "baseline") 
+  filter(scenario %in% "baseline") |>
+  mutate(season = ifelse(month(DateTime) %in% c(6,7,8), "summer",
+                         ifelse(month(DateTime) %in% c(12,1,2), "winter", "other")))
 
 mean(mod_vars_bl$value[mod_vars_bl$var %in% "temp" & 
                          mod_vars_bl$Depth %in% "0.1" & 
@@ -485,12 +523,10 @@ sd(mod_vars_bl$value[mod_vars_bl$var=="chla" &
   
   #new labels list
   labels <- c(
-    # expression("Water level (m" [] * ")"),
     expression("Water temp (" * degree * "C)"),
     expression("DO (mg L" ^-1*")"),
     expression("NO" [3] * " (" * mu * " g L"^-1*")"),
     expression("DRP (" * mu * " g L"^{-1}*")"),
-    # expression("DOC (" * mu * " g L"^{-1}*")"),
     expression("Phyto biomass (" * mu * " g L"^{-1}*")"),
     expression("Zoop biomass (mg L" ^-1*")")
   )
@@ -629,37 +665,7 @@ sd(mod_vars_bl$value[mod_vars_bl$var=="chla" &
   diff(range(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
                                              mean_summer_mod_vars$scenario=="plus10" &
                                              mean_summer_mod_vars$Depth==0.1]))
-  
-  #calculate cvs
-  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
-                                     mean_summer_mod_vars$scenario=="plus10" &
-                                     mean_summer_mod_vars$Depth==0.1]) /
-    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
-                                         mean_summer_mod_vars$scenario=="plus10" &
-                                         mean_summer_mod_vars$Depth==0.1]) *100
-  
-  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
-                              mean_summer_mod_vars$scenario=="plus5" &
-                              mean_summer_mod_vars$Depth==0.1]) /
-    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
-                                         mean_summer_mod_vars$scenario=="plus5" &
-                                         mean_summer_mod_vars$Depth==0.1]) *100
-  
-  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
-                                     mean_summer_mod_vars$scenario=="plus1" &
-                                     mean_summer_mod_vars$Depth==0.1]) /
-    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
-                                         mean_summer_mod_vars$scenario=="plus1" &
-                                         mean_summer_mod_vars$Depth==0.1]) *100
-  
-  sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
-                              mean_summer_mod_vars$scenario=="baseline" &
-                              mean_summer_mod_vars$Depth==0.1]) /
-    mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
-                                  mean_summer_mod_vars$scenario=="baseline" &
-                                  mean_summer_mod_vars$Depth==0.1]) *100
-  
-  
+
   #mean temp difff
   mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="temp" &
                                        mean_summer_mod_vars$scenario=="plus10" &
@@ -682,7 +688,6 @@ sd(mod_vars_bl$value[mod_vars_bl$var=="chla" &
                                          mean_summer_mod_vars$scenario=="baseline" &
                                          mean_summer_mod_vars$Depth==0.1])
   
-
   mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
                                 mean_summer_mod_vars$scenario=="baseline" &
                                 mean_summer_mod_vars$Depth==0.1])
@@ -719,7 +724,6 @@ sd(mod_vars_bl$value[mod_vars_bl$var=="chla" &
   sd(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="oxy" &
                                      mean_summer_mod_vars$scenario=="plus10" &
                                      mean_summer_mod_vars$Depth==9])
-  
   
   mean(mean_summer_mod_vars$mean_val[mean_summer_mod_vars$var=="no3" &
                                 mean_summer_mod_vars$scenario=="baseline" &

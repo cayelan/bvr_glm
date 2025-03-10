@@ -8,7 +8,6 @@
 library(tidyverse)
 library(lubridate)
 library(zoo)
-library(ggpubr)
 
 #focal depths we are trying to compare modeled data vs observations; for CTD/YSI casts
 #assumed the deepest point of BVR = 11 m
@@ -514,6 +513,8 @@ ggplot(pH, aes(time, pH, colour= depth)) +
 #infile1 <- paste0(getwd(),"/field_data/zoop_summary_2014-2022.csv")
 #try(download.file(inUrl1,infile1,method="curl"))
 #if (is.na(file.size(infile1))) download.file(inUrl1,infile1,method="auto")
+
+library(ggpubr)
 
 #read in bvr tow data
 zoops <- read.csv("field_data/zoop_summary_2014-2022.csv", header=T) |>

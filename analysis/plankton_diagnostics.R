@@ -1,4 +1,4 @@
-#miscellaneous code for checking on plankton dynamics
+#miscellaneous code for checking on plankton dynamics and creating zoop_diagnostics.csv
 
 pacman::p_load(scales, ggplot2, glmtools, dplyr, tidyr)
 

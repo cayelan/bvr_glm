@@ -2,7 +2,7 @@
  'zoop_initial', 1, 1, 1
  'min_zoo', 0.03, 0.03, 0.03
  'Rgrz_zoo', 0.8, 0.9, 0.8
- 'fassim_zoo', 0.8, 0.8, 1.5
+ 'fassim_zoo', 0.8, 0.8, 0.8
  'Kgrz_zoo', 1, 1, 1
  'theta_grz_zoo', 1.08, 1.08, 1.08
  'Rresp_zoo', 0.1, 0.1, 0.08
