@@ -296,7 +296,7 @@ mod_vars_final_baseline <- mod_vars_final_baseline |>
   ) |>
   na.omit()
 
-# Plot vars for 0.1m depth (Figure 1 a-f)
+# Plot vars for 0.1m depth (Figure 2 a-f)
 plot1 <- ggplot() + geom_line(
     data = subset(mod_vars_final_baseline, Depth %in% 0.1), 
     aes(DateTime, value, color = "modeled")) +
@@ -338,7 +338,7 @@ plot1 <- ggplot() + geom_line(
 zoop_obs <- read_csv("analysis/data/zoop_obs.csv")
 zoop_scenarios <- read_csv("./analysis/data/zoop_scenarios.csv")
 
-# plot zoops (Figure 1 g-j)
+# plot zoops (Figure 2 g-j)
 plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
   geom_line(aes(DateTime, value)) + 
   geom_point(data=zoop_obs,
@@ -370,13 +370,13 @@ plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
         plot.background = element_rect(fill = "transparent", colour = NA))
 #ggsave("figures/zoop_mod_vs_obs_copes_last.jpg", width=6, height=4)
 
-# Combine the two plots (make sure to run plot2 from zoop_taxa_diagnostics.R)
+# Combine the two plots 
 combined_plot <- plot_grid(
   plot1, plot2, 
   ncol = 1,   # Number of columns
   align = "v" # Align plots vertically
 )
-#ggsave("figures/ms_fig1.jpg", width=8, height=6)
+#ggsave("figures/ms_fig2.jpg", width=8, height=6)
 
 # plot vars for 9m (Figure S4)
 ggplot() +
@@ -490,7 +490,6 @@ sd(mod_vars_bl$value[mod_vars_bl$var=="chla" &
                               mod_vars_bl$Depth==0.1 & 
                               mod_vars_bl$season %in%"summer"])) /2
 
-
 #modeled vars from 2000-2022 for each scenario
 #scenarios_df <- mget(c("mod_vars_final_baseline","mod_vars_final_plus1",
 #                       "mod_vars_final_plus5", "mod_vars_final_plus10")) |>
@@ -543,7 +542,7 @@ sd(mod_vars_bl$value[mod_vars_bl$var=="chla" &
                               levels = c("temp", "oxy", "no3" ,
                                          "po4", "chla", "total"))
   
-  # Figure 3 boxplot of wq vars
+  # Figure 4 boxplot of wq vars
   ggplot(data=subset(mean_summer_mod_vars,Depth==0.1 & 
                        !year %in% c("2015","2022")),
          aes(x = scenario, y = mean_val,  fill = scenario)) +

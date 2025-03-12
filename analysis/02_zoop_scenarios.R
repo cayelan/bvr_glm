@@ -16,7 +16,7 @@ zoop_scenarios <-read.csv("analysis/data/zoop_scenarios.csv") |>
   ungroup() |>
   mutate(diff = value - mean_biom) 
 
-#summarize across taxa to describe bl zoop timing in results (Figure 2)
+#summarize across taxa to describe bl zoop timing in results (Figure 3)
 bl_zoop_summary <- zoop_scenarios |>
   filter(scenario %in% c("baseline"),
          year %in% c(2016:2021)) |>
@@ -95,7 +95,7 @@ zoop_scenarios <- zoop_scenarios |>
                                  zoop_scenarios$month %in% c(6,7,8) &
                                  zoop_scenarios$scenario=="baseline"])) /2
 
-# relative zoop density for baseline vs. plus 5 (Figure 4)
+# relative zoop density for baseline vs. plus 5 (Figure 6)
 area <-  ggplot(data = subset(zoop_scenarios, 
                               scenario %in% c("baseline","plus5") &
                                 !taxon %in% c("total")),
@@ -150,7 +150,7 @@ box <- ggplot(data = subset(mean_proportions,
               aes(x=taxon, y = mean_proportion, fill=scenario)) +
   geom_boxplot() + 
   scale_fill_manual(values = c("#147582","#680000"),
-                    labels = c("Baseline","Plus10"))+
+                    labels = c("Baseline","Plus5"))+
   scale_y_continuous(expand = c(0,0), limits=c(-0.05,1.05))+
   xlab("") + ylab("Relative biomass") +
   tag_facets(tag_pool = c("c")) +
@@ -215,12 +215,12 @@ sd(zoop_scenarios$value[zoop_scenarios$taxon=="rotifer" &
                           zoop_scenarios$scenario=="baseline"])
 
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="cladoceran" &
-                                        mean_proportions$scenario=="plus10"]) -
+                                        mean_proportions$scenario=="plus5"]) -
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="cladoceran" &
                                         mean_proportions$scenario=="baseline"])
 
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="copepod" &
-                                        mean_proportions$scenario=="plus10"]) -
+                                        mean_proportions$scenario=="plus5"]) -
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="copepod" &
                                         mean_proportions$scenario=="baseline"])
 
@@ -228,7 +228,7 @@ mean(mean_proportions$mean_proportion[mean_proportions$taxon=="copepod" &
                                         mean_proportions$scenario=="plus5"])
 
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
-                                        mean_proportions$scenario=="plus10"]) -
+                                        mean_proportions$scenario=="plus5"]) -
 mean(mean_proportions$mean_proportion[mean_proportions$taxon=="rotifer" &
                                         mean_proportions$scenario=="baseline"])
 
@@ -289,7 +289,7 @@ ggplot(data=subset(zoop_annual, !taxon %in% "total" &
           panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/BVR_stacked_zoop_biom_barchart.jpg", width=7, height=4) 
   
-# smoothed monthly biomass for each scenario (Figure 6)
+# smoothed monthly biomass for each scenario (Figure 7)
   zoop_scenarios |>
     filter(year %in% c(2016:2021)) |>
     mutate(month = lubridate::month(DateTime)) |>
@@ -340,7 +340,7 @@ ggplot(data=subset(zoop_annual, !taxon %in% "total" &
     ) |> 
     mutate(cv_biom = sd_biom / mean_biom)
   
-#same but panels for each year (Figure S13)
+#same but panels for each year (Figure S14)
   zoop_scenarios |>
     mutate(month = lubridate::month(DateTime)) |>
     group_by(taxon, scenario, month, year) |>
@@ -381,7 +381,7 @@ ggplot(data=subset(zoop_annual, !taxon %in% "total" &
       panel.spacing = unit(0.5, "lines"))
 #ggsave("figures/smoothed_monthly_biom_multipanel.jpg", width=7, height=4) 
   
-# scenario boxplots across taxa (Figure 4)
+# scenario boxplots across taxa (Figure 5)
 zoop_mean_biom <-  zoop_scenarios |>
     filter(!taxon %in% "total",
            year %in% c(2016:2021)) |>
@@ -594,7 +594,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
       TRUE ~ DateTime))
   
   # values for results text 
-  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="clads" &
                                        zoop_diags_summary$diag=="Grazing"]) - 
       mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
@@ -604,7 +604,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
                                         zoop_diags_summary$taxon=="clads" &
                                         zoop_diags_summary$diag=="Grazing"])
   
-  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="copes" &
                                        zoop_diags_summary$diag=="Grazing"]) - 
       mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
@@ -614,7 +614,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
                                         zoop_diags_summary$taxon=="copes" &
                                         zoop_diags_summary$diag=="Grazing"])
   
-  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="rots" &
                                        zoop_diags_summary$diag=="Grazing"]) - 
       mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
@@ -624,7 +624,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
                                         zoop_diags_summary$taxon=="rots" &
                                         zoop_diags_summary$diag=="Grazing"])
   
-  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="clads" &
                                        zoop_diags_summary$diag=="Mortality"]) - 
       mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
@@ -634,7 +634,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
                                         zoop_diags_summary$taxon=="clads" &
                                         zoop_diags_summary$diag=="Mortality"])
   
-  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="copes" &
                                        zoop_diags_summary$diag=="Mortality"]) - 
       mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
@@ -644,7 +644,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
                                         zoop_diags_summary$taxon=="copes" &
                                         zoop_diags_summary$diag=="Mortality"])
   
-  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="rots" &
                                        zoop_diags_summary$diag=="Mortality"]) - 
       mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
@@ -654,7 +654,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
                                         zoop_diags_summary$taxon=="rots" &
                                         zoop_diags_summary$diag=="Mortality"])
   
-  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="clads" &
                                        zoop_diags_summary$diag=="Respiration"]) - 
       mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
@@ -664,7 +664,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
                                         zoop_diags_summary$taxon=="clads" &
                                         zoop_diags_summary$diag=="Respiration"])
   
-  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="copes" &
                                        zoop_diags_summary$diag=="Respiration"]) - 
       mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
@@ -674,7 +674,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
                                         zoop_diags_summary$taxon=="copes" &
                                         zoop_diags_summary$diag=="Respiration"])
   
-  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus10" &
+  (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="rots" &
                                        zoop_diags_summary$diag=="Respiration"]) - 
       mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Baseline" &
@@ -684,7 +684,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
                                         zoop_diags_summary$taxon=="rots" &
                                         zoop_diags_summary$diag=="Respiration"])
   
-  # summary diag fig + phytos for ms (Fig. 8)
+  # summary diag fig + phytos for ms (Fig. 9)
   plot1 <- ggplot(data=subset(zoop_diags_summary, 
                               scenario %in% c("Baseline","Plus5")),
                   aes(x = DateTime, y = mean_rate, color = taxon)) +
@@ -728,6 +728,10 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
   
   # Compute max total biomass to rescale
   max_total <- max(total_phytos$total, na.rm = TRUE)
+  
+  # make sure phytos are in the right order
+  phyto_scenarios$taxon <- factor(phyto_scenarios$taxon, 
+                                  levels = c("cyano","green","diatom"))
   
   #note that this comes from zoop_scenarios.R
   plot2 <- ggplot(data = subset(phyto_scenarios, 
@@ -778,33 +782,29 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
     ncol = 1,   # Number of columns
     align = "v" # Align plots vertically
   )
-  #ggsave("figures/ms_fig8.jpg", width=8, height=6)
+  #ggsave("figures/ms_fig9.jpg", width=8, height=6)
   
   # numbers for results text (phyto groups)
-  (mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus10" &
+  (mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus5" &
                                 phyto_scenarios$taxon=="cyano"]) -
       mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
                                    phyto_scenarios$taxon=="cyano"])) /
     mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
                                  phyto_scenarios$taxon=="cyano"])
   
-  (mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus10" &
+  (mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus5" &
                                 phyto_scenarios$taxon=="diatom"]) -
       mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
                                    phyto_scenarios$taxon=="diatom"])) /
     mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
                                  phyto_scenarios$taxon=="diatom"])
   
-  (mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus10" &
+  (mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus5" &
                                 phyto_scenarios$taxon=="green"]) -
       mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
                                    phyto_scenarios$taxon=="green"])) /
     mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
                                  phyto_scenarios$taxon=="green"])
-  
-#order phytos
-phyto_scenarios$taxon <- factor(phyto_scenarios$taxon, 
-                                  levels = c("cyano","green","diatom"))
   
   phyto_mean_biom <-  phyto_scenarios |>
     group_by(taxon, scenario, year) |>
@@ -892,7 +892,7 @@ phyto_scenarios$taxon <- factor(phyto_scenarios$taxon,
     dplyr::filter(DateTime >= "2016-01-01" &
                     DateTime < "2022-01-01") #filtering out the 2 partial years
 
-# visualize the mean doy for peak biomass across all years (Figure 7)
+# visualize the mean doy for peak biomass across all years (Figure 8)
   zoop_scenarios |>
     dplyr::mutate(scenario = factor(scenario, 
                                     levels = c("baseline", "plus1",
@@ -989,7 +989,7 @@ zoop_timing <- zoop_scenarios |>
     mean(zoop_timing$mean_doy[zoop_timing$taxon=="rotifer" &
                                 zoop_timing$scenario=="plus1"])
   
-# Create a phyto and zoop PEG model fig (Figure S14)
+# Create a phyto and zoop PEG model fig (Figure S15)
   total_phyto_scenarios <- phyto_scenarios |>
     mutate(DateTime = as.Date(DateTime)) |>
     group_by(DateTime, scenario) |>
