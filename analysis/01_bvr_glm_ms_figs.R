@@ -7,7 +7,7 @@ if (!require(pacman)) install.packages("pacman")
 library(devtools)
 install_github("hzambran/hydroTSM")
 install_github("hzambran/hydroGOF")
-
+devtools::install_github("GLEON/GLM3r")
 devtools::install_github("rqthomas/glmtools", force = TRUE)
 devtools::install_github("eliocamp/tagger")
 
