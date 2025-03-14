@@ -347,6 +347,10 @@ plot1 <- ggplot() + geom_line(
 zoop_obs <- read_csv("analysis/data/zoop_obs.csv")
 zoop_scenarios <- read_csv("./analysis/data/zoop_scenarios.csv")
 
+# reorder the 'taxon' factor levels
+facet_labels <- c("Cladoceran", "Copepod", "Rotifer", "Total biomass")
+names(facet_labels) <- c("cladoceran", "copepod", "rotifer","total")
+
 # plot zoops (Figure 2 g-j)
 plot2 <- ggplot(data=subset(zoop_scenarios, scenario %in% "baseline")) +
   geom_line(aes(DateTime, value)) + 

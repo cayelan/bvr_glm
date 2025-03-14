@@ -82,19 +82,6 @@ sd(zoop_scenarios$value[zoop_scenarios$taxon=="rotifer" &
 zoop_scenarios <- zoop_scenarios |>
   mutate(month = lubridate::month(DateTime)) 
 
-(mean(zoop_scenarios$value[zoop_scenarios$taxon=="total" & 
-                             zoop_scenarios$month %in% c(12,1,2) &
-                             zoop_scenarios$scenario=="baseline"]) -
-    mean(zoop_scenarios$value[zoop_scenarios$taxon=="total" & 
-                                zoop_scenarios$month %in% c(6,7,8) &
-                                zoop_scenarios$scenario=="baseline"])) / 
-  (mean(zoop_scenarios$value[zoop_scenarios$taxon=="total" & 
-                               zoop_scenarios$month %in% c(12,1,2) &
-                               zoop_scenarios$scenario=="baseline"]) +
-     mean(zoop_scenarios$value[zoop_scenarios$taxon=="total" & 
-                                 zoop_scenarios$month %in% c(6,7,8) &
-                                 zoop_scenarios$scenario=="baseline"])) /2
-
 # relative zoop density for baseline vs. plus 5 (Figure 6)
 area <-  ggplot(data = subset(zoop_scenarios, 
                               scenario %in% c("baseline","plus5") &
@@ -475,7 +462,7 @@ zoop_mean_biom <-  zoop_scenarios |>
     Adjusted_P_Value = adjusted_p_values
   )
   
-  # numbers for results text
+  # numbers for results text (percent change for each taxa between baseline vs. warming scenarios)
   (mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="plus10" &
                                   zoop_mean_biom$taxon=="rotifer"]) - 
     mean(zoop_mean_biom$mean_biom[zoop_mean_biom$scenario=="baseline" &
@@ -593,7 +580,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
       year == 2022 ~ as.Date("2022-05-03"),
       TRUE ~ DateTime))
   
-  # values for results text 
+  # values for results text (percent change for zoop diag rates for each taxa - bl vs. warming scenario)
   (mean(zoop_diags_summary$mean_rate[zoop_diags_summary$scenario=="Plus5" &
                                        zoop_diags_summary$taxon=="clads" &
                                        zoop_diags_summary$diag=="Grazing"]) - 
@@ -784,7 +771,7 @@ ggplot(zoop_mean_biom, aes(x = year, y = mean_biom, color = scenario)) +
   )
   #ggsave("figures/ms_fig9.jpg", width=8, height=6)
   
-  # numbers for results text (phyto groups)
+  # numbers for results text (percent change between phyto group biomass for baseline vs. warming scenarios)
   (mean(phyto_scenarios$value[phyto_scenarios$scenario=="plus5" &
                                 phyto_scenarios$taxon=="cyano"]) -
       mean(phyto_scenarios$value[phyto_scenarios$scenario=="baseline" &
@@ -943,7 +930,7 @@ zoop_timing <- zoop_scenarios |>
                  zoop_timing$scenario[zoop_timing$taxon=="copepod"])
   
 
-# numbers for results text
+# numbers for results text (change in days for max biomass for each taxa between baseline and warming scenarios)
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="cladoceran" &
                               zoop_timing$scenario=="baseline"]) -
   mean(zoop_timing$mean_doy[zoop_timing$taxon=="cladoceran" &

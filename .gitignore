@@ -11,7 +11,7 @@ R_old
 Met_final_2015_2019.csv
 Data_Output
 NLDASdata
-output
+*.zip
 Raw_Data
 glm
 figures

@@ -104,8 +104,21 @@ mean(all_scenarios_output$Surface.Temp[
   mean(all_scenarios_output$Surface.Temp[
     all_scenarios_output$scenario=="baseline"])
 
+#save density output from all scenarios as a csv
+#mod_dens_bl <- get_var("sims/spinup/baseline/output/output.nc", "dens")
+#write.csv(mod_dens_bl, "analysis/data/mod_dens_bl.csv", row.names = F)
+
+#mod_dens_plus1 <- get_var("sims/spinup/plus1/output/output.nc", "dens")
+#write.csv(mod_dens_plus1, "analysis/data/mod_dens_plus1.csv", row.names = F)
+
+#mod_dens_plus5 <- get_var("sims/spinup/plus5/output/output.nc", "dens")
+#write.csv(mod_dens_plus5, "analysis/data/mod_dens_plus5.csv", row.names = F)
+
+#mod_dens_plus10 <- get_var("sims/spinup/plus10/output/output.nc", "dens")
+#write.csv(mod_dens_plus10, "analysis/data/mod_dens_plus10.csv", row.names = F)
+
 #calculate stratification duration for each year/scenario using density
-mod_dens_bl <- get_var("sims/spinup/baseline/output/output.nc", "dens") |> 
+mod_dens_bl <- read.csv("analysis/data/mod_dens_bl.csv") |> 
   tidyr::pivot_longer(cols = starts_with('dens.elv_'),
                       names_to = 'depth',
                       values_to = 'density') |>
@@ -125,7 +138,7 @@ mod_dens_bl <- get_var("sims/spinup/baseline/output/output.nc", "dens") |>
   dplyr::select(-variable) |>
   dplyr::mutate(scenario = "baseline")
 
-mod_dens_plus1 <- get_var("sims/spinup/plus1/output/output.nc", "dens") |> 
+mod_dens_plus1 <- read.csv("analysis/data/mod_dens_plus1.csv") |> 
   tidyr::pivot_longer(cols = starts_with('dens.elv_'),
                       names_to = 'depth',
                       values_to = 'density') |>
@@ -145,7 +158,7 @@ mod_dens_plus1 <- get_var("sims/spinup/plus1/output/output.nc", "dens") |>
   dplyr::select(-variable) |>
   dplyr::mutate(scenario = "plus1")
 
-mod_dens_plus5 <- get_var("sims/spinup/plus5/output/output.nc", "dens") |> 
+mod_dens_plus5 <- read.csv("analysis/data/mod_dens_plus5.csv") |> 
   tidyr::pivot_longer(cols = starts_with('dens.elv_'),
                       names_to = 'depth',
                       values_to = 'density') |>
@@ -165,7 +178,7 @@ mod_dens_plus5 <- get_var("sims/spinup/plus5/output/output.nc", "dens") |>
   dplyr::select(-variable) |>
   dplyr::mutate(scenario = "plus5")
 
-mod_dens_plus10 <- get_var("sims/spinup/plus10/output/output.nc", "dens") |> 
+mod_dens_plus10 <- read.csv("analysis/data/mod_dens_plus10.csv") |> 
   tidyr::pivot_longer(cols = starts_with('dens.elv_'),
                       names_to = 'depth',
                       values_to = 'density') |>
