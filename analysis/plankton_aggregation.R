@@ -75,6 +75,7 @@ for (i in 1:length(scenario)){
   
   #combine into one df 
   all_zoops <- purrr::reduce(list(clad, cope, rot), dplyr::full_join) 
+  write.csv(all_zoops,"analysis/data/all_zoops.csv", row.names = F)
   
   all_zoops_obs <- purrr::reduce(list(clad_obs, cope_obs, rot_obs), dplyr::full_join) |> 
     dplyr::group_by(DateTime) |>

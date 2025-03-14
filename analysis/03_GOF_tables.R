@@ -26,6 +26,7 @@ pacman::p_load(tidyverse, hydroGOF, glmtools)
 #  mutate(obs_wl = obs_wl$WaterLevel_m) |>
 #  select(DateTime,Depth,mod_wl,obs_wl)
 #write.csv(wl_compare, "./analysis/data/wl_compare.csv", row.names = F)
+#write.csv(obs_wl, "./analysis/data/obs_wl.csv", row.names = F)
 #
 ## temp
 #obstemp<-read_csv('field_data/CleanedObsTemp.csv') |> 
@@ -37,9 +38,10 @@ pacman::p_load(tidyverse, hydroGOF, glmtools)
 #  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
 #  filter(DateTime >= "2015-07-07")
 #
-#watertemp<-merge(modtemp, obstemp, by=c("DateTime","Depth")) |> 
+#temp_compare<-merge(modtemp, obstemp, by=c("DateTime","Depth")) |> 
 #  rename(mod_temp = temp.x, obs_temp = temp.y)
-#write.csv(watertemp, "./analysis/data/temp_compare.csv", row.names = F)
+#write.csv(temp_compare, "./analysis/data/temp_compare.csv", row.names = F)
+#write.csv(obstemp, "./analysis/data/obs_temp.csv", row.names = F)
 #
 ## DO
 #obs_oxy<-read.csv('field_data/CleanedObsOxy.csv') |> 
@@ -55,6 +57,7 @@ pacman::p_load(tidyverse, hydroGOF, glmtools)
 #oxy_compare <- merge(mod_oxy, obs_oxy, by=c("DateTime","Depth")) |> 
 #  rename(mod_oxy = OXY_oxy.x, obs_oxy = OXY_oxy.y)
 #write.csv(oxy_compare, "./analysis/data/oxy_compare.csv", row.names = F)
+#write.csv(obs_oxy, "./analysis/data/obs_oxy.csv", row.names = F)
 #
 ## NH4
 #obs_nh4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
@@ -70,6 +73,7 @@ pacman::p_load(tidyverse, hydroGOF, glmtools)
 #nh4_compare<-merge(mod_nh4, obs_nh4, by=c("DateTime","Depth")) |> 
 #  rename(mod_nh4 = NIT_amm.x, obs_nh4 = NIT_amm.y)
 #write.csv(nh4_compare, "./analysis/data/nh4_compare.csv", row.names = F)
+#write.csv(obs_nh4, "./analysis/data/obs_nh4.csv", row.names = F)
 #
 ## NO3
 #obs_no3 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
@@ -84,7 +88,8 @@ pacman::p_load(tidyverse, hydroGOF, glmtools)
 #
 #no3_compare<-merge(mod_no3, obs_no3, by=c("DateTime","Depth")) |> 
 #  rename(mod_no3 = NIT_nit.x, obs_no3 = NIT_nit.y)
-#write.csv(nh4_compare, "./analysis/data/no3_compare.csv", row.names = F)
+#write.csv(no3_compare, "./analysis/data/no3_compare.csv", row.names = F)
+#write.csv(obs_no3, "./analysis/data/obs_no3.csv", row.names = F)
 #
 ## PO4
 #obs_po4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
@@ -100,6 +105,7 @@ pacman::p_load(tidyverse, hydroGOF, glmtools)
 #po4_compare<-merge(mod_po4, obs_po4, by=c("DateTime","Depth")) |> 
 #  rename(mod_po4 = PHS_frp.x, obs_po4 = PHS_frp.y)
 #write.csv(po4_compare, "./analysis/data/po4_compare.csv", row.names = F)
+#write.csv(obs_po4, "./analysis/data/obs_po4.csv", row.names = F)
 #
 ## chl a
 #obs_chla <- read.csv('field_data/CleanedObsChla.csv', header=TRUE) |> 
@@ -149,6 +155,7 @@ pacman::p_load(tidyverse, hydroGOF, glmtools)
 #chla_compare <- merge(mod_chla, obs_chla, by = c("DateTime","Depth")) |> 
 #  rename(mod_chla = PHY_tchla.x, obs_chla = PHY_tchla.y) 
 #write.csv(chla_compare, "./analysis/data/chla_compare.csv", row.names = F)
+#write.csv(obs_chla, "./analysis/data/obs_chla.csv", row.names = F)
 
 #-----------------------------------------------------------------------#
 # read in all of the water quality var csvs
@@ -160,7 +167,7 @@ nh4_compare <- read.csv("./analysis/data/nh4_compare.csv")
 po4_compare <- read.csv("./analysis/data/po4_compare.csv")
 chla_compare <- read.csv("./analysis/data/chla_compare.csv")
 
-# Full water column, full period (2015-2022)
+#### Full water column, full simulation period (2015-2022) ####
 all_gof <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","Temp"))
 all_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
                        "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
@@ -190,9 +197,10 @@ all_gof_val$Parameter <- c("ME_val","MAE_val","MSE_val","RMSE_val","ubRMSE",
                            "KGE_val","KGElf_val","KGEnp_val","KGEkm_val",
                            "r.Spearman", "nonparamR2") 
 
-# calculate all gof metrics for full period + all different vars
+# calculate all gof metrics for full period + all different vars 
+# note that warning that several metrics cannot be calculated for vars that have obs values of 0 - this is fine because these aren't the metrics we focus on when reporting
 all_gof$WaterLevel <- c(gof(wl_compare$mod_wl,wl_compare$obs_wl,do.spearman = TRUE), NA)
-all_gof$Temp <- c(gof(watertemp$mod_temp,watertemp$obs_temp,do.spearman = TRUE), NA)
+all_gof$Temp <- c(gof(temp_compare$mod_temp,temp_compare$obs_temp,do.spearman = TRUE), NA)
 all_gof$DO <- c(gof(oxy_compare$mod_oxy,oxy_compare$obs_oxy,do.spearman = TRUE), NA)
 all_gof$NH4 <- c(gof(nh4_compare$mod_nh4,nh4_compare$obs_nh4,do.spearman = TRUE), NA)
 all_gof$NO3 <- c(gof(no3_compare$mod_no3,no3_compare$obs_no3,do.spearman = TRUE), NA)
@@ -203,7 +211,7 @@ all_gof$Chla <- c(gof(chla_compare$mod_chla,chla_compare$obs_chla,do.spearman = 
 comb_wl_rank <- wl_compare |> 
   mutate(rank_obs = rank(obs_wl),
          rank_mod = rank(mod_wl)) 
-comb_temp_rank <- watertemp |> 
+comb_temp_rank <- temp_compare |> 
   mutate(rank_obs = rank(obs_temp),
          rank_mod = rank(mod_temp)) 
 comb_oxy_rank <- oxy_compare |> 
@@ -231,12 +239,13 @@ all_gof$NO3[29] <- summary(lm(comb_no3_rank$rank_obs ~ comb_no3_rank$rank_mod))$
 all_gof$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mod))$r.squared
 all_gof$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
 
-# same as above but for CALIBRATION period
+#------------------------------------------------------------------------#
+#### Full water column, CALIBRATION period (2015-2020) ####
 all_gof_cal$WaterLevel <- c(gof(wl_compare$mod_wl[wl_compare$DateTime< "2021-01-01"],
                                 wl_compare$obs_wl[wl_compare$DateTime< "2021-01-01"],
                           do.spearman = TRUE), NA)
-all_gof_cal$Temp <- c(gof(watertemp$mod_temp[watertemp$DateTime< "2021-01-01"],
-                          watertemp$obs_temp[watertemp$DateTime< "2021-01-01"],
+all_gof_cal$Temp <- c(gof(temp_compare$mod_temp[temp_compare$DateTime< "2021-01-01"],
+                          temp_compare$obs_temp[temp_compare$DateTime< "2021-01-01"],
                           do.spearman = TRUE), NA)
 all_gof_cal$DO <- c(gof(oxy_compare$mod_oxy[oxy_compare$DateTime< "2021-01-01"],
                         oxy_compare$obs_oxy[oxy_compare$DateTime< "2021-01-01"],
@@ -259,7 +268,7 @@ comb_wl_rank <- wl_compare |>
   filter(DateTime < "2021-01-01") |> 
   mutate(rank_obs = rank(obs_wl),
          rank_mod = rank(mod_wl)) 
-comb_temp_rank <- watertemp |>  
+comb_temp_rank <- temp_compare |>  
   filter(DateTime < "2021-01-01") |> 
   mutate(rank_obs = rank(obs_temp),
          rank_mod = rank(mod_temp)) 
@@ -287,19 +296,19 @@ comb_chla_rank <- chla_compare |>
 # calculate non-parametric (ranked) R2, following Brett et al. 2016
 all_gof_cal$WaterLevel[29] <- summary(lm(comb_wl_rank$rank_obs ~ comb_wl_rank$rank_mod))$r.squared
 all_gof_cal$Temp[29] <- summary(lm(comb_temp_rank$rank_obs ~ comb_temp_rank$rank_mod))$r.squared
-all_gof_cal$Temp[29] <- summary(lm(comb_temp_rank$rank_obs ~ comb_temp_rank$rank_mod))$r.squared
 all_gof_cal$DO[29] <- summary(lm(comb_oxy_rank$rank_obs ~ comb_oxy_rank$rank_mod))$r.squared
 all_gof_cal$NH4[29] <- summary(lm(comb_nh4_rank$rank_obs ~ comb_nh4_rank$rank_mod))$r.squared
 all_gof_cal$NO3[29] <- summary(lm(comb_no3_rank$rank_obs ~ comb_no3_rank$rank_mod))$r.squared
 all_gof_cal$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mod))$r.squared
 all_gof_cal$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
 
-# now VALIDATION period
+#--------------------------------------------------------------------------#
+#### Full water column, VALIDATION period (2020-2021) ####
 all_gof_val$WaterLevel <- c(gof(wl_compare$mod_wl[wl_compare$DateTime >= "2021-01-01"],
                                 wl_compare$obs_wl[wl_compare$DateTime >= "2021-01-01"],
                           do.spearman = TRUE), NA)
-all_gof_val$Temp <- c(gof(watertemp$mod_temp[watertemp$DateTime >= "2021-01-01"],
-                          watertemp$obs_temp[watertemp$DateTime >= "2021-01-01"],
+all_gof_val$Temp <- c(gof(temp_compare$mod_temp[temp_compare$DateTime >= "2021-01-01"],
+                          temp_compare$obs_temp[temp_compare$DateTime >= "2021-01-01"],
                           do.spearman = TRUE), NA)
 all_gof_val$DO <- c(gof(oxy_compare$mod_oxy[oxy_compare$DateTime >= "2021-01-01"],
                         oxy_compare$obs_oxy[oxy_compare$DateTime >= "2021-01-01"],
@@ -322,7 +331,7 @@ comb_wl_rank <- wl_compare |>
   filter(DateTime >= "2021-01-01") |> 
   mutate(rank_obs = rank(obs_wl),
          rank_mod = rank(mod_wl))
-comb_temp_rank <- watertemp |>  
+comb_temp_rank <- temp_compare |>  
   filter(DateTime >= "2021-01-01") |> 
   mutate(rank_obs = rank(obs_temp),
          rank_mod = rank(mod_temp)) 
@@ -356,14 +365,14 @@ all_gof_val$NO3[29] <- summary(lm(comb_no3_rank$rank_obs ~ comb_no3_rank$rank_mo
 all_gof_val$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mod))$r.squared
 all_gof_val$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
 
-####Cleaning up table ####
+# Cleaning up table 
 ## Add NMAE calculation for all parameters
 # all_gof
 all_gof[nrow(all_gof)+1,] <- NA
 all_gof[30,1] <- "NMAE_all"
 all_gof$Parameter[28] <- "r.Spearman_all"
 all_gof$WaterLevel[30] <- round(all_gof$WaterLevel[2]/mean(wl_compare$obs_wl, na.rm=T),digits = 2)
-all_gof$Temp[30] <- round(all_gof$Temp[2]/mean(watertemp$obs_temp, na.rm=T),digits = 2)
+all_gof$Temp[30] <- round(all_gof$Temp[2]/mean(temp_compare$obs_temp, na.rm=T),digits = 2)
 all_gof$DO[30] <- round(all_gof$DO[2]/mean(oxy_compare$obs_oxy, na.rm=T),digits = 2)
 all_gof$NH4[30] <- round(all_gof$NH4[2]/mean(nh4_compare$obs_nh4, na.rm=T),digits = 2)
 all_gof$NO3[30] <- round(all_gof$NO3[2]/mean(no3_compare$obs_no3, na.rm=T),digits = 2)
@@ -377,7 +386,7 @@ all_gof_cal$Parameter[28] <- "r.Spearman_cal"
 all_gof_cal$WaterLevel[30] <- round(all_gof_cal$WaterLevel[2]/mean(
   wl_compare$obs_wl[wl_compare$DateTime < "2021-01-01"], na.rm=T),digits = 2)
 all_gof_cal$Temp[30] <- round(all_gof_cal$Temp[2]/mean(
-  watertemp$obs_temp[watertemp$DateTime < "2021-01-01"], na.rm=T),digits = 2)
+  temp_compare$obs_temp[temp_compare$DateTime < "2021-01-01"], na.rm=T),digits = 2)
 all_gof_cal$DO[30] <- round(all_gof_cal$DO[2]/mean(
   oxy_compare$obs_oxy[oxy_compare$DateTime < "2021-01-01"], na.rm=T),digits = 2)
 all_gof_cal$NH4[30] <- round(all_gof_cal$NH4[2]/mean(
@@ -396,7 +405,7 @@ all_gof_val$Parameter[28] <- "r.Spearman_val"
 all_gof_val$WaterLevel[30] <- round(all_gof_val$WaterLevel[2]/mean(
   wl_compare$obs_wl[wl_compare$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
 all_gof_val$Temp[30] <- round(all_gof_val$Temp[2]/mean(
-  watertemp$obs_temp[watertemp$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
+  temp_compare$obs_temp[temp_compare$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
 all_gof_val$DO[30] <- round(all_gof_val$DO[2]/mean(
   oxy_compare$obs_oxy[oxy_compare$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
 all_gof_val$NH4[30] <- round(all_gof_val$NH4[2]/mean(
@@ -410,12 +419,21 @@ all_gof_val$Chla[30] <- round(all_gof_val$Chla[2]/mean(
 
 # Select GOF variables for the full year
 full_n_all <- c("n_all", length(obs_wl$WaterLevel_m),
-                length(obstemp$temp), length(obs_oxy$OXY_oxy),
+                length(obs_temp$temp), length(obs_oxy$OXY_oxy),
                 length(obs_nh4$NIT_amm), length(obs_no3$NIT_nit),
                 length(obs_po4$PHS_frp), length(obs_chla$PHY_tchla))
 
+# read in the obs dfs for all the vars
+obs_wl <- read.csv("./analysis/data/obs_wl.csv")
+obs_temp <- read.csv("./analysis/data/obs_temp.csv")
+obs_oxy <- read.csv("./analysis/data/obs_oxy.csv")
+obs_no3 <- read.csv("./analysis/data/obs_no3.csv")
+obs_nh4 <- read.csv("./analysis/data/obs_nh4.csv")
+obs_po4 <- read.csv("./analysis/data/obs_po4.csv")
+obs_chla <- read.csv("./analysis/data/obs_chla.csv")
+
 full_n_cal <- c("n_cal",length(obs_wl$DateTime[which(obs_wl$DateTime < "2021-01-01")]),
-                length(obstemp$DateTime[which(obstemp$DateTime < "2021-01-01")]),
+                length(obs_temp$DateTime[which(obs_temp$DateTime < "2021-01-01")]),
                 length(obs_oxy$DateTime[which(obs_oxy$DateTime < "2021-01-01")]),
                 length(obs_nh4$DateTime[which(obs_nh4$DateTime < "2021-01-01")]),
                 length(obs_no3$DateTime[which(obs_no3$DateTime < "2021-01-01")]),
@@ -423,7 +441,7 @@ full_n_cal <- c("n_cal",length(obs_wl$DateTime[which(obs_wl$DateTime < "2021-01-
                 length(obs_chla$DateTime[which(obs_chla$DateTime < "2021-01-01")]))
 
 full_n_val <- c("n_val",length(obs_wl$DateTime[which(obs_wl$DateTime >= "2021-01-01")]),
-                length(obstemp$DateTime[which(obstemp$DateTime >= "2021-01-01")]),
+                length(obs_temp$DateTime[which(obs_temp$DateTime >= "2021-01-01")]),
                 length(obs_oxy$DateTime[which(obs_oxy$DateTime >= "2021-01-01")]),
                 length(obs_nh4$DateTime[which(obs_nh4$DateTime >= "2021-01-01")]),
                 length(obs_no3$DateTime[which(obs_no3$DateTime >= "2021-01-01")]),
@@ -444,7 +462,7 @@ full_gof_table <- rbind(full_n_all,full_gof_all_table,full_n_cal,full_gof_cal_ta
 write_csv(full_gof_table,'figures/table_gof_watercol_bvr_2015-2022.csv')
 
 #-----------------------------------------------------------------------#
-# Surface, full period (2015-2022)
+#### Surface, full period (2015-2022) ####
 all_gof <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","Temp"))
 all_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
                        "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
@@ -475,8 +493,8 @@ all_gof_val$Parameter <- c("ME_val","MAE_val","MSE_val","RMSE_val","ubRMSE",
                            "r.Spearman", "nonparamR2") 
 
 # calculate all gof metrics for full period at surface + all vars
-all_gof$Temp <- c(gof(watertemp$mod_temp[watertemp$Depth %in% 0.1],
-                      watertemp$obs_temp[watertemp$Depth %in% 0.1],do.spearman = TRUE), NA)
+all_gof$Temp <- c(gof(temp_compare$mod_temp[temp_compare$Depth %in% 0.1],
+                      temp_compare$obs_temp[temp_compare$Depth %in% 0.1],do.spearman = TRUE), NA)
 all_gof$DO <- c(gof(oxy_compare$mod_oxy[oxy_compare$Depth %in% 0.1],
                     oxy_compare$obs_oxy[oxy_compare$Depth %in% 0.1],do.spearman = TRUE), NA)
 all_gof$NH4 <- c(gof(nh4_compare$mod_nh4[nh4_compare$Depth %in% 0.1],
@@ -489,7 +507,7 @@ all_gof$Chla <- c(gof(chla_compare$mod_chla[chla_compare$Depth %in% 0.1],
                       chla_compare$obs_chla[chla_compare$Depth %in% 0.1],do.spearman = TRUE), NA)
 
 #create ranked dfs for nonparametric R2 calcs
-comb_temp_rank <- watertemp |> 
+comb_temp_rank <- temp_compare |> 
   filter(Depth %in% 0.1) |>
   mutate(rank_obs = rank(obs_temp),
          rank_mod = rank(mod_temp)) 
@@ -522,11 +540,12 @@ all_gof$NO3[29] <- summary(lm(comb_no3_rank$rank_obs ~ comb_no3_rank$rank_mod))$
 all_gof$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mod))$r.squared
 all_gof$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
 
-# same as above but for CALIBRATION period
-all_gof_cal$Temp <- c(gof(watertemp$mod_temp[watertemp$DateTime< "2021-01-01" & 
-                                               watertemp$Depth %in% 0.1],
-                          watertemp$obs_temp[watertemp$DateTime< "2021-01-01" &
-                                               watertemp$Depth %in% 0.1],
+#-------------------------------------------------------------------------#
+#### Surface, CALIBRATION period (2015-2020) ####
+all_gof_cal$Temp <- c(gof(temp_compare$mod_temp[temp_compare$DateTime< "2021-01-01" & 
+                                                  temp_compare$Depth %in% 0.1],
+                          temp_compare$obs_temp[temp_compare$DateTime< "2021-01-01" &
+                                                  temp_compare$Depth %in% 0.1],
                           do.spearman = TRUE), NA)
 all_gof_cal$DO <- c(gof(oxy_compare$mod_oxy[oxy_compare$DateTime< "2021-01-01" &
                                               oxy_compare$Depth %in% 0.1],
@@ -555,7 +574,7 @@ all_gof_cal$Chla <- c(gof(chla_compare$mod_chla[chla_compare$DateTime< "2021-01-
                           do.spearman = TRUE), NA)
 
 #create ranked dfs for nonparametric R2 calcs
-comb_temp_rank <- watertemp |>  
+comb_temp_rank <- temp_compare |>  
   filter(DateTime < "2021-01-01",
          Depth %in% 0.1) |> 
   mutate(rank_obs = rank(obs_temp),
@@ -595,11 +614,12 @@ all_gof_cal$NO3[29] <- summary(lm(comb_no3_rank$rank_obs ~ comb_no3_rank$rank_mo
 all_gof_cal$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mod))$r.squared
 all_gof_cal$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
 
-# now VALIDATION period
-all_gof_val$Temp <- c(gof(watertemp$mod_temp[watertemp$DateTime >= "2021-01-01" &
-                                               watertemp$Depth %in% 0.1],
-                          watertemp$obs_temp[watertemp$DateTime >= "2021-01-01" &
-                                               watertemp$Depth %in% 0.1],
+#--------------------------------------------------------------------#
+#### Surface VALIDATION period (2021-2022) ####
+all_gof_val$Temp <- c(gof(temp_compare$mod_temp[temp_compare$DateTime >= "2021-01-01" &
+                                                  temp_compare$Depth %in% 0.1],
+                          temp_compare$obs_temp[temp_compare$DateTime >= "2021-01-01" &
+                                                  temp_compare$Depth %in% 0.1],
                           do.spearman = TRUE), NA)
 all_gof_val$DO <- c(gof(oxy_compare$mod_oxy[oxy_compare$DateTime >= "2021-01-01" &
                                               oxy_compare$Depth %in% 0.1],
@@ -628,7 +648,7 @@ all_gof_val$Chla <- c(gof(chla_compare$mod_chla[chla_compare$DateTime >= "2021-0
                           do.spearman = TRUE), NA)
 
 #create ranked dfs for nonparametric R2 calcs
-comb_temp_rank <- watertemp |>  
+comb_temp_rank <- temp_compare |>  
   filter(DateTime >= "2021-01-01",
          Depth %in% 0.1) |> 
   mutate(rank_obs = rank(obs_temp),
@@ -667,13 +687,13 @@ all_gof_val$NO3[29] <- summary(lm(comb_no3_rank$rank_obs ~ comb_no3_rank$rank_mo
 all_gof_val$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mod))$r.squared
 all_gof_val$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
 
-####Cleaning up table ####
+# Cleaning up table 
 ## Add NMAE calculation for all parameters
 # all_gof
 all_gof[nrow(all_gof)+1,] <- NA
 all_gof[30,1] <- "NMAE_all"
 all_gof$Parameter[28] <- "r.Spearman_all"
-all_gof$Temp[30] <- round(all_gof$Temp[2]/mean(watertemp$obs_temp[watertemp$Depth %in% 0.1], 
+all_gof$Temp[30] <- round(all_gof$Temp[2]/mean(temp_compare$obs_temp[temp_compare$Depth %in% 0.1], 
                                                na.rm=T),digits = 2)
 all_gof$DO[30] <- round(all_gof$DO[2]/mean(oxy_compare$obs_oxy[oxy_compare$Depth %in% 0.1],
                                            na.rm=T),digits = 2)
@@ -691,8 +711,8 @@ all_gof_cal[nrow(all_gof_cal)+1,] <- NA
 all_gof_cal[30,1] <- "NMAE_cal"
 all_gof_cal$Parameter[28] <- "r.Spearman_cal"
 all_gof_cal$Temp[30] <- round(all_gof_cal$Temp[2]/mean(
-  watertemp$obs_temp[watertemp$DateTime < "2021-01-01" & 
-                       watertemp$Depth %in% 0.1], na.rm=T),digits = 2)
+  temp_compare$obs_temp[temp_compare$DateTime < "2021-01-01" & 
+                          temp_compare$Depth %in% 0.1], na.rm=T),digits = 2)
 all_gof_cal$DO[30] <- round(all_gof_cal$DO[2]/mean(
   oxy_compare$obs_oxy[oxy_compare$DateTime < "2021-01-01" & 
                         oxy_compare$Depth %in% 0.1], na.rm=T),digits = 2)
@@ -714,8 +734,8 @@ all_gof_val[nrow(all_gof_val)+1,] <- NA
 all_gof_val[30,1] <- "NMAE_val"
 all_gof_val$Parameter[28] <- "r.Spearman_val"
 all_gof_val$Temp[30] <- round(all_gof_val$Temp[2]/mean(
-  watertemp$obs_temp[watertemp$DateTime >= "2021-01-01" &
-                       watertemp$Depth %in% 0.1], na.rm=T),digits = 2)
+  temp_compare$obs_temp[temp_compare$DateTime >= "2021-01-01" &
+                          temp_compare$Depth %in% 0.1], na.rm=T),digits = 2)
 all_gof_val$DO[30] <- round(all_gof_val$DO[2]/mean(
   oxy_compare$obs_oxy[oxy_compare$DateTime >= "2021-01-01" &
                         oxy_compare$Depth %in% 0.1], na.rm=T),digits = 2)
@@ -734,7 +754,7 @@ all_gof_val$Chla[30] <- round(all_gof_val$Chla[2]/mean(
 
 # Select GOF variables for the full year
 full_n_all <- c("n_all", 
-                length(obstemp$temp[obstemp$Depth %in% 0.1]), 
+                length(obs_temp$temp[obs_temp$Depth %in% 0.1]), 
                 length(obs_oxy$OXY_oxy[obs_oxy$Depth %in% 0.1]),
                 length(obs_nh4$NIT_amm[obs_nh4$Depth %in% 0.1]),
                 length(obs_no3$NIT_nit[obs_no3$Depth %in% 0.1]),
@@ -742,8 +762,8 @@ full_n_all <- c("n_all",
                 length(obs_chla$PHY_tchla[obs_chla$Depth %in% 0.1]))
 
 full_n_cal <- c("n_cal",
-                length(obstemp$DateTime[which(obstemp$DateTime < "2021-01-01" &
-                                                obstemp$Depth %in% 0.1)]),
+                length(obs_temp$DateTime[which(obs_temp$DateTime < "2021-01-01" &
+                                                obs_temp$Depth %in% 0.1)]),
                 length(obs_oxy$DateTime[which(obs_oxy$DateTime < "2021-01-01" &
                                                 obs_oxy$Depth %in% 0.1)]),
                 length(obs_nh4$DateTime[which(obs_nh4$DateTime < "2021-01-01" &
@@ -756,8 +776,8 @@ full_n_cal <- c("n_cal",
                                                  obs_chla$Depth %in% 0.1)]))
 
 full_n_val <- c("n_val",
-                length(obstemp$DateTime[which(obstemp$DateTime >= "2021-01-01" &
-                                                obstemp$Depth %in% 0.1)]),
+                length(obs_temp$DateTime[which(obs_temp$DateTime >= "2021-01-01" &
+                                                obs_temp$Depth %in% 0.1)]),
                 length(obs_oxy$DateTime[which(obs_oxy$DateTime >= "2021-01-01" &
                                                 obs_oxy$Depth %in% 0.1)]),
                 length(obs_nh4$DateTime[which(obs_nh4$DateTime >= "2021-01-01" &
@@ -783,7 +803,7 @@ full_gof_table <- rbind(full_n_all,full_gof_all_table,full_n_cal,full_gof_cal_ta
 write_csv(full_gof_table,'figures/table_gof_surface_bvr_2015-2022.csv')
 
 #-------------------------------------------------------------------------#
-# GOF table for zoops
+#### GOF table for zoops ####
 
 nc_file = paste0("sims/spinup/baseline/output/output.nc")  
 
@@ -889,7 +909,7 @@ zoop_gof$clad[29] <- summary(lm(comb_clad_rank$rank_obs ~ comb_clad_rank$rank_mo
 zoop_gof$cope[29] <- summary(lm(comb_cope_rank$rank_obs ~ comb_cope_rank$rank_mod))$r.squared
 zoop_gof$rot[29] <- summary(lm(comb_rot_rank$rank_obs ~ comb_rot_rank$rank_mod))$r.squared
 
-####Cleaning up table ####
+#Cleaning up table
 ## Add NMAE calculation for all parameters
 zoop_gof[nrow(zoop_gof)+1,] <- NA
 zoop_gof[30,1] <- "NMAE_all"

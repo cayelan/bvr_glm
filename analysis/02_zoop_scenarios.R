@@ -998,14 +998,11 @@ zoop_timing <- zoop_scenarios |>
   
   # standardize plankton biomass
   plankton_standardized <- plankton |>
-    group_by(plankton) |>
-    mutate(standardized_biom = if_else(plankton == "total_phytos", 
-                                  (value - mean(value, na.rm = TRUE)) / 
-                                    sd(value, na.rm = TRUE),
-                                  if_else(plankton == "total_zoops", 
-                                          (value - mean(value, na.rm = TRUE)) / 
-                                            sd(value, na.rm = TRUE),
-                                          NA_real_))) |>
+    mutate(DateTime = as.Date(DateTime),
+           month = lubridate::month(DateTime)) |>
+    group_by(plankton, month) |>
+    mutate(standardized_biom = (value - mean(value, na.rm = TRUE)) / 
+             sd(value, na.rm = TRUE)) |>
     ungroup()
   
   # smoothed monthly biomass for each scenario
