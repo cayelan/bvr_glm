@@ -2,147 +2,164 @@
 
 pacman::p_load(tidyverse, hydroGOF, glmtools)
 
+# note - obs and mod water quality variable outputs are saved in csvs below so no need to run this chunk of code that is commented out!
 #rerun var code for baseline condiitons
-nc_file = paste0("sims/spinup/baseline/output/output.nc")  
-
-depths<- c(0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
-
-# water level
-obs_wl <- read_csv("./inputs/BVR_Daily_WaterLevel_Vol_2015_2022_interp.csv") |>
-  mutate(DateTime = as.POSIXct(strptime(Date, "%Y-%m-%d", tz="EST")),
-         Depth = "0.1") |>
-  filter(Date > as.POSIXct("2015-07-08") & Date < as.POSIXct("2022-05-04")) |>
-  select(-c(vol_m3,Date))
-
-mod_wl <- get_surface_height(nc_file, ice.rm = TRUE, snow.rm = TRUE) |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
-  filter(DateTime > as.POSIXct("2015-07-09"))  |>
-  mutate(Depth = "0.1") |> # to get wl in the same df as 0.1m vars
-  rename(mod_wl = surface_height) |>
-  select(DateTime,Depth,mod_wl)
-
-wl_compare <-mod_wl |>
-  mutate(obs_wl = obs_wl$WaterLevel_m) |>
-  select(DateTime,Depth,mod_wl,obs_wl)
-
-# temp
-obstemp<-read_csv('field_data/CleanedObsTemp.csv') |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
-  filter(DateTime >= "2015-07-07")
-
-modtemp <- get_temp(nc_file, reference="surface", z_out=depths) |> 
-  pivot_longer(cols=starts_with("temp_"), names_to="Depth", names_prefix="temp_", values_to = "temp") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
-  filter(DateTime >= "2015-07-07")
-
-watertemp<-merge(modtemp, obstemp, by=c("DateTime","Depth")) |> 
-  rename(mod_temp = temp.x, obs_temp = temp.y)
-
-# DO
-obs_oxy<-read.csv('field_data/CleanedObsOxy.csv') |> 
-  select(-OXY_sat) |>
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))|>
-  filter(DateTime >= "2015-07-07")
-
-mod_oxy <- get_var(nc_file, "OXY_oxy", reference='surface', z_out=depths) |> 
-  pivot_longer(cols=starts_with("OXY_oxy_"), names_to="Depth", names_prefix="OXY_oxy_", values_to = "OXY_oxy")  |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
-  filter(DateTime >= "2015-07-07")
-
-oxy_compare <- merge(mod_oxy, obs_oxy, by=c("DateTime","Depth")) |> 
-  rename(mod_oxy = OXY_oxy.x, obs_oxy = OXY_oxy.y)
-
-# NH4
-obs_nh4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
-  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, NIT_amm) |>
-  filter(DateTime >= "2015-07-07")
-
-mod_nh4 <- get_var(nc_file, "NIT_amm", reference="surface", z_out=depths) |> 
-  pivot_longer(cols=starts_with("NIT_amm_"), names_to="Depth", names_prefix="NIT_amm_", values_to = "NIT_amm") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))|>
-  filter(DateTime >= "2015-07-07") 
-
-nh4_compare<-merge(mod_nh4, obs_nh4, by=c("DateTime","Depth")) |> 
-  rename(mod_nh4 = NIT_amm.x, obs_nh4 = NIT_amm.y)
-
-# NO3
-obs_no3 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
-  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, NIT_nit) |>
-  filter(DateTime >= "2015-07-07")
-
-mod_no3 <- get_var(nc_file, "NIT_nit", reference="surface", z_out=depths) |> 
-  pivot_longer(cols=starts_with("NIT_nit_"), names_to="Depth", names_prefix="NIT_nit_", values_to = "NIT_nit") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
-  filter(DateTime >= "2015-07-07")
-
-no3_compare<-merge(mod_no3, obs_no3, by=c("DateTime","Depth")) |> 
-  rename(mod_no3 = NIT_nit.x, obs_no3 = NIT_nit.y)
-
-# PO4
-obs_po4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
-  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, PHS_frp) |>
-  filter(DateTime >= "2015-07-07")
-
-mod_po4 <- get_var(nc_file, "PHS_frp", reference="surface", z_out=depths) |> 
-  pivot_longer(cols=starts_with("PHS_frp_"), names_to="Depth", names_prefix="PHS_frp_", values_to = "PHS_frp") |> 
-  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
-  filter(DateTime >= "2015-07-07")
-
-po4_compare<-merge(mod_po4, obs_po4, by=c("DateTime","Depth")) |> 
-  rename(mod_po4 = PHS_frp.x, obs_po4 = PHS_frp.y)
-
-# chl a
-obs_chla <- read.csv('field_data/CleanedObsChla.csv', header=TRUE) |> 
-  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
-  select(DateTime, Depth, PHY_tchla) |>
-  filter(DateTime >= "2015-07-07")
-
-#read mod chla - calculating this by hand bc something is wrong with the glm aed calc
-cyano <- glmtools::get_var(file = nc_file, var_name = "PHY_cyano", z_out = depths) |>
-  tidyr::pivot_longer(cols = starts_with("PHY_cyano"), 
-                      names_to = "Depth",names_prefix = "PHY_cyano.elv_", 
-                      values_to = "PHY_cyano") |>
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::filter(DateTime >= "2015-07-08") |>
-  select(DateTime, Depth, PHY_cyano)
-
-green <- glmtools::get_var(file = nc_file, var_name = "PHY_green", z_out = depths) |>
-  tidyr::pivot_longer(cols = starts_with("PHY_green"), 
-                      names_to = "Depth",names_prefix = "PHY_green.elv_", 
-                      values_to = "PHY_green") |>
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::filter(DateTime >= "2015-07-08") |>
-  select(DateTime, Depth, PHY_green)
-
-diatom <- glmtools::get_var(file = nc_file, var_name = "PHY_diatom", z_out = depths) |>
-  tidyr::pivot_longer(cols = starts_with("PHY_diatom"), 
-                      names_to = "Depth",names_prefix = "PHY_diatom.elv_", values_to = "PHY_diatom") |>
-  dplyr::mutate(DateTime = as.Date(DateTime)) |>
-  dplyr::filter(DateTime >= "2015-07-08") |>
-  select(DateTime, Depth, PHY_diatom)
-
-#combine into one df 
-phytos <- purrr::reduce(list(cyano, green, diatom), dplyr::full_join) 
-
-#convert from wide to long for plotting
-mod_chla <- phytos |> 
-  tidyr::pivot_longer(cols = -c(DateTime,Depth), 
-                      names_pattern = "(...)_(...*)$",
-                      names_to = c("mod", "taxon")) |> 
-  group_by(DateTime,Depth) |>
-  mutate(group_chl = ifelse(taxon=="cyano", (value * 12) / 80,
-                            ifelse(taxon=="green", (value * 12) / 30,
-                                   (value * 12) / 40))) |>
-  summarise(PHY_tchla = sum(group_chl)) |>
-  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
-
-chla_compare <- merge(mod_chla, obs_chla, by = c("DateTime","Depth")) |> 
-  rename(mod_chla = PHY_tchla.x, obs_chla = PHY_tchla.y) 
+#nc_file = paste0("sims/spinup/baseline/output/output.nc")  
+#
+#depths<- c(0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+#
+## water level
+#obs_wl <- read_csv("./inputs/BVR_Daily_WaterLevel_Vol_2015_2022_interp.csv") |>
+#  mutate(DateTime = as.POSIXct(strptime(Date, "%Y-%m-%d", tz="EST")),
+#         Depth = "0.1") |>
+#  filter(Date > as.POSIXct("2015-07-08") & Date < as.POSIXct("2022-05-04")) |>
+#  select(-c(vol_m3,Date))
+#
+#mod_wl <- get_surface_height(nc_file, ice.rm = TRUE, snow.rm = TRUE) |> 
+#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+#  filter(DateTime > as.POSIXct("2015-07-09"))  |>
+#  mutate(Depth = "0.1") |> # to get wl in the same df as 0.1m vars
+#  rename(mod_wl = surface_height) |>
+#  select(DateTime,Depth,mod_wl)
+#
+#wl_compare <-mod_wl |>
+#  mutate(obs_wl = obs_wl$WaterLevel_m) |>
+#  select(DateTime,Depth,mod_wl,obs_wl)
+#write.csv(wl_compare, "./analysis/data/wl_compare.csv", row.names = F)
+#
+## temp
+#obstemp<-read_csv('field_data/CleanedObsTemp.csv') |> 
+#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+#  filter(DateTime >= "2015-07-07")
+#
+#modtemp <- get_temp(nc_file, reference="surface", z_out=depths) |> 
+#  pivot_longer(cols=starts_with("temp_"), names_to="Depth", names_prefix="temp_", values_to = "temp") |> 
+#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+#  filter(DateTime >= "2015-07-07")
+#
+#watertemp<-merge(modtemp, obstemp, by=c("DateTime","Depth")) |> 
+#  rename(mod_temp = temp.x, obs_temp = temp.y)
+#write.csv(watertemp, "./analysis/data/temp_compare.csv", row.names = F)
+#
+## DO
+#obs_oxy<-read.csv('field_data/CleanedObsOxy.csv') |> 
+#  select(-OXY_sat) |>
+#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))|>
+#  filter(DateTime >= "2015-07-07")
+#
+#mod_oxy <- get_var(nc_file, "OXY_oxy", reference='surface', z_out=depths) |> 
+#  pivot_longer(cols=starts_with("OXY_oxy_"), names_to="Depth", names_prefix="OXY_oxy_", values_to = "OXY_oxy")  |> 
+#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+#  filter(DateTime >= "2015-07-07")
+#
+#oxy_compare <- merge(mod_oxy, obs_oxy, by=c("DateTime","Depth")) |> 
+#  rename(mod_oxy = OXY_oxy.x, obs_oxy = OXY_oxy.y)
+#write.csv(oxy_compare, "./analysis/data/oxy_compare.csv", row.names = F)
+#
+## NH4
+#obs_nh4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
+#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
+#  select(DateTime, Depth, NIT_amm) |>
+#  filter(DateTime >= "2015-07-07")
+#
+#mod_nh4 <- get_var(nc_file, "NIT_amm", reference="surface", z_out=depths) |> 
+#  pivot_longer(cols=starts_with("NIT_amm_"), names_to="Depth", names_prefix="NIT_amm_", values_to = "NIT_amm") |> 
+#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST")))|>
+#  filter(DateTime >= "2015-07-07") 
+#
+#nh4_compare<-merge(mod_nh4, obs_nh4, by=c("DateTime","Depth")) |> 
+#  rename(mod_nh4 = NIT_amm.x, obs_nh4 = NIT_amm.y)
+#write.csv(nh4_compare, "./analysis/data/nh4_compare.csv", row.names = F)
+#
+## NO3
+#obs_no3 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
+#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
+#  select(DateTime, Depth, NIT_nit) |>
+#  filter(DateTime >= "2015-07-07")
+#
+#mod_no3 <- get_var(nc_file, "NIT_nit", reference="surface", z_out=depths) |> 
+#  pivot_longer(cols=starts_with("NIT_nit_"), names_to="Depth", names_prefix="NIT_nit_", values_to = "NIT_nit") |> 
+#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+#  filter(DateTime >= "2015-07-07")
+#
+#no3_compare<-merge(mod_no3, obs_no3, by=c("DateTime","Depth")) |> 
+#  rename(mod_no3 = NIT_nit.x, obs_no3 = NIT_nit.y)
+#write.csv(nh4_compare, "./analysis/data/no3_compare.csv", row.names = F)
+#
+## PO4
+#obs_po4 <- read.csv('field_data/field_chem_2DOCpools.csv', header=TRUE) |> 
+#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
+#  select(DateTime, Depth, PHS_frp) |>
+#  filter(DateTime >= "2015-07-07")
+#
+#mod_po4 <- get_var(nc_file, "PHS_frp", reference="surface", z_out=depths) |> 
+#  pivot_longer(cols=starts_with("PHS_frp_"), names_to="Depth", names_prefix="PHS_frp_", values_to = "PHS_frp") |> 
+#  mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |>
+#  filter(DateTime >= "2015-07-07")
+#
+#po4_compare<-merge(mod_po4, obs_po4, by=c("DateTime","Depth")) |> 
+#  rename(mod_po4 = PHS_frp.x, obs_po4 = PHS_frp.y)
+#write.csv(po4_compare, "./analysis/data/po4_compare.csv", row.names = F)
+#
+## chl a
+#obs_chla <- read.csv('field_data/CleanedObsChla.csv', header=TRUE) |> 
+#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) |> 
+#  select(DateTime, Depth, PHY_tchla) |>
+#  filter(DateTime >= "2015-07-07")
+#
+##read mod chla - calculating this by hand bc something is wrong with the glm aed calc
+#cyano <- glmtools::get_var(file = nc_file, var_name = "PHY_cyano", z_out = depths) |>
+#  tidyr::pivot_longer(cols = starts_with("PHY_cyano"), 
+#                      names_to = "Depth",names_prefix = "PHY_cyano.elv_", 
+#                      values_to = "PHY_cyano") |>
+#  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+#  dplyr::filter(DateTime >= "2015-07-08") |>
+#  select(DateTime, Depth, PHY_cyano)
+#
+#green <- glmtools::get_var(file = nc_file, var_name = "PHY_green", z_out = depths) |>
+#  tidyr::pivot_longer(cols = starts_with("PHY_green"), 
+#                      names_to = "Depth",names_prefix = "PHY_green.elv_", 
+#                      values_to = "PHY_green") |>
+#  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+#  dplyr::filter(DateTime >= "2015-07-08") |>
+#  select(DateTime, Depth, PHY_green)
+#
+#diatom <- glmtools::get_var(file = nc_file, var_name = "PHY_diatom", z_out = depths) |>
+#  tidyr::pivot_longer(cols = starts_with("PHY_diatom"), 
+#                      names_to = "Depth",names_prefix = "PHY_diatom.elv_", values_to = "PHY_diatom") |>
+#  dplyr::mutate(DateTime = as.Date(DateTime)) |>
+#  dplyr::filter(DateTime >= "2015-07-08") |>
+#  select(DateTime, Depth, PHY_diatom)
+#
+##combine into one df 
+#phytos <- purrr::reduce(list(cyano, green, diatom), dplyr::full_join) 
+#
+##convert from wide to long for plotting
+#mod_chla <- phytos |> 
+#  tidyr::pivot_longer(cols = -c(DateTime,Depth), 
+#                      names_pattern = "(...)_(...*)$",
+#                      names_to = c("mod", "taxon")) |> 
+#  group_by(DateTime,Depth) |>
+#  mutate(group_chl = ifelse(taxon=="cyano", (value * 12) / 80,
+#                            ifelse(taxon=="green", (value * 12) / 30,
+#                                   (value * 12) / 40))) |>
+#  summarise(PHY_tchla = sum(group_chl)) |>
+#  dplyr::mutate(DateTime = as.POSIXct(strptime(DateTime, "%Y-%m-%d", tz="EST"))) 
+#
+#chla_compare <- merge(mod_chla, obs_chla, by = c("DateTime","Depth")) |> 
+#  rename(mod_chla = PHY_tchla.x, obs_chla = PHY_tchla.y) 
+#write.csv(chla_compare, "./analysis/data/chla_compare.csv", row.names = F)
 
 #-----------------------------------------------------------------------#
+# read in all of the water quality var csvs
+wl_compare <- read.csv("./analysis/data/wl_compare.csv")
+temp_compare <- read.csv("./analysis/data/temp_compare.csv")
+oxy_compare <- read.csv("./analysis/data/oxy_compare.csv")
+no3_compare <- read.csv("./analysis/data/no3_compare.csv")
+nh4_compare <- read.csv("./analysis/data/nh4_compare.csv")
+po4_compare <- read.csv("./analysis/data/po4_compare.csv")
+chla_compare <- read.csv("./analysis/data/chla_compare.csv")
+
 # Full water column, full period (2015-2022)
 all_gof <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","Temp"))
 all_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
