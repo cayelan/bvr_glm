@@ -303,7 +303,7 @@ all_gof_cal$PO4[29] <- summary(lm(comb_po4_rank$rank_obs ~ comb_po4_rank$rank_mo
 all_gof_cal$Chla[29] <- summary(lm(comb_chla_rank$rank_obs ~ comb_chla_rank$rank_mod))$r.squared
 
 #--------------------------------------------------------------------------#
-#### Full water column, VALIDATION period (2020-2021) ####
+#### Full water column, VALIDATION period (2021-2022) ####
 all_gof_val$WaterLevel <- c(gof(wl_compare$mod_wl[wl_compare$DateTime >= "2021-01-01"],
                                 wl_compare$obs_wl[wl_compare$DateTime >= "2021-01-01"],
                           do.spearman = TRUE), NA)
@@ -805,72 +805,31 @@ write_csv(full_gof_table,'figures/table_gof_surface_bvr_2015-2022.csv')
 #-------------------------------------------------------------------------#
 #### GOF table for zoops ####
 
-nc_file = paste0("sims/spinup/baseline/output/output.nc")  
-
-#save zoop output
-var="ZOO_cladoceran"
+clad <- read.csv("analysis/data/all_zoops.csv") |>
+  select(DateTime, ZOO_cladoceran) |>
+  mutate(DateTime = as.Date(DateTime))
 clad_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
   dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-  dplyr::select(DateTime, var) |> 
-  na.omit()  
-
-# Function to get zoop data for varying depths
-get_zoops <- function(depths, nc_file, var) {
-  lapply(depths, function(z) {
-    if (z == 0) {
-      glmtools::get_var(file = nc_file, var_name = var, z_out = z, reference = 'surface')
-    } else {
-      glmtools::get_var(file = nc_file, var_name = var, z_out = z, reference = 'surface') |>
-        dplyr::select(-DateTime)
-    }
-  }) |> 
-    dplyr::bind_cols()
-  
-}
-
-# Define depth range and call the function
-depths <- seq(0, 11, by = 0.5)
-clad_full_wc <- get_zoops(depths, nc_file, var)
-
-#sum all depths
-clad <- clad_full_wc |> 
-  dplyr::mutate(ZOO_cladoceran = rowSums(dplyr::across(where(is.numeric)),na.rm=TRUE)) |>
   dplyr::select(DateTime, ZOO_cladoceran) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime))  |>
-  dplyr::filter(DateTime >= "2015-07-08")
+  na.omit() 
 
-var="ZOO_copepod"
+cope <- read.csv("analysis/data/all_zoops.csv") |>
+  select(DateTime, ZOO_copepod) |>
+  mutate(DateTime = as.Date(DateTime))
 cope_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
   dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-  dplyr::select(DateTime, var) |> 
+  dplyr::select(DateTime, ZOO_copepod) |> 
   na.omit() 
 
-cope_full_wc <- get_zoops(depths, nc_file, var)
-
-#sum all depths
-cope <- cope_full_wc |> 
-  dplyr::mutate(ZOO_copepod = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-  dplyr::select(DateTime, ZOO_copepod) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime))  |>
-  dplyr::filter(DateTime >= "2015-07-08")
-
-
-var="ZOO_rotifer"
+rot <- read.csv("analysis/data/all_zoops.csv") |>
+  select(DateTime, ZOO_rotifer) |>
+  mutate(DateTime = as.Date(DateTime))
 rot_obs<-read.csv('field_data/field_zoops.csv', header=TRUE) |>  
   dplyr::mutate(DateTime = as.Date(DateTime)) |> 
-  dplyr::select(DateTime, var) |> 
+  dplyr::select(DateTime, ZOO_rotifer) |> 
   na.omit() 
 
-rot_full_wc <- get_zoops(depths, nc_file, var)
-
-#sum all depths
-rot <- rot_full_wc |> 
-  dplyr::mutate(ZOO_rotifer = rowSums(dplyr::across(where(is.numeric)),na.rm=T)) |>
-  dplyr::select(DateTime, ZOO_rotifer) |> 
-  dplyr::mutate(DateTime = as.Date(DateTime))  |>
-  dplyr::filter(DateTime >= "2015-07-08")
-
-# Full water column, full period (2015-2022)
+### Full water column, full period (2015-2022) ####
 zoop_gof <- setNames(data.frame(matrix(ncol=2,nrow=29)),c("Parameter","clad"))
 zoop_gof$Parameter <- c("ME_all","MAE_all","MSE_all","RMSE_all","ubRMSE_all",
                         "NRMSE%_all","PBIAS%_all","RSR_all","rSD_all",
