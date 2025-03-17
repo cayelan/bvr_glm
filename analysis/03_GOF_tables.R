@@ -417,12 +417,6 @@ all_gof_val$PO4[30] <- round(all_gof_val$PO4[2]/mean(
 all_gof_val$Chla[30] <- round(all_gof_val$Chla[2]/mean(
   chla_compare$obs_chla[chla_compare$DateTime >= "2021-01-01"], na.rm=T),digits = 2)
 
-# Select GOF variables for the full year
-full_n_all <- c("n_all", length(obs_wl$WaterLevel_m),
-                length(obs_temp$temp), length(obs_oxy$OXY_oxy),
-                length(obs_nh4$NIT_amm), length(obs_no3$NIT_nit),
-                length(obs_po4$PHS_frp), length(obs_chla$PHY_tchla))
-
 # read in the obs dfs for all the vars
 obs_wl <- read.csv("./analysis/data/obs_wl.csv")
 obs_temp <- read.csv("./analysis/data/obs_temp.csv")
@@ -431,6 +425,12 @@ obs_no3 <- read.csv("./analysis/data/obs_no3.csv")
 obs_nh4 <- read.csv("./analysis/data/obs_nh4.csv")
 obs_po4 <- read.csv("./analysis/data/obs_po4.csv")
 obs_chla <- read.csv("./analysis/data/obs_chla.csv")
+
+# Select GOF variables for the full year
+full_n_all <- c("n_all", length(obs_wl$WaterLevel_m),
+                length(obs_temp$temp), length(obs_oxy$OXY_oxy),
+                length(obs_nh4$NIT_amm), length(obs_no3$NIT_nit),
+                length(obs_po4$PHS_frp), length(obs_chla$PHY_tchla))
 
 full_n_cal <- c("n_cal",length(obs_wl$DateTime[which(obs_wl$DateTime < "2021-01-01")]),
                 length(obs_temp$DateTime[which(obs_temp$DateTime < "2021-01-01")]),
@@ -459,7 +459,7 @@ full_gof_val_table <- all_gof_val %>%
 
 full_gof_table <- rbind(full_n_all,full_gof_all_table,full_n_cal,full_gof_cal_table,full_n_val,full_gof_val_table)
 
-write_csv(full_gof_table,'figures/table_gof_watercol_bvr_2015-2022.csv')
+#write_csv(full_gof_table,'figures/table_gof_watercol_bvr_2015-2022.csv')
 
 #-----------------------------------------------------------------------#
 #### Surface, full period (2015-2022) ####
@@ -800,7 +800,7 @@ full_gof_val_table <- all_gof_val %>%
 
 full_gof_table <- rbind(full_n_all,full_gof_all_table,full_n_cal,full_gof_cal_table,full_n_val,full_gof_val_table)
 
-write_csv(full_gof_table,'figures/table_gof_surface_bvr_2015-2022.csv')
+#write_csv(full_gof_table,'figures/table_gof_surface_bvr_2015-2022.csv')
 
 #-------------------------------------------------------------------------#
 #### GOF table for zoops ####
@@ -891,7 +891,7 @@ zoop_gof_all_table <- zoop_gof %>%
 
 zoop_gof_table <- rbind(full_n_all,zoop_gof_all_table)
 
-write_csv(zoop_gof_table,'figures/table_gof_bvr_zoops_2015-2022.csv')
+#write_csv(zoop_gof_table,'figures/table_gof_bvr_zoops_2015-2022.csv')
 
 # calculate total RMSE for all zoop groups for ms result text
 sqrt(as.numeric(zoop_gof_table$clad[zoop_gof_table$Parameter=="RMSE_all"])^2 +
