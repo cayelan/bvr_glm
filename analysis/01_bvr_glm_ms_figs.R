@@ -1,4 +1,5 @@
-# Script for generating BVR glm aed ms figures and tables
+# Script for generating BVR GLM-AED manuscript figures and tables
+# Written by Heather Wander
 # 20 Aug 2024
 
 #install hydroGOF

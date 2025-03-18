@@ -1,4 +1,6 @@
-# plankton full water column aggregation script
+# Plankton full water column aggregation script
+# Written by Heather Wander
+# 22 August 2024
 
 pacman::p_load(ggplot2, dplyr, scales, NatParksPalettes, 
                glmtools, tagger, cowplot, tidyr)

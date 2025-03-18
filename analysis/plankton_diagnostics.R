@@ -1,6 +1,8 @@
-#miscellaneous code for checking on plankton dynamics and creating zoop_diagnostics.csv
+# Miscellaneous code for checking on plankton dynamics and creating zoop_diagnostics.csv
+# Written by Heather Wander
+# 22 August 2024
 
-pacman::p_load(scales, ggplot2, glmtools, dplyr, tidyr)
+pacman::p_load(scales, ggplot2, glmtools, dplyr, tidyr, NatParksPalettes)
 
 scenario <- c("baseline","plus1", "plus5","plus10")
 

@@ -1,4 +1,6 @@
-# script to prep glm nml file and met/inflow files for 15-year spin-up
+# Script to prep GLM files and met/inflow driver files for 15-year spin-up
+# written by Heather Wander
+# 22 August 2024
 
 #load packages
 pacman::p_load(glmtools, zoo, dplyr)

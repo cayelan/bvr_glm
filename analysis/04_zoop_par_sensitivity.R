@@ -1,4 +1,6 @@
-# sensitivity analysis for zoop pars that differ among taxa
+# Sensitivity analysis for GLM-AED zoop parameters that differ among taxa
+# written by Heather Wander 
+# 20 December 2024
 
 # load packages
 pacman::p_load(dplyr)

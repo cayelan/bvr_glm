@@ -1,5 +1,7 @@
-#visualize projected temp in Roanoke/vinton
-#CCSM4 max temp projection under RCP 8.5 and 4.5
+# Visualize projected future air temperatures in Roanoke/Vinton, VA, USA
+# Temp projections under RCP 8.5 and 4.5
+# written by Heather Wander
+# 22 August 2024
 
 pacman::p_load(tidyverse)
 

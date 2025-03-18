@@ -1,4 +1,7 @@
-# need to automate this and have the output save in separate folders instead of overwriting
+# script to plot and analyze zooplankton output from GLM-AED
+# written by Heather Wander
+# 22 August 2024
+# note that this script is not automated and output will overwrite itself
 
 pacman::p_load(ggplot2, dplyr, scales, NatParksPalettes, 
                glmtools, tagger, cowplot, tidyr)

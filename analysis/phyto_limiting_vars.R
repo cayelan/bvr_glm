@@ -1,5 +1,6 @@
 # Script to identify limiting vars for phyto groups
-# 17 Sep 2024 - adapted from CCC
+# Written by Cayelan Carey and Heather Wander
+# 17 Sep 2024
 
 #### phyto succession ####
 

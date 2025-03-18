@@ -1,4 +1,6 @@
 # Goodness of fit tables for full water column and 0.1m
+# Written by Heather Wander
+# 22 Aug 2024
 
 pacman::p_load(tidyverse, hydroGOF, glmtools)
 

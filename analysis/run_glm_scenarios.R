@@ -1,5 +1,7 @@
 # script to run glm and generate output.nc file
 # Note - run spin-up.R first!
+# written by Heather Wander
+# 22 August 2024
 
 # install glmtools
 devtools::install_github("rqthomas/glmtools", force = TRUE)

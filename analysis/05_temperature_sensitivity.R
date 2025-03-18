@@ -1,5 +1,7 @@
-#growth as a function of temperature for zoops/phytos
-#adapted from python source code (aed_util.F90) 
+# Plotting growth as a function of temperature for zoops/phytos
+# adapted from python source code by Hipsey et al. 2024 GLM-AED model (aed_util.F90) 
+# written by Heather Wander
+# 15 March 2025
 
 library(ggplot2, glmtools)
 

@@ -1,4 +1,5 @@
-# Plankton air temp scenarios
+# Analyzing the air temp scenarios on plankton responses
+# Written by Heather Wander
 # 22 August 2024
 
 devtools::install_github("eliocamp/tagger")
